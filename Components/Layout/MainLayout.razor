@@ -1,0 +1,35 @@
+﻿@using AIStoryBuilders.Model
+@inherits LayoutComponentBase
+@inject Blazored.LocalStorage.ISyncLocalStorageService localStorage
+@inject SettingsService SettingsService
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+
+    </main>
+</div>
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load Settings
+        await SettingsService.LoadSettingsAsync();
+
+        var Organization = SettingsService.Organization;
+        var ApiKey = SettingsService.ApiKey;
+        var AIModel = SettingsService.AIModel;
+
+        // call the base class
+        base.OnInitialized();
+    }
+}
