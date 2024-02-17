@@ -23,7 +23,7 @@ namespace AIStoryBuilders.Model
             localStorage = LocalStorage;
         }
 
-        public async Task LoadSettingsAsync()
+        public async Task LoadDatabaseAsync()
         {
             Database AIStoryBuildersDatabase = await localStorage.GetItemAsync<Database>("AIStoryBuildersDatabase");
 
@@ -40,7 +40,7 @@ namespace AIStoryBuilders.Model
             colAIStoryBuildersDatabase = AIStoryBuildersDatabase.colAIStoryBuildersDatabase;
         }
 
-        public async Task SaveDatabase(Dictionary<string, string> paramColAIStoryBuildersDatabase)
+        public async Task SaveDatabaseAsync(Dictionary<string, string> paramColAIStoryBuildersDatabase)
         {
             var AIStoryBuildersDatabase = new Database();
 

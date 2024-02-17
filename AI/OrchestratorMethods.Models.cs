@@ -33,7 +33,7 @@ namespace AIStoryBuilders.AI
             List<AIStoryBuilderModel> colAIStoryBuilderModel = new List<AIStoryBuilderModel>();
 
             // Get the Model alias names from the database
-            DatabaseService.LoadDatabase();
+            await DatabaseService.LoadDatabaseAsync();
             var colDatabase = DatabaseService.colAIStoryBuildersDatabase;
 
             // Iterate through the fetched models
@@ -100,7 +100,7 @@ namespace AIStoryBuilders.AI
         public async Task UpdateModelNameAsync(AIStoryBuilderModel paramaModel)
         {
             // Get the Model alias names from the database
-            DatabaseService.LoadDatabase();
+            await DatabaseService.LoadDatabaseAsync();
             var colDatabase = DatabaseService.colAIStoryBuildersDatabase;
 
             // Create a new collection to store the updated model names
@@ -132,7 +132,7 @@ namespace AIStoryBuilders.AI
             }
 
             // Save the updated collection to the database
-            await DatabaseService.SaveDatabase(colUpdatedDatabase);
+            await DatabaseService.SaveDatabaseAsync(colUpdatedDatabase);
         }
         #endregion
 
@@ -151,7 +151,7 @@ namespace AIStoryBuilders.AI
             // Remove any alias in the database
 
             // Get the Model alias names from the database
-            DatabaseService.LoadDatabase();
+            await DatabaseService.LoadDatabaseAsync();
             var colDatabase = DatabaseService.colAIStoryBuildersDatabase;
 
             // Create a new collection to store the updated model names
@@ -169,7 +169,7 @@ namespace AIStoryBuilders.AI
             }
 
             // Save the updated collection to the database
-            await DatabaseService.SaveDatabase(colUpdatedDatabase);
+            await DatabaseService.SaveDatabaseAsync(colUpdatedDatabase);
         }
         #endregion
     }
