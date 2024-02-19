@@ -1,0 +1,135 @@
+﻿@using AIStoryBuilders.AI
+@using AIStoryBuilders.Model;
+@using AIStoryBuilders.Models;
+@using AIStoryBuilders.Services;
+@using static AIStoryBuilders.AI.OrchestratorMethods
+@using Newtonsoft.Json;
+@inherits OwningComponentBase
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+@inject SettingsService SettingsService
+@inject IJSRuntime JSRuntime
+<h3>Settings</h3>
+<RadzenRow AlignItems="AlignItems.Start" Wrap="FlexWrap.Wrap" Gap="1rem" Class="rz-p-sm-12">
+    <RadzenColumn Size="8" SizeSM="4">
+        <RadzenStack>
+            <RadzenFormField Text="OpenAI ApiKey:" Variant="@variant">
+                <RadzenTextBox @bind-Value="@ApiKey" @onkeydown="APIKeyDetection" style="width:450px;" />
+            </RadzenFormField>
+            @if (!IsSettingsEntered)
+            {
+                <RadzenButton Text="An OpenAI API Key is required (Click here to get one)" ButtonStyle="ButtonStyle.Secondary"
+                              Click="GetAPIKey"
+                              Style="margin-bottom: 10px; width: 500px" />
+            }
+            else
+            {
+                <RadzenFormField Text="Default AI Model:" Variant="@variant">
+                    <RadzenDropDown Data=@colModels @bind-Value="@AIModel" Style="width:300px" />
+                </RadzenFormField>
+                <RadzenLabel Text="Note: GPT 3.5 is faster and cost less than GPT 4, but does not perform as well." style="font-size:x-small" />
+
+                <div class="row">
+                    <div class="col">
+                        <RadzenButton Text="Save" ButtonStyle="ButtonStyle.Success"
+                                      Click="SettingsSave"
+                                      Style="margin-bottom: 10px; width: 150px" />&nbsp;&nbsp;
+                    </div>
+                </div>
+            }
+        </RadzenStack>
+    </RadzenColumn>
+</RadzenRow>
+@code {
+    [Parameter] public EventCallback SettingsChanged { get; set; }
+    OrchestratorMethods OrchestratorMethods;
+    Variant variant = Variant.Outlined;
+
+    string Organization = "";
+    string ApiKey = "";
+    string AIModel = "gpt-4-turbo-preview";
+
+    List<string> colModels = new List<string>()
+                {
+                   "gpt-4-turbo-preview","gpt-3.5-turbo"
+                };
+
+    bool IsSettingsEntered = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        OrchestratorMethods = (OrchestratorMethods)ScopedServices.GetService(typeof(OrchestratorMethods));
+
+        await SettingsService.LoadSettingsAsync();
+
+        Organization = SettingsService.Organization;
+        ApiKey = SettingsService.ApiKey;
+        AIModel = SettingsService.AIModel;
+
+        if (ApiKey.Length > 1)
+        {
+            IsSettingsEntered = true;
+        }
+        else
+        {
+            IsSettingsEntered = false;
+        }
+    }
+
+    private async Task GetAPIKey()
+    {
+        // Open a new window to the OpenAI API Key page
+        await JSRuntime.InvokeVoidAsync("open", "https://platform.openai.com/account/api-keys");
+    }
+
+    private void APIKeyDetection(KeyboardEventArgs args)
+    {
+        IsSettingsEntered = true;
+    }
+
+    private async Task SettingsSave()
+    {
+        try
+        {
+            if (!ApiKey.StartsWith("sk-"))
+            {
+                NotificationService.Notify(new NotificationMessage
+                    {
+                        Severity = NotificationSeverity.Error,
+                        Summary = "Error",
+                        Detail = "Invalid API Key - must start with: sk-",
+                        Duration = 4000
+                    });
+
+                return;
+            }
+
+            // Update Settings
+            await SettingsService.SaveSettingsAsync(Organization, ApiKey, AIModel);
+
+            // Test API Key
+            var result = await OrchestratorMethods.TestAccess(AIModel);
+
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Success",
+                    Detail = "Saved",
+                    Duration = 4000
+                });
+
+            // Notify parent that settings have changed
+            await SettingsChanged.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = ex.Message,
+                    Duration = 8000
+                });
+        }
+    }
+}

@@ -49,7 +49,7 @@ namespace AIStoryBuilders.Model
             AIModel = AIStoryBuildersSettings.AIModel;
         }
 
-        public async Task SaveSettings(string paramOrganization, string paramApiKey, string paramAIModel)
+        public async Task SaveSettingsAsync(string paramOrganization, string paramApiKey, string paramAIModel)
         {
             var AIStoryBuildersSettings = new Settings();
 

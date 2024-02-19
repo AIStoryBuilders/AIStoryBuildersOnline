@@ -1,66 +1,55 @@
+using Blazored.LocalStorage;
 using Newtonsoft.Json;
 using OpenAI.Files;
+using Radzen;
 
 namespace AIStoryBuilders.Model
 {
+    public class Log
+    {
+        public List<string> colLogs { get; set; }
+    }
+
     public class LogService
     {
         // Properties
-        public string[] AIStoryBuildersLog { get; set; }
+        public Log Logs { get; set; }
+        private ILocalStorageService localStorage;
 
         // Constructor
-        public LogService()
+        public LogService(ILocalStorageService LocalStorage)
         {
-            loadLog();
+            localStorage = LocalStorage;
         }
 
-        public void loadLog()
+        public async Task loadLogAsync()
         {
-            var AIStoryBuildersLogPath =
-            $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders/AIStoryBuildersLog.csv";
+            Log AIStoryBuildersLog = await localStorage.GetItemAsync<Log>("AIStoryBuildersLog");
 
-            // Read the lines from the .csv file
-            using (var file = new System.IO.StreamReader(AIStoryBuildersLogPath))
+            if (AIStoryBuildersLog == null)
             {
-                AIStoryBuildersLog = file.ReadToEnd().Split('\n');
-                if (AIStoryBuildersLog[AIStoryBuildersLog.Length - 1].Trim() == "")
-                {
-                    AIStoryBuildersLog = AIStoryBuildersLog.Take(AIStoryBuildersLog.Length - 1).ToArray();
-                }
+                // Create a new instance of the AIStoryBuildersLog
+                AIStoryBuildersLog = new Log();
+
+                AIStoryBuildersLog.colLogs = new List<string>();
+
+                await localStorage.SetItemAsync("AIStoryBuildersLog", AIStoryBuildersLog);
             }
+
+            Logs = AIStoryBuildersLog;
         }
 
-        public void WriteToLog(string LogText)
+        public async Task WriteToLogAsync(string LogText)
         {
-            // Open the file to get existing content
-            var AIStoryBuildersLogPath =
-                $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders/AIStoryBuildersLog.csv";
-
-            using (var file = new System.IO.StreamReader(AIStoryBuildersLogPath))
-            {
-                AIStoryBuildersLog = file.ReadToEnd().Split('\n');
-
-                if (AIStoryBuildersLog[AIStoryBuildersLog.Length - 1].Trim() == "")
-                {
-                    AIStoryBuildersLog = AIStoryBuildersLog.Take(AIStoryBuildersLog.Length - 1).ToArray();
-                }
-            }
-
             // If log has more than 1000 lines, keep only the recent 1000 lines
-            if (AIStoryBuildersLog.Length > 1000)
+            if (Logs.colLogs.Count > 1000)
             {
-                AIStoryBuildersLog = AIStoryBuildersLog.Take(1000).ToArray();
+                Logs.colLogs = Logs.colLogs.Take(1000).ToList();
             }
 
-            // Append the text to csv file
-            using (var streamWriter = new StreamWriter(AIStoryBuildersLogPath))
-            {
-                // Remove line breaks from the log text
-                LogText = LogText.Replace("\n", " ");
+            Logs.colLogs.Add(LogText);
 
-                streamWriter.WriteLine(LogText);
-                streamWriter.WriteLine(string.Join("\n", AIStoryBuildersLog));
-            }
+            await localStorage.SetItemAsync("AIStoryBuildersLog", Logs);
         }
     }
 }
