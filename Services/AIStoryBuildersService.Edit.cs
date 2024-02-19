@@ -7,8 +7,8 @@ namespace AIStoryBuilders.Services
 {
     public partial class AIStoryBuildersService
     {
-        #region public void RestructureParagraphs(Chapter objChapter, int ParagraphNumber, RestructureType RestructureType)
-        public void RestructureParagraphs(Chapter objChapter, int ParagraphNumber, RestructureType RestructureType)
+        #region public async Task RestructureParagraphs(Chapter objChapter, int ParagraphNumber, RestructureType RestructureType)
+        public async Task RestructureParagraphs(Chapter objChapter, int ParagraphNumber, RestructureType RestructureType)
         {
             try
             {
@@ -17,7 +17,7 @@ namespace AIStoryBuilders.Services
                 var ChapterNameParts = objChapter.ChapterName.Split(' ');
                 string ChapterName = ChapterNameParts[0] + ChapterNameParts[1];
                 var AIStoryBuildersParagraphsPath = $"{BasePath}/{objChapter.Story.Title}/Chapters/{ChapterName}";
-                int CountOfParagraphs = CountParagraphs(objChapter);
+                int CountOfParagraphs = await CountParagraphs(objChapter);
 
                 // Loop through all remaining paragraphs and rename them
                 if (RestructureType == RestructureType.Add)
@@ -51,8 +51,8 @@ namespace AIStoryBuilders.Services
         }
         #endregion
 
-        #region public void RestructureChapters(Chapter objChapter, RestructureType RestructureType)
-        public void RestructureChapters(Chapter objChapter, RestructureType RestructureType)
+        #region public async Task RestructureChapters(Chapter objChapter, RestructureType RestructureType)
+        public async Task RestructureChapters(Chapter objChapter, RestructureType RestructureType)
         {
             try
             {
@@ -61,7 +61,7 @@ namespace AIStoryBuilders.Services
                 string OldChapterFolderPath = "";
                 string NewChapterFolderPath = "";
 
-                int CountOfChapters = CountChapters(objChapter.Story);
+                int CountOfChapters = await CountChapters(objChapter.Story);
 
                 if (RestructureType == RestructureType.Add)
                 {

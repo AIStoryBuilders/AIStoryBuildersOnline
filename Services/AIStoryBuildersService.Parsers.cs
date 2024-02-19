@@ -7,7 +7,7 @@ namespace AIStoryBuilders.Services
     public partial class AIStoryBuildersService
     {
         #region *** JSONNewStory ***
-        public JSONStory ParseJSONNewStory(string RawJSON)
+        public async Task<JSONStory> ParseJSONNewStory(string RawJSON)
         {
             try
             {
@@ -154,7 +154,7 @@ namespace AIStoryBuilders.Services
         #endregion
 
         #region *** JSONNewChapters ***
-        public JSONChapters ParseJSONNewChapters(string RawJSON)
+        public async Task<JSONChapters> ParseJSONNewChapters(string RawJSON)
         {
             try
             {

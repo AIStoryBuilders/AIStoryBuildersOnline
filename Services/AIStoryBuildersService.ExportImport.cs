@@ -76,8 +76,8 @@ namespace AIStoryBuilders.Services
 
         // Export/Import
 
-        #region public byte[] ExportWordDocument(Story objStory)
-        public byte[] ExportWordDocument(Story objStory)
+        #region public async Task<byte[]> ExportWordDocument(Story objStory)
+        public async Task<byte[]> ExportWordDocument(Story objStory)
         {
             try
             {
@@ -98,7 +98,7 @@ namespace AIStoryBuilders.Services
                     // Create Cover Page
                     document.InsertParagraph(objStory.Title).FontSize(25d).SpacingAfter(50d).Alignment = Alignment.center;
 
-                    var colChapters = GetChapters(objStory);
+                    var colChapters = await GetChapters(objStory);
 
                     foreach (var objChapter in colChapters)
                     {
@@ -107,7 +107,7 @@ namespace AIStoryBuilders.Services
                         // Create Chapter Title
                         document.InsertParagraph(objChapter.ChapterName).FontSize(20d).SpacingAfter(25d).Alignment = Alignment.center;
 
-                        var colParagraphs = GetParagraphs(objChapter);
+                        var colParagraphs = await GetParagraphs(objChapter);
 
                         foreach (var objParagraph in colParagraphs)
                         {

@@ -4,8 +4,8 @@
 @using AIStoryBuilders.Models;
 @using AIStoryBuilders.Models.JSON;
 @using AIStoryBuilders.Services;
-@using AIStoryBuilders.Components.Pages.Controls;
-@using AIStoryBuilders.Components.Pages.Controls.Story;
+@using AIStoryBuildersOnline.Components.Pages.Controls;
+@using AIStoryBuildersOnline.Components.Pages.Controls.Story;
 @using Newtonsoft.Json;
 @using System.Text
 @using Radzen
@@ -42,7 +42,8 @@
 {
     <RadzenButton Click=@(() => NewStory()) Text="New Story" Icon="add" ButtonStyle="ButtonStyle.Success" />
     <span>&nbsp; &nbsp;</span>
-    <RadzenButton Click=@(() => ImportStory()) Text="Import Story" Icon="publish" ButtonStyle="ButtonStyle.Light" />
+    <RadzenText Text="Import Story" Icon="publish" />
+    <InputFile OnChange="ImportStory" />
     <br />
     <br />
     <div style="height:500px">
@@ -79,6 +80,7 @@
     AIStoryBuildersService AIStoryBuildersService;
     OrchestratorMethods OrchestratorMethods;
     LogService LogService;
+    private IBrowserFile ImportFile = null;
 
     List<Story> colStorys = new List<Story>();
     Story objStory = new Story();
@@ -103,7 +105,7 @@
             AIStoryBuildersService.TextEvent += AIStoryBuildersService_TextEvent;
             OrchestratorMethods.ReadTextEvent += OrchestratorMethods_ReadTextEvent;
 
-            SettingsService.LoadSettings();
+            await SettingsService.LoadSettingsAsync();
             Organization = SettingsService.Organization;
             ApiKey = SettingsService.ApiKey;
 
@@ -117,7 +119,7 @@
             else
             {
                 // Get the Storys from the database
-                colStorys = AIStoryBuildersService.GetStorys();
+                colStorys = await AIStoryBuildersService.GetStorysAsync();
             }
         }
         catch (Exception ex)
@@ -138,7 +140,7 @@
     {
         try
         {
-            var NewStoryResult = await dialogService.OpenAsync<AIStoryBuilders.Components.Pages.Controls.Story.NewStory>($"New Story",
+            var NewStoryResult = await dialogService.OpenAsync<AIStoryBuildersOnline.Components.Pages.Controls.Story.NewStory>($"New Story",
                 null,
                 new DialogOptions() { Width = "650px" });
 
@@ -170,7 +172,7 @@
                     new DialogOptions() { Height = "650px", Width = "950px" });
                 }
 
-                colStorys = AIStoryBuildersService.GetStorys();
+                colStorys = await AIStoryBuildersService.GetStorysAsync();
 
                 StateHasChanged();
 
@@ -195,38 +197,26 @@
         }
     }
 
-    private async Task ImportStory()
+    private async Task ImportStory(InputFileChangeEventArgs e)
     {
         try
         {
-            var result = await FilePicker.PickAsync(new PickOptions
-                {
-                    FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
-                {
-                    { DevicePlatform.iOS, new[] { "public.content" } },
-                    { DevicePlatform.Android, new[] { "application/*" } },
-                    { DevicePlatform.WinUI, new[] { ".stybld" } }, })
-                });
-
-            if (result != null)
+            if (e.File != null)
             {
+                ImportFile = e.File;
                 byte[] stybldFileBytes = null;
 
-                // Open a stream for the selected file
-                using (var stream = await result.OpenReadAsync())
+                // Create a memory stream to copy the file stream
+                using (var memoryStream = new MemoryStream())
                 {
-                    // Create a memory stream to copy the file stream
-                    using (var memoryStream = new MemoryStream())
-                    {
-                        // Copy the file stream to the memory stream
-                        await stream.CopyToAsync(memoryStream);
+                    // Copy the file stream to the memory stream
+                    await ImportFile.OpenReadStream().CopyToAsync(memoryStream);
 
-                        // Return the byte array
-                        stybldFileBytes = memoryStream.ToArray();
-                    }
+                    // Return the byte array
+                    stybldFileBytes = memoryStream.ToArray();
                 }
 
-                string ImportResult = AIStoryBuildersService.ImportProject(stybldFileBytes);
+                string ImportResult = await AIStoryBuildersService.ImportProject(stybldFileBytes);
 
                 if (ImportResult != "")
                 {
@@ -239,7 +229,8 @@
                         });
                 }
 
-                colStorys = AIStoryBuildersService.GetStorys();
+                colStorys = await AIStoryBuildersService.GetStorysAsync();
+
                 StateHasChanged();
             }
         }
@@ -277,7 +268,7 @@
             var EditStoryResult = await dialogService.OpenAsync<StoryControl>($"{paramStory.Title}", parms,
             new DialogOptions() { Height = "720px", Width = "950px" });
 
-            colStorys = AIStoryBuildersService.GetStorys();
+            colStorys = await AIStoryBuildersService.GetStorysAsync();
 
             StateHasChanged();
 
@@ -359,9 +350,9 @@
             });
     }
 
-    private void HandleSettingsChanged()
+    private async Task HandleSettingsChanged()
     {
-        SettingsService.LoadSettings();
+        await SettingsService.LoadSettingsAsync();
         Organization = SettingsService.Organization;
         ApiKey = SettingsService.ApiKey;
 

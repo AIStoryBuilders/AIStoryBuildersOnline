@@ -1,6 +1,7 @@
 ﻿using AIStoryBuilders.Model;
 using AIStoryBuilders.Models;
 using AIStoryBuilders.Models.JSON;
+using Markdig.Extensions.TaskLists;
 using static AIStoryBuilders.AI.OrchestratorMethods;
 using Character = AIStoryBuilders.Models.Character;
 
@@ -269,7 +270,7 @@ namespace AIStoryBuilders.Services
         #endregion
 
         #region *** Timelines ***
-        public List<AIStoryBuilders.Models.Timeline> GetTimelines(Story story)
+        public async Task<List<AIStoryBuilders.Models.Timeline>> GetTimelines(Story story)
         {
             // Create a collection of Timelines
             List<AIStoryBuilders.Models.Timeline> Timelines = new List<AIStoryBuilders.Models.Timeline>();
@@ -760,7 +761,7 @@ namespace AIStoryBuilders.Services
         #endregion
 
         #region *** Locations ***
-        public List<AIStoryBuilders.Models.Location> GetLocations(Story story)
+        public async Task<List<AIStoryBuilders.Models.Location>> GetLocations(Story story)
         {
             // Create a collection of Location
             List<AIStoryBuilders.Models.Location> Locations = new List<AIStoryBuilders.Models.Location>();
@@ -1078,7 +1079,7 @@ namespace AIStoryBuilders.Services
         #endregion
 
         #region *** Character ***
-        public List<AIStoryBuilders.Models.Character> GetCharacters(Story story)
+        public async Task<List<AIStoryBuilders.Models.Character>> GetCharacters(Story story)
         {
             // Create a collection of Character
             List<AIStoryBuilders.Models.Character> Characters = new List<AIStoryBuilders.Models.Character>();
@@ -1330,7 +1331,7 @@ namespace AIStoryBuilders.Services
         #endregion
 
         #region *** Chapter ***
-        public List<AIStoryBuilders.Models.Chapter> GetChapters(Story story)
+        public async Task<List<AIStoryBuilders.Models.Chapter>> GetChapters(Story story)
         {
             // Create a collection of Chapter
             List<AIStoryBuilders.Models.Chapter> Chapters = new List<AIStoryBuilders.Models.Chapter>();
@@ -1393,7 +1394,7 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public int CountChapters(Story story)
+        public async Task<int> CountChapters(Story story)
         {
             int ChapterCount = 0;
 
@@ -1479,7 +1480,7 @@ namespace AIStoryBuilders.Services
         #endregion
 
         #region *** Paragraph ***
-        public List<AIStoryBuilders.Models.Paragraph> GetParagraphs(Chapter chapter)
+        public async Task<List<AIStoryBuilders.Models.Paragraph>> GetParagraphs(Chapter chapter)
         {
             List<Paragraph> colParagraphs = new List<Paragraph>();
 
@@ -1557,7 +1558,7 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public List<AIParagraph> GetParagraphVectors(Chapter chapter, string TimelineName)
+        public async Task<List<AIParagraph>> GetParagraphVectors(Chapter chapter, string TimelineName)
         {
             List<AIParagraph> colParagraphs = new List<AIParagraph>();
 
@@ -1637,7 +1638,7 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public int CountParagraphs(Chapter chapter)
+        public async Task<int> CountParagraphs(Chapter chapter)
         {
             int ParagraphCount = 0;
 
@@ -1665,12 +1666,12 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public void AddParagraph(Chapter chapter, Paragraph Paragraph)
+        public async Task AddParagraph(Chapter chapter, Paragraph Paragraph)
         {
             try
             {
                 // First restructure the existing Paragraphs
-                RestructureParagraphs(chapter, Paragraph.Sequence, RestructureType.Add);
+                await RestructureParagraphs(chapter, Paragraph.Sequence, RestructureType.Add);
 
                 // Create a file for the new Paragraph
                 var ChapterNameParts = chapter.ChapterName.Split(' ');
@@ -1724,7 +1725,7 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public void DeleteParagraph(Chapter chapter, Paragraph Paragraph)
+        public async Task DeleteParagraph(Chapter chapter, Paragraph Paragraph)
         {
             try
             {
@@ -1737,7 +1738,7 @@ namespace AIStoryBuilders.Services
                 string ParagraphPath = $"{AIStoryBuildersParagraphsPath}/Paragraph{Paragraph.Sequence}.txt";
                 File.Delete(ParagraphPath);
 
-                RestructureParagraphs(chapter, Paragraph.Sequence, RestructureType.Delete);
+                await RestructureParagraphs(chapter, Paragraph.Sequence, RestructureType.Delete);
             }
             catch (Exception ex)
             {

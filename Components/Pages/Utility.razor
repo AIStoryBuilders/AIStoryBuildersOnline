@@ -12,6 +12,7 @@
 @using OpenAI.FineTuning;
 @using OpenAI.Models;
 @using System.Net.Http
+@using Microsoft.AspNetCore.Components.Forms;
 @inherits OwningComponentBase
 @inject HttpClient Http
 @inject NotificationService NotificationService
@@ -92,8 +93,8 @@
                             <RadzenButton Text="Download Template" ButtonStyle="ButtonStyle.Primary"
                                           Click="DownloadTemplate"
                                           Style="margin-bottom: 10px; width: 250px" />&nbsp;&nbsp;
-                            <RadzenButton Text="Upload Excel file and create JsonL file" ButtonStyle="ButtonStyle.Success"
-                                          Click=@(() => CreateJasonLFile()) Icon="publish" />
+                            <RadzenText Text="Upload Excel file and create JsonL file" Icon="publish" />
+                            <InputFile OnChange="CreateJasonLFile" />
                         </div>
                     </div>
                 </RadzenTabsItem>
@@ -109,6 +110,7 @@
     List<Story> colStorys = new List<Story>();
     List<TrainingData> colTrainingData = new List<TrainingData>();
     Story objStory = new Story();
+    private IBrowserFile JasonLFile = null;
     string Organization = "";
     string ApiKey = "";
     bool TrainingLoaded = false;
@@ -197,38 +199,27 @@
             });
     }
 
-    private async Task CreateJasonLFile()
+    private async Task CreateJasonLFile(InputFileChangeEventArgs e)
     {
         try
         {
-            var result = await FilePicker.PickAsync(new PickOptions
-                {
-                    FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
-                {
-                    { DevicePlatform.iOS, new[] { "public.content" } },
-                    { DevicePlatform.Android, new[] { "application/*" } },
-                    { DevicePlatform.WinUI, new[] { ".xls" } }, })
-                });
-
-            if (result != null)
+            if (e.File != null)
             {
+                JasonLFile = e.File;
+
                 byte[] TemplateFileBytes = null;
                 var conversations = new List<Conversation>();
 
-                // Open a stream for the selected file
-                using (var stream = await result.OpenReadAsync())
+                // Create a memory stream to copy the file stream
+                using (var memoryStream = new MemoryStream())
                 {
-                    // Create a memory stream to copy the file stream
-                    using (var memoryStream = new MemoryStream())
-                    {
-                        // Copy the file stream to the memory stream
-                        await stream.CopyToAsync(memoryStream);
+                    // Copy the file stream to the memory stream
+                    await JasonLFile.OpenReadStream().CopyToAsync(memoryStream);
 
-                        // Return the byte array
-                        TemplateFileBytes = memoryStream.ToArray();
-                    }
+                    // Return the byte array
+                    TemplateFileBytes = memoryStream.ToArray();
 
-                    using (var reader = ExcelReaderFactory.CreateReader(stream))
+                    using (var reader = ExcelReaderFactory.CreateReader(memoryStream))
                     {
                         // skip the first row
                         reader.Read();
@@ -263,7 +254,7 @@
                 await writer.FlushAsync();
                 OutputStream.Position = 0;
 
-                var fileSaverResult = await FileSaver.Default.SaveAsync("FineTunedJson.jsonL", OutputStream);
+                await JsRuntime.InvokeVoidAsync("saveAsFile", "FineTunedJson.jsonL", OutputStream);
 
                 NotificationService.Notify(new NotificationMessage
                     {
@@ -401,7 +392,7 @@
             // Read DocumentContents into a MemoryStream
             var stream = new MemoryStream(DocumentContents);
 
-            var fileSaverResult = await FileSaver.Default.SaveAsync(ExportFileName, stream);
+            await JsRuntime.InvokeVoidAsync("saveAsFile", ExportFileName, stream);
 
             NotificationService.Notify(new NotificationMessage
                 {
