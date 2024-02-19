@@ -22,7 +22,7 @@ namespace AIStoryBuilders.Model
             localStorage = LocalStorage;
         }
 
-        public async Task loadLogAsync()
+        public async Task LoadLogAsync()
         {
             Log AIStoryBuildersLog = await localStorage.GetItemAsync<Log>("AIStoryBuildersLog");
 
@@ -48,6 +48,14 @@ namespace AIStoryBuilders.Model
             }
 
             Logs.colLogs.Add(LogText);
+
+            await localStorage.SetItemAsync("AIStoryBuildersLog", Logs);
+        }
+
+        // Clear the log
+        public async Task ClearLogAsync()
+        {
+            Logs.colLogs.Clear();
 
             await localStorage.SetItemAsync("AIStoryBuildersLog", Logs);
         }
