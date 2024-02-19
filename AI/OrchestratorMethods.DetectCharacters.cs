@@ -25,7 +25,7 @@ namespace AIStoryBuilders.AI
             string SystemMessage = "";
             string GPTModel = SettingsService.AIModel;
 
-            LogService.WriteToLog($"Detect Characters using {GPTModel} - Start");
+            await LogService.WriteToLogAsync($"Detect Characters using {GPTModel} - Start");
 
             // Create a new OpenAIClient object
             // with the provided API key and organization
@@ -38,7 +38,7 @@ namespace AIStoryBuilders.AI
             // Update System Message
             SystemMessage = CreateDetectCharacters(objParagraph.ParagraphContent);
 
-            LogService.WriteToLog($"Prompt: {SystemMessage}");
+            await LogService.WriteToLogAsync($"Prompt: {SystemMessage}");
 
             chatPrompts = new List<Message>();
 
@@ -69,7 +69,7 @@ namespace AIStoryBuilders.AI
                 // Serailize the ModerationsResponse
                 string ModerationsResponseString = JsonConvert.SerializeObject(moderationsResponse.Results.FirstOrDefault().Categories);
 
-                LogService.WriteToLog($"OpenAI Moderation flagged the content: [{SystemMessage}] as violating its policies: {ModerationsResponseString}");
+                await LogService.WriteToLogAsync($"OpenAI Moderation flagged the content: [{SystemMessage}] as violating its policies: {ModerationsResponseString}");
                 ReadTextEvent?.Invoke(this, new ReadTextEventArgs($"WARNING! OpenAI Moderation flagged the content as violating its policies. See the logs for more details.", 30));
             }
 
@@ -77,7 +77,7 @@ namespace AIStoryBuilders.AI
 
             // *****************************************************
 
-            LogService.WriteToLog($"TotalTokens: {ChatResponseResult.Usage.TotalTokens} - ChatResponseResult - {ChatResponseResult.FirstChoice.Message.Content}");
+            await LogService.WriteToLogAsync($"TotalTokens: {ChatResponseResult.Usage.TotalTokens} - ChatResponseResult - {ChatResponseResult.FirstChoice.Message.Content}");
 
             List<Models.Character> colCharacterOutput = new List<Models.Character>();
 
@@ -97,7 +97,7 @@ namespace AIStoryBuilders.AI
             }
             catch (Exception ex)
             {
-                LogService.WriteToLog($"Error - DetectCharacters: {ex.Message} {ex.StackTrace ?? ""}");
+                await LogService.WriteToLogAsync($"Error - DetectCharacters: {ex.Message} {ex.StackTrace ?? ""}");
             }
 
             return colCharacterOutput;

@@ -46,7 +46,7 @@ namespace AIStoryBuilders.Services
             catch (Exception ex)
             {
                 // Log error
-                LogService.WriteToLog("RestructureParagraphs: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
+                await LogService.WriteToLogAsync("RestructureParagraphs: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
             }
         }
         #endregion
@@ -97,7 +97,7 @@ namespace AIStoryBuilders.Services
             catch (Exception ex)
             {
                 // Log error
-                LogService.WriteToLog("RestructureChapters: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
+                await LogService.WriteToLogAsync("RestructureChapters: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
             }
         }
         #endregion

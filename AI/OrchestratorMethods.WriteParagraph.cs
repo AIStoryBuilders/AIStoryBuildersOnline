@@ -24,7 +24,7 @@ namespace AIStoryBuilders.AI
             string ApiKey = SettingsService.ApiKey;
             string SystemMessage = "";
 
-            LogService.WriteToLog($"Detect Characters using {GPTModel} - Start");
+            await LogService.WriteToLogAsync($"Detect Characters using {GPTModel} - Start");
 
             // Create a new OpenAIClient object
             // with the provided API key and organization
@@ -37,7 +37,7 @@ namespace AIStoryBuilders.AI
             // Update System Message
             SystemMessage = CreateWriteParagraph(objJSONMasterStory, paramAIPrompt);
 
-            LogService.WriteToLog($"Prompt: {SystemMessage}");
+            await LogService.WriteToLogAsync($"Prompt: {SystemMessage}");
 
             chatPrompts = new List<Message>();
 
@@ -68,7 +68,7 @@ namespace AIStoryBuilders.AI
                 // Serailize the ModerationsResponse
                 string ModerationsResponseString = JsonConvert.SerializeObject(moderationsResponse.Results.FirstOrDefault().Categories);
 
-                LogService.WriteToLog($"OpenAI Moderation flagged the content: [{SystemMessage}] as violating its policies: {ModerationsResponseString}");
+                await LogService.WriteToLogAsync($"OpenAI Moderation flagged the content: [{SystemMessage}] as violating its policies: {ModerationsResponseString}");
                 ReadTextEvent?.Invoke(this, new ReadTextEventArgs($"WARNING! OpenAI Moderation flagged the content as violating its policies. See the logs for more details.", 30));
             }
 
@@ -76,7 +76,7 @@ namespace AIStoryBuilders.AI
 
             // *****************************************************
 
-            LogService.WriteToLog($"TotalTokens: {ChatResponseResult.Usage.TotalTokens} - ChatResponseResult - {ChatResponseResult.FirstChoice.Message.Content}");
+            await LogService.WriteToLogAsync($"TotalTokens: {ChatResponseResult.Usage.TotalTokens} - ChatResponseResult - {ChatResponseResult.FirstChoice.Message.Content}");
 
             string strParagraphOutput = "";
 
@@ -92,7 +92,7 @@ namespace AIStoryBuilders.AI
             }
             catch (Exception ex)
             {
-                LogService.WriteToLog($"Error - WriteParagraph: {ex.Message} {ex.StackTrace ?? ""}");
+                await LogService.WriteToLogAsync($"Error - WriteParagraph: {ex.Message} {ex.StackTrace ?? ""}");
             }
 
             return strParagraphOutput;

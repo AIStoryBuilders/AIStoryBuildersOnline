@@ -67,7 +67,7 @@ namespace AIStoryBuilders.Services
             catch (Exception ex)
             {
                 // Log error
-                LogService.WriteToLog("CreateTrainingData: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
+                await LogService.WriteToLogAsync("CreateTrainingData: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
 
                 return new List<TrainingData>();
             }
@@ -138,7 +138,7 @@ namespace AIStoryBuilders.Services
             catch (Exception ex)
             {
                 // Log error
-                LogService.WriteToLog("ExportWordDocument: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
+                await LogService.WriteToLogAsync("ExportWordDocument: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
 
                 return null;
             }
@@ -237,7 +237,7 @@ namespace AIStoryBuilders.Services
             catch (Exception ex)
             {
                 // Log error
-                LogService.WriteToLog("ExportFile: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
+                await LogService.WriteToLogAsync("ExportFile: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
 
                 return null;
             }
@@ -350,14 +350,14 @@ namespace AIStoryBuilders.Services
                 });
 
                 // Log
-                LogService.WriteToLog($"Story imported {objJSONManifest.Title}");
+                await LogService.WriteToLogAsync($"Story imported {objJSONManifest.Title}");
 
                 strResponse = $"The project '{objJSONManifest.Title}' was successfully imported.";
             }
             catch (Exception ex)
             {
                 // Log error
-                LogService.WriteToLog("ImportProject: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
+                await LogService.WriteToLogAsync("ImportProject: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
 
                 return ex.Message;
             }
@@ -420,7 +420,7 @@ namespace AIStoryBuilders.Services
             catch (Exception ex)
             {
                 // Log error
-                LogService.WriteToLog("ExportTraingData: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
+                await LogService.WriteToLogAsync("ExportTraingData: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
 
                 return null;
             }

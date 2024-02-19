@@ -19,7 +19,7 @@ namespace AIStoryBuilders.AI
             string ApiKey = SettingsService.ApiKey;
             string SystemMessage = "";
 
-            LogService.WriteToLog($"TestAccess using {GPTModel} - Start");
+            await LogService.WriteToLogAsync($"TestAccess using {GPTModel} - Start");
 
             // Create a new OpenAIClient object
             // with the provided API key and organization
@@ -32,7 +32,7 @@ namespace AIStoryBuilders.AI
             // Update System Message
             SystemMessage = "Please return the following as json: \"This is successful\" in this format {\r\n  'message': message\r\n}";
 
-            LogService.WriteToLog($"Prompt: {SystemMessage}");
+            await LogService.WriteToLogAsync($"Prompt: {SystemMessage}");
 
             chatPrompts = new List<Message>();
 
@@ -58,7 +58,7 @@ namespace AIStoryBuilders.AI
 
             // *****************************************************
 
-            LogService.WriteToLog($"TotalTokens: {ChatResponseResult.Usage.TotalTokens} - ChatResponseResult - {ChatResponseResult.FirstChoice.Message.Content}");
+            await LogService.WriteToLogAsync($"TotalTokens: {ChatResponseResult.Usage.TotalTokens} - ChatResponseResult - {ChatResponseResult.FirstChoice.Message.Content}");
 
             return true;
         }

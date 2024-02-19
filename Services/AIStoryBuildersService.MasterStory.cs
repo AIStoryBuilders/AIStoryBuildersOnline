@@ -49,7 +49,7 @@ namespace AIStoryBuilders.Services
             catch (Exception ex)
             {
                 // Log error
-                LogService.WriteToLog(ex.Message);
+                await LogService.WriteToLogAsync(ex.Message);
             }
 
             return objMasterStory;

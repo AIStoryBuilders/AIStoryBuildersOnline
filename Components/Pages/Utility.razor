@@ -1,8 +1,9 @@
 ﻿@using AIStoryBuilders.AI
-@using AIStoryBuilders.Components.Pages.Controls.EditControls
-@using AIStoryBuilders.Components.Pages.Controls.UtilityControls
 @using AIStoryBuilders.Model;
+@using AIStoryBuilders.Models
 @using AIStoryBuilders.Services;
+@using AIStoryBuildersOnline.Components.Pages.Controls.EditControls
+@using AIStoryBuildersOnline.Components.Pages.Controls.UtilityControls
 @using ExcelDataReader
 @using Newtonsoft.Json;
 @using OpenAI;
@@ -10,11 +11,14 @@
 @using OpenAI.Files;
 @using OpenAI.FineTuning;
 @using OpenAI.Models;
+@using System.Net.Http
 @inherits OwningComponentBase
+@inject HttpClient Http
 @inject NotificationService NotificationService
 @inject DialogService DialogService
 @inject SettingsService SettingsService
 @inject OrchestratorMethods OrchestratorMethods
+@inject IJSRuntime JsRuntime
 
 <h2>Utility</h2>
 <div class="row">
@@ -110,21 +114,19 @@
     bool TrainingLoaded = false;
     bool InProgress = false;
 
-
-
     protected override async Task OnInitializedAsync()
     {
         AIStoryBuildersService = (AIStoryBuildersService)ScopedServices.GetService(typeof(AIStoryBuildersService));
         OrchestratorMethods = (OrchestratorMethods)ScopedServices.GetService(typeof(OrchestratorMethods));
         LogService = (LogService)ScopedServices.GetService(typeof(LogService));
 
-        SettingsService.LoadSettings();
+        await SettingsService.LoadSettingsAsync();
 
         Organization = SettingsService.Organization;
         ApiKey = SettingsService.ApiKey;
 
         // Get the Storys from the database
-        colStorys = AIStoryBuildersService.GetStorys();
+        colStorys = await AIStoryBuildersService.GetStorysAsync();
 
         colAIStoryBuilderModel = await OrchestratorMethods.ListFineTunedModelsAsync();
     }
@@ -149,7 +151,7 @@
                     Duration = 4000
                 });
 
-            LogService.WriteToLog(ex.Message);
+            await LogService.WriteToLogAsync(ex.Message);
         }
 
         colAIStoryBuilderModel = await OrchestratorMethods.ListFineTunedModelsAsync();
@@ -180,9 +182,11 @@
 
     async Task DownloadTemplate()
     {
-        using var stream = await FileSystem.OpenAppPackageFileAsync("FineTunedTemplate.xls");
+        var response = await Http.GetAsync($"files/FineTunedTemplate.xls");
+        response.EnsureSuccessStatusCode();
+        var stream = await response.Content.ReadAsStreamAsync();
 
-        var fileSaverResult = await FileSaver.Default.SaveAsync("FineTunedTemplate.xls", stream);
+        await JsRuntime.InvokeVoidAsync("saveAsFile", "FineTunedTemplate.xls", stream);
 
         NotificationService.Notify(new NotificationMessage
             {
@@ -282,7 +286,7 @@
                     Duration = 4000
                 });
 
-            LogService.WriteToLog(ex.Message);
+            await LogService.WriteToLogAsync(ex.Message);
         }
     }
 
@@ -382,7 +386,7 @@
                     Duration = 4000
                 });
 
-            LogService.WriteToLog(ex.Message);
+            await LogService.WriteToLogAsync(ex.Message);
         }
     }
 
@@ -417,7 +421,7 @@
                     Duration = 4000
                 });
 
-            LogService.WriteToLog(ex.Message);
+            await LogService.WriteToLogAsync(ex.Message);
         }
     }
 

@@ -141,7 +141,7 @@ namespace AIStoryBuilders.Services
             catch (Exception ex)
             {
                 // Log error
-                LogService.WriteToLog("ParseJSONNewStory: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
+                await LogService.WriteToLogAsync("ParseJSONNewStory: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
 
                 JSONStory ParsedNewStory = new JSONStory();
                 ParsedNewStory.characters = new Character[0];
@@ -385,7 +385,7 @@ namespace AIStoryBuilders.Services
             catch (Exception ex)
             {
                 // Log error
-                LogService.WriteToLog("ParseJSONNewChapters: " + ex.Message);
+                await LogService.WriteToLogAsync("ParseJSONNewChapters: " + ex.Message);
 
                 JSONChapters ParsedNewChapters = new JSONChapters();
                 ParsedNewChapters.chapter = new JSONChapter[0];
