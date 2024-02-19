@@ -1,4 +1,5 @@
-﻿using AIStoryBuilders.Models;
+﻿using AIStoryBuilders.Model;
+using AIStoryBuilders.Models;
 using AIStoryBuilders.Models.JSON;
 using Newtonsoft.Json;
 using OfficeOpenXml;
@@ -243,8 +244,8 @@ namespace AIStoryBuilders.Services
         }
         #endregion
 
-        #region public string ImportProject(byte[] stybldFile)
-        public string ImportProject(byte[] stybldFile)
+        #region public async Task<string> ImportProject(byte[] stybldFile)
+        public async Task<string> ImportProject(byte[] stybldFile)
         {
             string strResponse = string.Empty;
 
@@ -340,19 +341,13 @@ namespace AIStoryBuilders.Services
                 Directory.Delete(TempZipPath, true);
 
                 // Add Story to file
-                var AIStoryBuildersStoriesPath = $"{BasePath}/AIStoryBuildersStories.csv";
-                string[] AIStoryBuildersStoriesContent = ReadCSVFile(AIStoryBuildersStoriesPath);
-
-                // Remove all empty lines
-                AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Where(line => line.Trim() != "").ToArray();
-
-                // Trim all lines
-                AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Select(line => line.Trim()).ToArray();
-
-                // Add Story to file
-                string newStory = $"{AIStoryBuildersStoriesContent.Count() + 1}|{objJSONManifest.Title}|{objJSONManifest.Style}|{objJSONManifest.Theme}|{objJSONManifest.Synopsis}";
-                AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Append(newStory).ToArray();
-                File.WriteAllLines(AIStoryBuildersStoriesPath, AIStoryBuildersStoriesContent);
+                await AIStoryBuildersStoryService.AddStoryAsync(new AIStoryBuildersStory
+                {
+                    Title = objJSONManifest.Title,
+                    Style = objJSONManifest.Style,
+                    Theme = objJSONManifest.Theme,
+                    Synopsis = objJSONManifest.Synopsis
+                });
 
                 // Log
                 LogService.WriteToLog($"Story imported {objJSONManifest.Title}");

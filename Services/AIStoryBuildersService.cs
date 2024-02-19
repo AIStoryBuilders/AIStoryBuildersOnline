@@ -15,41 +15,22 @@ namespace AIStoryBuilders.Services
         private readonly AppMetadata _appMetadata;
         private LogService LogService { get; set; }
         private OrchestratorMethods OrchestratorMethods { get; set; }
+        private AIStoryBuildersStoryService AIStoryBuildersStoryService { get; set; }
 
         public string BasePath = $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders";
         public AIStoryBuildersService(
             AppMetadata appMetadata,
             LogService _LogService,
-            OrchestratorMethods _OrchestratorMethods)
+            OrchestratorMethods _OrchestratorMethods,
+            AIStoryBuildersStoryService _AIStoryBuildersStoryService)
         {
             _appMetadata = appMetadata;
             LogService = _LogService;
             OrchestratorMethods = _OrchestratorMethods;
+            AIStoryBuildersStoryService = _AIStoryBuildersStoryService;
         }
 
         // Utility
-
-        #region public string[] ReadCSVFile(string path)
-        public string[] ReadCSVFile(string path)
-        {
-            string[] content;
-
-            // Read the lines from the .csv file
-            using (var file = new System.IO.StreamReader(path))
-            {
-                content = file.ReadToEnd().Split('\n');
-
-                if (content[content.Length - 1].Trim() == "")
-                {
-                    content = content.Take(content.Length - 1).ToArray();
-                }
-            }
-
-            var CleanContent = CleanAIStoryBuildersStoriesCSVFile(content);
-
-            return CleanContent;
-        }
-        #endregion
 
         #region public string[] CleanAIStoryBuildersStoriesCSVFile(string strAIStoryBuildersStories)
         public string[] CleanAIStoryBuildersStoriesCSVFile(string[] strAIStoryBuildersStories)

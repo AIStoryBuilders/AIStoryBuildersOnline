@@ -9,27 +9,27 @@ namespace AIStoryBuilders.Services
     public partial class AIStoryBuildersService
     {
         #region *** Story ***
-        public List<Story> GetStorys()
+        public async Task<List<Story>> GetStorysAsync()
         {
-            var AIStoryBuildersStoriesPath = $"{BasePath}/AIStoryBuildersStories.csv";
-            string[] AIStoryBuildersStoriesContent = ReadCSVFile(AIStoryBuildersStoriesPath);
-
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Where(line => line.Trim() != "").ToArray();
-
+            List<Story> stories = new List<Story>();
             try
             {
-                // Return collection of Story
-                return AIStoryBuildersStoriesContent
-                    .Select(story => story.Split('|'))
-                    .Select(story => new Story
-                    {
-                        Id = int.Parse(story[0]),
-                        Title = story[1],
-                        Style = story[2],
-                        Theme = story[3],
-                        Synopsis = story[4],
-                    })
-                    .ToList();
+                await AIStoryBuildersStoryService.LoadAIStoryBuildersStoriesAsync();
+
+                var AIStoryBuildersStoriesContent = AIStoryBuildersStoryService.colAIStoryBuildersStory;
+
+                foreach (var story in AIStoryBuildersStoriesContent.OrderBy(x => x.Title))
+                {
+                    Story objStr = new Story();
+
+                    objStr.Id = story.Id;
+                    objStr.Title = story.Title;
+                    objStr.Style = story.Style;
+                    objStr.Theme = story.Theme;
+                    objStr.Synopsis = story.Synopsis;
+
+                    stories.Add(objStr);
+                }
             }
             catch (Exception ex)
             {
@@ -39,13 +39,15 @@ namespace AIStoryBuilders.Services
                 // File is empty
                 return new List<Story>();
             }
+
+            return stories;
         }
 
         public async Task AddStory(Story story, string GPTModelId)
         {
             // Create Characters, Chapters, Timelines, and Locations sub folders
 
-            string StoryPath = $"{BasePath}/{story.Title}";
+            string StoryPath = $"{story.Title}";
             string CharactersPath = $"{StoryPath}/Characters";
             string ChaptersPath = $"{StoryPath}/Chapters";
             string LocationsPath = $"{StoryPath}/Locations";
@@ -59,19 +61,13 @@ namespace AIStoryBuilders.Services
             CreateDirectory(LocationsPath);
 
             // Add Story to file
-            var AIStoryBuildersStoriesPath = $"{BasePath}/AIStoryBuildersStories.csv";
-            string[] AIStoryBuildersStoriesContent = ReadCSVFile(AIStoryBuildersStoriesPath);
-
-            // Remove all empty lines
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Where(line => line.Trim() != "").ToArray();
-
-            // Trim all lines
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Select(line => line.Trim()).ToArray();
-
-            // Add Story to file
-            string newStory = $"{AIStoryBuildersStoriesContent.Count() + 1}|{story.Title}|{story.Style}|{story.Theme}|{story.Synopsis}";
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Append(newStory).ToArray();
-            File.WriteAllLines(AIStoryBuildersStoriesPath, AIStoryBuildersStoriesContent);
+            await AIStoryBuildersStoryService.AddStoryAsync(new AIStoryBuildersStory
+            {
+                Title = story.Title,
+                Style = story.Style,
+                Theme = story.Theme,
+                Synopsis = story.Synopsis
+            });
 
             // Log
             LogService.WriteToLog($"Story created {story.Title}");
@@ -241,21 +237,8 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public void UpdateStory(Story story)
+        public async Task UpdateStoryAsync(Story story)
         {
-            // Get all Stories from file
-            var AIStoryBuildersStoriesPath = $"{BasePath}/AIStoryBuildersStories.csv";
-            string[] AIStoryBuildersStoriesContent = ReadCSVFile(AIStoryBuildersStoriesPath);
-
-            // Remove all empty lines
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Where(line => line.Trim() != "").ToArray();
-
-            // Get all lines except the one to update
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Where(line => line.Split('|')[1] != story.Title).ToArray();
-
-            // Trim all lines
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Select(line => line.Trim()).ToArray();
-
             // Remove any line breaks
             story.Style = RemoveLineBreaks(story.Style);
             story.Theme = RemoveLineBreaks(story.Theme);
@@ -266,28 +249,19 @@ namespace AIStoryBuilders.Services
             story.Theme = story.Theme.Replace("|", "");
             story.Synopsis = story.Synopsis.Replace("|", "");
 
-            // Re-add Story to file
-            string updatedStory = $"{AIStoryBuildersStoriesContent.Count() + 1}|{story.Title}|{story.Style}|{story.Theme}|{story.Synopsis}";
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Append(updatedStory).ToArray();
-            File.WriteAllLines(AIStoryBuildersStoriesPath, AIStoryBuildersStoriesContent);
+            await AIStoryBuildersStoryService.UpdateStoryAsync(new AIStoryBuildersStory
+            {
+                Id = story.Id,
+                Title = story.Title,
+                Style = story.Style,
+                Theme = story.Theme,
+                Synopsis = story.Synopsis
+            });
         }
 
-        public void DeleteStory(string StoryTitle)
+        public async Task DeleteStoryAsync(string StoryTitle, int StoryId)
         {
-            // Get Story from file
-            var AIStoryBuildersStoriesPath = $"{BasePath}/AIStoryBuildersStories.csv";
-            string[] AIStoryBuildersStoriesContent = ReadCSVFile(AIStoryBuildersStoriesPath);
-
-            // Remove all empty lines
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Where(line => line.Trim() != "").ToArray();
-
-            // Remove Story from file
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Where(line => line.Split('|')[1] != StoryTitle).ToArray();
-            File.WriteAllLines(AIStoryBuildersStoriesPath, AIStoryBuildersStoriesContent);
-
-            // Delete folder and all its sub folders and files
-            string StoryPath = $"{BasePath}/{StoryTitle}";
-            Directory.Delete(StoryPath, true);
+            await AIStoryBuildersStoryService.DeleteStoryAsync(StoryId);
 
             // Log
             LogService.WriteToLog($"Story deleted {StoryTitle}");

@@ -27,6 +27,7 @@ namespace AIStoryBuildersOnline
             builder.Services.AddScoped<DatabaseService>();
             builder.Services.AddScoped<OrchestratorMethods>();
             builder.Services.AddScoped<AIStoryBuildersService>();
+            builder.Services.AddScoped<AIStoryBuildersStoryService>();
 
             // Radzen
             builder.Services.AddScoped<DialogService>();
