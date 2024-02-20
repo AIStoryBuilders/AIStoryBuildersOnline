@@ -23,13 +23,15 @@ namespace AIStoryBuilders.AI
         public List<(string, float)> similarities = new List<(string, float)>();
 
         public Dictionary<string, string> AIStoryBuildersMemory = new Dictionary<string, string>();
+        public HttpClient HttpClient { get; set; }
 
         // Constructor
-        public OrchestratorMethods(SettingsService _SettingsService, LogService _LogService, DatabaseService _DatabaseService)
+        public OrchestratorMethods(SettingsService _SettingsService, LogService _LogService, DatabaseService _DatabaseService, HttpClient _HttpClient)
         {
             SettingsService = _SettingsService;
             LogService = _LogService;
             DatabaseService = _DatabaseService;
+            HttpClient = _HttpClient;
         }
 
         // Memory and Vectors
@@ -39,7 +41,7 @@ namespace AIStoryBuilders.AI
         {
             // **** Call OpenAI and get embeddings for the memory text
             // Create an instance of the OpenAI client
-            var api = new OpenAIClient(new OpenAIAuthentication(SettingsService.ApiKey, SettingsService.Organization));
+            var api = new OpenAIClient(new OpenAIAuthentication(SettingsService.ApiKey), client: HttpClient);
             // Get the model details
             var model = await api.ModelsEndpoint.GetModelDetailsAsync("text-embedding-ada-002");
             // Get embeddings for the text
@@ -75,7 +77,7 @@ namespace AIStoryBuilders.AI
         {
             // **** Call OpenAI and get embeddings for the memory text
             // Create an instance of the OpenAI client
-            var api = new OpenAIClient(new OpenAIAuthentication(SettingsService.ApiKey, SettingsService.Organization));
+            var api = new OpenAIClient(new OpenAIAuthentication(SettingsService.ApiKey), client: HttpClient);
             // Get the model details
             var model = await api.ModelsEndpoint.GetModelDetailsAsync("text-embedding-ada-002");
             // Get embeddings for the text

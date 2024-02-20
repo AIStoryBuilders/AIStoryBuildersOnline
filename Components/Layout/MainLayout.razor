@@ -11,14 +11,7 @@
 <RadzenContextMenu />
 <main>
     <div class="top-row px-4">
-        @if (UpdateAvailable)
-        {
-            <a href="https://apps.microsoft.com/detail/9NCJN9W323DB?rtc=1&hl=en-us&gl=US" target="_blank">* Update Available *</a>
-        }
-        else
-        {
-            <a href="https://AIStoryBuilders.com/" target="_blank">AIStoryBuilders.com</a>
-        }
+        <a href="https://AIStoryBuilders.com/" target="_blank">AIStoryBuilders.com</a>
     </div>
 
     <article class="content px-4">
@@ -33,16 +26,13 @@
     </div>
 </RadzenFooter>
 @code {
-    bool UpdateAvailable = false;
     private string versionLocal = "";
-    private string versionPublished = "";
     private string year = DateTime.Now.Year.ToString();
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-
             // Load Settings
             await SettingsService.LoadSettingsAsync();
 
@@ -51,21 +41,6 @@
             var AIModel = SettingsService.AIModel;
 
             versionLocal = _AppMetadata.Version;
-
-            // Call the API at https://aistorybuilders.com/api/version/GetVersion
-            // to get the version
-
-            var client = new HttpClient();
-            var response = await client.GetAsync("https://aistorybuilders.com/api/version/GetVersion");
-            response.EnsureSuccessStatusCode();
-            var result = await response.Content.ReadAsStringAsync();
-            versionPublished = result;
-
-            // Use the version number from the API if it is greater than the local version
-            if (ConvertToInteger(versionPublished) > ConvertToInteger(versionLocal))
-            {
-                UpdateAvailable = true;
-            }
         }
         catch (Exception ex)
         {

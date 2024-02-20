@@ -48,7 +48,12 @@ namespace AIStoryBuilders.Model
                 await localStorage.SetItemAsync("AIStoryBuildersStories", AIStoryBuildersStories);
             }
 
-            AIStoryBuildersStories.colAIStoryBuildersStory = AIStoryBuildersStories.colAIStoryBuildersStory;
+            if (AIStoryBuildersStories.colAIStoryBuildersStory == null)
+            {
+                AIStoryBuildersStories.colAIStoryBuildersStory = new List<AIStoryBuildersStory>();
+            }
+
+            colAIStoryBuildersStory = AIStoryBuildersStories.colAIStoryBuildersStory;
         }
 
         // Save the database

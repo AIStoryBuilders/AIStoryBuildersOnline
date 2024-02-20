@@ -41,6 +41,8 @@ namespace AIStoryBuilders.Model
 
         public async Task WriteToLogAsync(string LogText)
         {
+            await LoadLogAsync();
+
             // If log has more than 1000 lines, keep only the recent 1000 lines
             if (Logs.colLogs.Count > 1000)
             {

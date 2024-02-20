@@ -27,7 +27,7 @@ namespace AIStoryBuilders.AI
 
             // Create a new OpenAIClient object
             // with the provided API key and organization
-            var api = new OpenAIClient(new OpenAIAuthentication(ApiKey, Organization));
+            var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
 
             // Create a colection of chatPrompts
             ChatResponse ChatResponseResult = new ChatResponse();

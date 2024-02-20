@@ -13,6 +13,7 @@ namespace AIStoryBuilders.Services
         public async Task<List<Story>> GetStorysAsync()
         {
             List<Story> stories = new List<Story>();
+
             try
             {
                 await AIStoryBuildersStoryService.LoadAIStoryBuildersStoriesAsync();
