@@ -1,0 +1,92 @@
+﻿@using AIStoryBuilders.AI
+@using AIStoryBuilders.Model
+@using AIStoryBuilders.Models;
+@using AIStoryBuilders.Services
+@inherits OwningComponentBase
+@inject DialogService dialogService
+@inject NotificationService NotificationService
+
+<h5>Select a .stybld file to import</h5>
+<br />
+<InputFile OnChange="ImportStory" />
+
+@code {
+    AIStoryBuildersService AIStoryBuildersService;
+    OrchestratorMethods OrchestratorMethods;
+    LogService LogService;
+    private IBrowserFile ImportFile = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            AIStoryBuildersService = (AIStoryBuildersService)ScopedServices.GetService(typeof(AIStoryBuildersService));
+            OrchestratorMethods = (OrchestratorMethods)ScopedServices.GetService(typeof(OrchestratorMethods));
+            LogService = (LogService)ScopedServices.GetService(typeof(LogService));
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = ex.Message,
+                    Duration = 4000
+                });
+
+            await LogService.WriteToLogAsync(ex.Message);
+        }
+    }
+
+    private async Task ImportStory(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            if (e.File != null)
+            {
+                ImportFile = e.File;
+                byte[] stybldFileBytes = null;
+
+                // Create a memory stream to copy the file stream
+                using (var memoryStream = new MemoryStream())
+                {
+                    // Copy the file stream to the memory stream
+                    await ImportFile.OpenReadStream().CopyToAsync(memoryStream);
+
+                    // Return the byte array
+                    stybldFileBytes = memoryStream.ToArray();
+                }
+
+                string ImportResult = await AIStoryBuildersService.ImportProject(stybldFileBytes);
+
+                if (ImportResult != "")
+                {
+                    NotificationService.Notify(new NotificationMessage
+                        {
+                            Severity = NotificationSeverity.Info,
+                            Summary = "Import Result",
+                            Detail = ImportResult,
+                            Duration = 4000
+                        });
+                }
+                else
+                {
+                    // close dialog
+                    dialogService.Close();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = ex.Message,
+                    Duration = 4000
+                });
+
+            await LogService.WriteToLogAsync(ex.Message);
+        }
+    }
+}
