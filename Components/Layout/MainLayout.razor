@@ -5,6 +5,7 @@
 @using AIStoryBuilders.Models;
 @using Radzen.Blazor
 @inject AppMetadata _AppMetadata
+@inject LogService LogService
 <RadzenDialog />
 <RadzenNotification />
 <RadzenTooltip />
@@ -41,10 +42,13 @@
             var AIModel = SettingsService.AIModel;
 
             versionLocal = _AppMetadata.Version;
+
+            await LogService.WriteToLogAsync("Application started at " + DateTime.Now);
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
+            await LogService.WriteToLogAsync(ex.Message);
         }
 
         // call the base class

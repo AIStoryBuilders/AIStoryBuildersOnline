@@ -1,3 +1,4 @@
+using AIStoryBuildersOnline.Components.Pages;
 using Blazored.LocalStorage;
 using Newtonsoft.Json;
 using OpenAI.Files;
@@ -49,7 +50,8 @@ namespace AIStoryBuilders.Model
                 Logs.colLogs = Logs.colLogs.Take(1000).ToList();
             }
 
-            Logs.colLogs.Add(LogText);
+            // Add to the top of the list
+            Logs.colLogs.Insert(0, LogText);
 
             await localStorage.SetItemAsync("AIStoryBuildersLog", Logs);
         }
