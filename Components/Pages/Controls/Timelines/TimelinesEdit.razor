@@ -136,7 +136,7 @@ else
                 if (objTimeline.Id == -1)
                 {
                     // Add to the database
-                    AIStoryBuildersService.AddTimeline(objTimeline);
+                    await AIStoryBuildersService.AddTimeline(objTimeline);
                 }
                 else
                 {
@@ -162,7 +162,7 @@ else
                     else
                     {
                         // Update the database
-                        AIStoryBuildersService.UpdateTimeline(objTimeline, TimelineNameOriginal);
+                        await AIStoryBuildersService.UpdateTimeline(objTimeline, TimelineNameOriginal);
                     }
                 }
 

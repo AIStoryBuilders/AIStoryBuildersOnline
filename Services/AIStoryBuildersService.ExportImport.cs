@@ -24,13 +24,13 @@ namespace AIStoryBuilders.Services
 
                 string SystemMessage = "You are a fiction novel writing software program that creates prose from the story beats provided.";
 
-                var colChapters = GetChapters(objStory);
+                var colChapters = await GetChapters(objStory);
 
                 foreach (var objChapter in colChapters)
                 {
                     TextEvent?.Invoke(this, new TextEventArgs($"{objChapter.ChapterName} out of {colChapters.Count}", 5));
 
-                    var colParagraphs = GetParagraphs(objChapter);
+                    var colParagraphs = await GetParagraphs(objChapter);
 
                     int i = 1;
                     foreach (var objParagraph in colParagraphs)
@@ -145,8 +145,8 @@ namespace AIStoryBuilders.Services
         }
         #endregion
 
-        #region public byte[] ExportProject(Story objStory)
-        public byte[] ExportProject(Story objStory)
+        #region public async Task<byte[]> ExportProject(Story objStory)
+        public async Task<byte[]> ExportProject(Story objStory)
         {
             try
             {
@@ -366,8 +366,8 @@ namespace AIStoryBuilders.Services
         }
         #endregion
 
-        #region public byte[] ExportTrainingData(List<TrainingData> colTrainingData)
-        public byte[] ExportTrainingData(List<TrainingData> colTrainingData)
+        #region public async Task<byte[]> ExportTrainingData(List<TrainingData> colTrainingData)
+        public async Task<byte[]> ExportTrainingData(List<TrainingData> colTrainingData)
         {
             try
             {

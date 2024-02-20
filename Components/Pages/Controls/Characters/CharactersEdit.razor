@@ -32,14 +32,14 @@
 
     List<Character> colCharacters = new List<Character>();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         try
         {
             AIStoryBuildersService = (AIStoryBuildersService)ScopedServices.GetService(typeof(AIStoryBuildersService));
             OrchestratorMethods = (OrchestratorMethods)ScopedServices.GetService(typeof(OrchestratorMethods));
 
-            LoadCharacters(objStory);
+            await LoadCharacters(objStory);
         }
         catch (Exception ex)
         {
@@ -53,9 +53,9 @@
         }
     }
 
-    public void LoadCharacters(Story paramStory)
+    public async Task LoadCharacters(Story paramStory)
     {
-        colCharacters = AIStoryBuildersService.GetCharacters(paramStory);
+        colCharacters = await AIStoryBuildersService.GetCharacters(paramStory);
 
         if (dialogService != null)
         {
@@ -64,7 +64,7 @@
 
         if (CharacterDataList != null)
         {
-            CharacterDataList.Reload();
+            await CharacterDataList.Reload();
         }
     }
 
@@ -83,7 +83,7 @@
             parms,
             new DialogOptions() { Width = "650px" });
 
-            LoadCharacters(objStory);
+            await LoadCharacters(objStory);
 
             StateHasChanged();
         }
@@ -110,7 +110,7 @@
             @<CharacterEdit objCharacter=paramCharacter DialogReference="ds"></CharacterEdit>
             , new DialogOptions() { Height = "600px", Width = "650px" });
 
-            LoadCharacters(objStory);
+            await LoadCharacters(objStory);
 
             StateHasChanged();
         }

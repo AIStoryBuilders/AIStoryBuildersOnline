@@ -43,14 +43,14 @@
 
     List<Timeline> colTimelines = new List<Timeline>();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         try
         {
             AIStoryBuildersService = (AIStoryBuildersService)ScopedServices.GetService(typeof(AIStoryBuildersService));
             OrchestratorMethods = (OrchestratorMethods)ScopedServices.GetService(typeof(OrchestratorMethods));
 
-            LoadTimelines(objStory);
+            await LoadTimelines(objStory);
         }
         catch (Exception ex)
         {
@@ -64,9 +64,9 @@
         }
     }
 
-    public void LoadTimelines(Story paramStory)
+    public async Task LoadTimelines(Story paramStory)
     {
-        colTimelines = AIStoryBuildersService.GetTimelines(paramStory);
+        colTimelines = await AIStoryBuildersService.GetTimelines(paramStory);
     }
 
     private async Task NewTimeline()
@@ -80,11 +80,11 @@
             newTimeline.StopDate = null;
 
             var EditStoryResult = await dialogService.OpenAsync(
-            "New Timeline", ds =>
-    @<TimelinesEdit objTimeline=newTimeline DialogReference="ds"></TimelinesEdit>
+                "New Timeline", ds =>
+                @<TimelinesEdit objTimeline=newTimeline DialogReference="ds"></TimelinesEdit>
             , new DialogOptions() { Height = "350px", Width = "650px" });
 
-            LoadTimelines(objStory);
+            await LoadTimelines(objStory);
 
             StateHasChanged();
         }
@@ -107,11 +107,11 @@
             paramTimeline.Story = objStory;
 
             var EditStoryResult = await dialogService.OpenAsync(
-        "Edit Timeline", ds =>
-    @<TimelinesEdit objTimeline=paramTimeline DialogReference="ds"></TimelinesEdit>
-    , new DialogOptions() { Height = "350px", Width = "650px" });
+                "Edit Timeline", ds =>
+                @<TimelinesEdit objTimeline=paramTimeline DialogReference="ds"></TimelinesEdit>
+                , new DialogOptions() { Height = "350px", Width = "650px" });
 
-            LoadTimelines(objStory);
+            await LoadTimelines(objStory);
 
             StateHasChanged();
         }

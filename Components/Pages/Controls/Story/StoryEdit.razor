@@ -263,7 +263,7 @@ else // Existing Story
     {
         string ExportFileName = $"{objStory.Title}_{DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss")}.docx";
 
-        var DocumentContents = AIStoryBuildersService.ExportWordDocument(objStory);
+        var DocumentContents = await AIStoryBuildersService.ExportWordDocument(objStory);
 
         // Read DocumentContents into a MemoryStream
         var stream = new MemoryStream(DocumentContents);
@@ -291,7 +291,7 @@ else // Existing Story
                 Duration = 2000
             });
 
-        var DocumentContents = AIStoryBuildersService.ExportProject(objStory);
+        var DocumentContents = await AIStoryBuildersService.ExportProject(objStory);
 
         // Read DocumentContents into a MemoryStream
         var stream = new MemoryStream(DocumentContents);

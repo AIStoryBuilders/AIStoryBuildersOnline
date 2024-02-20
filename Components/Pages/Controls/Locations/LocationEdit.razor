@@ -207,7 +207,7 @@ else
                     if (objLocation.Id == -1) // New Location
                     {
                         // Check that there is not already a Location with the same name
-                        bool LocationExists = AIStoryBuildersService.LocationExists(objLocation);
+                        bool LocationExists = await AIStoryBuildersService.LocationExists(objLocation);
 
                         if (LocationExists)
                         {
@@ -240,7 +240,7 @@ else
                                 StateHasChanged();
 
                                 // Update the name 
-                                AIStoryBuildersService.UpdateLocationName(objLocation, strOriginalLocationName);
+                                await AIStoryBuildersService.UpdateLocationName(objLocation, strOriginalLocationName);
 
                                 await AIStoryBuildersService.UpdateLocationDescriptions(objLocation);
 
@@ -306,7 +306,7 @@ else
                 StateHasChanged();
 
                 // Delete from the database
-                AIStoryBuildersService.DeleteLocation(objLocation);
+                await AIStoryBuildersService.DeleteLocation(objLocation);
 
                 InProgress = false;
                 StateHasChanged();

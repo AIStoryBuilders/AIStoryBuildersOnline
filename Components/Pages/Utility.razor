@@ -387,7 +387,7 @@
         {
             string ExportFileName = $"{objStory.Title}-TrainingData.xls";
 
-            var DocumentContents = AIStoryBuildersService.ExportTrainingData(colTrainingData);
+            var DocumentContents = await AIStoryBuildersService.ExportTrainingData(colTrainingData);
 
             // Read DocumentContents into a MemoryStream
             var stream = new MemoryStream(DocumentContents);

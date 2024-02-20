@@ -160,7 +160,7 @@ else
                             StateHasChanged();
 
                             // Update the Character Name in the Story
-                            AIStoryBuildersService.UpdateCharacterName(objCharacter, OriginalCharacterName);
+                            await AIStoryBuildersService.UpdateCharacterName(objCharacter, OriginalCharacterName);
 
                             InProgress = false;
                             StateHasChanged();
@@ -212,7 +212,7 @@ else
                 StateHasChanged();
 
                 // Delete
-                AIStoryBuildersService.DeleteCharacter(objCharacter, OriginalCharacterName);
+                await AIStoryBuildersService.DeleteCharacter(objCharacter, OriginalCharacterName);
 
                 InProgress = false;
                 StateHasChanged();

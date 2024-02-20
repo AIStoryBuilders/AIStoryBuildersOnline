@@ -42,7 +42,7 @@
     List<string> colTimelineNames = new List<string>();
     string SelectedTimeline = "";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         try
         {
@@ -50,7 +50,7 @@
             OrchestratorMethods = (OrchestratorMethods)ScopedServices.GetService(typeof(OrchestratorMethods));
 
             // Load Timelines
-            colTimelines = AIStoryBuildersService.GetTimelines(objStory);
+            colTimelines = await AIStoryBuildersService.GetTimelines(objStory);
             colTimelineNames = colTimelines.Select(x => x.TimelineName).ToList();
             colTimelineNames.Add("");
 

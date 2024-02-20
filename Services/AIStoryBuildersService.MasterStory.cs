@@ -91,14 +91,14 @@ namespace AIStoryBuilders.Services
                 ParagraphTimelineName = objParagraph.Timeline.TimelineName;
             }
 
-            var AllChapters = GetChapters(objChapter.Story);
+            var AllChapters = await GetChapters(objChapter.Story);
 
             foreach (var chapter in AllChapters)
             {
                 if (chapter.Sequence < objChapter.Sequence)
                 {
                     // Get all the paragraphs for the chapter on the Timeline
-                    var colPargraphs = GetParagraphVectors(chapter, ParagraphTimelineName);
+                    var colPargraphs = await GetParagraphVectors(chapter, ParagraphTimelineName);
 
                     foreach (var paragraph in colPargraphs)
                     {

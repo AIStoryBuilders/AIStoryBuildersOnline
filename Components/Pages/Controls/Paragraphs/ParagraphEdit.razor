@@ -111,10 +111,10 @@ else
 
     // Events
 
-    private void onClickParagraph()
+    private async Task onClickParagraph()
     {
         // Compute Deleteable
-        int CountOfParagraphs = AIStoryBuildersService.CountParagraphs(objChapter);
+        int CountOfParagraphs = await AIStoryBuildersService.CountParagraphs(objChapter);
         Deleteable = (objParagraph.Id > -1);
         Addable = (objParagraph.Id > -1);
 
@@ -546,7 +546,7 @@ else
             if (confirmResult.HasValue && confirmResult.Value)
             {
                 // Add
-                AIStoryBuildersService.AddParagraph(objChapter, objParagraph);
+                await AIStoryBuildersService.AddParagraph(objChapter, objParagraph);
 
                 // Reload the Paragraphs
                 await LoadParagraphs.InvokeAsync();
@@ -592,7 +592,7 @@ else
             if (confirmResult.HasValue && confirmResult.Value)
             {
                 // Delete
-                AIStoryBuildersService.DeleteParagraph(objChapter, objParagraph);
+                await AIStoryBuildersService.DeleteParagraph(objChapter, objParagraph);
 
                 // Reload the Paragraphs
                 await LoadParagraphs.InvokeAsync();
@@ -648,7 +648,7 @@ else
                 StateHasChanged();
 
                 // Get All Paragraphs In Chapter
-                var colAllParagraphsInChapter = AIStoryBuildersService.GetParagraphs(objChapter);
+                var colAllParagraphsInChapter = await AIStoryBuildersService.GetParagraphs(objChapter);
 
                 // Limit to only Paragraphs that come before the current Paragraph
                 var colParagraphsBeforeCurrent = colAllParagraphsInChapter.Where(x => x.Sequence < objParagraph.Sequence).ToList();

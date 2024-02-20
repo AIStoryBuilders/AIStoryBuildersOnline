@@ -13,25 +13,25 @@
 }
 else
 {
-<RadzenButton Click=@(() => NewLocation()) Text="New Location" ButtonStyle="ButtonStyle.Success" />
-<br />
-<br />
+    <RadzenButton Click=@(() => NewLocation()) Text="New Location" ButtonStyle="ButtonStyle.Success" />
+    <br />
+    <br />
     <RadzenDataList @ref=LocationDataList AllowVirtualization=false Style="height:100%;overflow:auto;"
-                WrapItems=true AllowPaging=false
-                Data="@colLocations" TItem="Location">
-    <Template Context="Location">
-        <RadzenCard Style="width: 100%; padding: 1;">
-            <RadzenRow Gap="0">
-                <RadzenButton Text="Edit" Click=@(() => EditLocation(Location))
-                              ButtonStyle="ButtonStyle.Light" Style="width: 150px;height: 20px" />
-                &nbsp;&nbsp;&nbsp;&nbsp;
-                <RadzenText TextStyle="TextStyle.DisplayH5"
-                            class="rz-color-secondary">@(Location.LocationName)</RadzenText>&nbsp;&nbsp;
+                    WrapItems=true AllowPaging=false
+                    Data="@colLocations" TItem="Location">
+        <Template Context="Location">
+            <RadzenCard Style="width: 100%; padding: 1;">
+                <RadzenRow Gap="0">
+                    <RadzenButton Text="Edit" Click=@(() => EditLocation(Location))
+                                  ButtonStyle="ButtonStyle.Light" Style="width: 150px;height: 20px" />
+                    &nbsp;&nbsp;&nbsp;&nbsp;
+                    <RadzenText TextStyle="TextStyle.DisplayH5"
+                                class="rz-color-secondary">@(Location.LocationName)</RadzenText>&nbsp;&nbsp;
                 </RadzenRow>
             </RadzenCard>
         </Template>
     </RadzenDataList>
-    }
+}
 @code {
     [Parameter] public Story objStory { get; set; }
 
@@ -43,30 +43,30 @@ else
     bool InProgress = false;
     List<Location> colLocations = new List<Location>();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         try
         {
             AIStoryBuildersService = (AIStoryBuildersService)ScopedServices.GetService(typeof(AIStoryBuildersService));
             OrchestratorMethods = (OrchestratorMethods)ScopedServices.GetService(typeof(OrchestratorMethods));
 
-            LoadLocations(objStory);
+            await LoadLocations(objStory);
         }
         catch (Exception ex)
         {
             NotificationService.Notify(new NotificationMessage
-                {
-                    Severity = NotificationSeverity.Error,
-                    Summary = "Error",
-                    Detail = ex.Message,
-                    Duration = 4000
-                });
+                    {
+                        Severity = NotificationSeverity.Error,
+                        Summary = "Error",
+                        Detail = ex.Message,
+                        Duration = 4000
+                    });
         }
     }
 
-    public void LoadLocations(Story paramStory)
+    public async Task LoadLocations(Story paramStory)
     {
-        colLocations = AIStoryBuildersService.GetLocations(paramStory);
+        colLocations = await AIStoryBuildersService.GetLocations(paramStory);
 
         if (dialogService != null)
         {
@@ -75,7 +75,7 @@ else
 
         if (LocationDataList != null)
         {
-            LocationDataList.Reload();            
+            await LocationDataList.Reload();
         }
     }
 
@@ -89,23 +89,23 @@ else
             newLocation.LocationDescription = new List<LocationDescription>();
 
             var EditStoryResult = await dialogService.OpenAsync(
-                "New Location", ds =>
-                @<LocationEdit objLocation=newLocation objOrginalLocation=newLocation DialogReference="ds"></LocationEdit>
-                , new DialogOptions() { Height = "250px", Width = "650px" });
+            "New Location", ds =>
+    @<LocationEdit objLocation=newLocation objOrginalLocation=newLocation DialogReference="ds"></LocationEdit>
+            , new DialogOptions() { Height = "250px", Width = "650px" });
 
-            LoadLocations(objStory);
+            await LoadLocations(objStory);
 
             StateHasChanged();
         }
         catch (Exception ex)
         {
             NotificationService.Notify(new NotificationMessage
-                {
-                    Severity = NotificationSeverity.Error,
-                    Summary = "Error",
-                    Detail = ex.Message,
-                    Duration = 4000
-                });
+                    {
+                        Severity = NotificationSeverity.Error,
+                        Summary = "Error",
+                        Detail = ex.Message,
+                        Duration = 4000
+                    });
         }
     }
 
@@ -113,16 +113,16 @@ else
     {
         try
         {
-            // Add the story to the location so it 
+            // Add the story to the location so it
             // is available in the edit screen
             paramLocation.Story = objStory;
 
             var EditStoryResult = await dialogService.OpenAsync(
-            "Edit Location", ds =>
-            @<LocationEdit objLocation=paramLocation objOrginalLocation=paramLocation DialogReference="ds"></LocationEdit>
-            , new DialogOptions() { Height = "500px", Width = "650px" });
+                "Edit Location", ds =>
+                @<LocationEdit objLocation=paramLocation objOrginalLocation=paramLocation DialogReference="ds"></LocationEdit>
+                , new DialogOptions() { Height = "500px", Width = "650px" });
 
-            LoadLocations(objStory);
+            await LoadLocations(objStory);
 
             StateHasChanged();
         }

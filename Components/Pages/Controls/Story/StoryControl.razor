@@ -115,15 +115,15 @@
                 break;
             case 1:
                 // Timelines
-                timelinesControl.LoadTimelines(objStory);
+                await timelinesControl.LoadTimelines(objStory);
                 break;
             case 2:
                 // Locations
-                locationsControl.LoadLocations(objStory);
+                await locationsControl.LoadLocations(objStory);
                 break;
             case 3:
                 // Characters
-                CtrlCharactersEdit.LoadCharacters(objStory);
+                await CtrlCharactersEdit.LoadCharacters(objStory);
                 break;
             case 4:
                 // Chapters

@@ -6,7 +6,11 @@
 @inherits OwningComponentBase
 @inject DialogService dialogService
 @inject NotificationService NotificationService
-<style>.rz-panel-titlebar { flex-direction: row-reverse; justify-content: left; }</style>
+<style>
+    .rz-panel-titlebar {
+        flex-direction: row-reverse;
+        justify-content: left;
+    }</style>
 <RadzenPanel AllowCollapse="true" Style="width: 100%;">
     <HeaderTemplate>
         <RadzenText TextStyle="TextStyle.H6" Class="rz-display-flex rz-align-items-center rz-m-0">
@@ -175,7 +179,7 @@
 
         if (LastParagraph != null)
         {
-            var LastParagraphLocation = LastParagraph.Location; 
+            var LastParagraphLocation = LastParagraph.Location;
 
             if (LastParagraphLocation != null)
             {
@@ -223,9 +227,9 @@
             string strChapterName = "Chapter" + NewChapterNumber.ToString();
 
             var EditStoryResult = await dialogService.OpenAsync(
-            strChapterName.Insert(7, " "), ds =>
-            @<ChaptersEdit objChapter=@newChapter ChapterName=@strChapterName DialogReference="ds">
-            </ChaptersEdit>
+        strChapterName.Insert(7, " "), ds =>
+    @<ChaptersEdit objChapter=@newChapter ChapterName=@strChapterName DialogReference="ds">
+    </ChaptersEdit>
     , new DialogOptions() { Height = "300px", Width = "650px" });
 
             await LoadChapters(objStory, EditStoryResult);
@@ -285,12 +289,12 @@
                 string strNewChapterName = "Chapter" + NewChapterNumber.ToString();
 
                 // First rename the existing chapters to create space for the new Chapter
-                AIStoryBuildersService.RestructureChapters(SelectedChapter, RestructureType.Add);
+                await AIStoryBuildersService.RestructureChapters(SelectedChapter, RestructureType.Add);
 
                 // Create the new chapter
                 var newChapter = new Chapter();
                 newChapter.Id = -1; // So we know it is new
-                newChapter.Story = objStory;                
+                newChapter.Story = objStory;
                 newChapter.ChapterName = strNewChapterName;
                 newChapter.Synopsis = "New Chapter";
 
@@ -339,7 +343,7 @@
                 // Delete
                 AIStoryBuildersService.DeleteChapter(SelectedChapter);
 
-                AIStoryBuildersService.RestructureChapters(SelectedChapter, RestructureType.Delete);
+                await AIStoryBuildersService.RestructureChapters(SelectedChapter, RestructureType.Delete);
 
                 // Find the previous chapter
                 var PreviousChapter = colChapters.Where(x => x.ChapterName != SelectedChapter.ChapterName).LastOrDefault();

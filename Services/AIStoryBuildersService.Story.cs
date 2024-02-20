@@ -336,7 +336,7 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public void AddTimeline(Models.Timeline objTimeline)
+        public async Task AddTimeline(Models.Timeline objTimeline)
         {
             try
             {
@@ -354,12 +354,12 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public void UpdateTimeline(Models.Timeline objTimeline, string paramTimelineNameOriginal)
+        public async Task UpdateTimeline(Models.Timeline objTimeline, string paramTimelineNameOriginal)
         {
             try
             {
                 // Get all Timelines from file
-                var ExistingTimelines = GetTimelines(objTimeline.Story);
+                var ExistingTimelines = await GetTimelines(objTimeline.Story);
 
                 // Get all Timelines except the one to update
                 ExistingTimelines = ExistingTimelines.Where(line => line.TimelineName != paramTimelineNameOriginal).ToList();
@@ -407,7 +407,7 @@ namespace AIStoryBuilders.Services
                 // ********************************************************
 
                 // Get all Timelines from file
-                var ExistingTimelines = GetTimelines(objTimeline.Story);
+                var ExistingTimelines = await GetTimelines(objTimeline.Story);
 
                 // Get all Timelines except the one to update
                 ExistingTimelines = ExistingTimelines.Where(line => line.TimelineName != paramTimelineNameOriginal).ToList();
@@ -443,11 +443,11 @@ namespace AIStoryBuilders.Services
                 // ********************************************************
 
                 // Loops through every Chapter and Paragraph 
-                var Chapters = GetChapters(objTimeline.Story);
+                var Chapters = await GetChapters(objTimeline.Story);
 
                 foreach (var Chapter in Chapters)
                 {
-                    var Paragraphs = GetParagraphs(Chapter);
+                    var Paragraphs = await GetParagraphs(Chapter);
 
                     foreach (var Paragraph in Paragraphs)
                     {
@@ -485,7 +485,7 @@ namespace AIStoryBuilders.Services
                 // ********************************************************
 
                 string LocationsPath = $"{StoryPath}/Locations";
-                List<AIStoryBuilders.Models.Location> Locations = GetLocations(objTimeline.Story);
+                List<AIStoryBuilders.Models.Location> Locations = await GetLocations(objTimeline.Story);
 
                 // Loop through each Location file
                 foreach (var AIStoryBuildersLocation in Locations)
@@ -531,7 +531,7 @@ namespace AIStoryBuilders.Services
                 // ********************************************************
 
                 string CharactersPath = $"{StoryPath}/Characters";
-                List<AIStoryBuilders.Models.Character> Characters = GetCharacters(objTimeline.Story);
+                List<AIStoryBuilders.Models.Character> Characters = await GetCharacters(objTimeline.Story);
 
                 // Loop through each Character file
                 foreach (var AIStoryBuildersCharacter in Characters)
@@ -588,7 +588,7 @@ namespace AIStoryBuilders.Services
                 // ********************************************************
 
                 // Get all Timelines from file
-                var ExistingTimelines = GetTimelines(objTimeline.Story);
+                var ExistingTimelines = await GetTimelines(objTimeline.Story);
 
                 // Get all Timelines except the one to update
                 ExistingTimelines = ExistingTimelines.Where(line => line.TimelineName != paramTimelineNameOriginal).ToList();
@@ -623,11 +623,11 @@ namespace AIStoryBuilders.Services
                 // ********************************************************
 
                 // Loops through every Chapter and Paragraph 
-                var Chapters = GetChapters(objTimeline.Story);
+                var Chapters = await GetChapters(objTimeline.Story);
 
                 foreach (var Chapter in Chapters)
                 {
-                    var Paragraphs = GetParagraphs(Chapter);
+                    var Paragraphs = await GetParagraphs(Chapter);
 
                     foreach (var Paragraph in Paragraphs)
                     {
@@ -665,7 +665,7 @@ namespace AIStoryBuilders.Services
                 // ********************************************************
 
                 string LocationsPath = $"{StoryPath}/Locations";
-                List<AIStoryBuilders.Models.Location> Locations = GetLocations(objTimeline.Story);
+                List<AIStoryBuilders.Models.Location> Locations = await GetLocations(objTimeline.Story);
 
                 // Loop through each Location file
                 foreach (var AIStoryBuildersLocation in Locations)
@@ -711,7 +711,7 @@ namespace AIStoryBuilders.Services
                 // ********************************************************
 
                 string CharactersPath = $"{StoryPath}/Characters";
-                List<AIStoryBuilders.Models.Character> Characters = GetCharacters(objTimeline.Story);
+                List<AIStoryBuilders.Models.Character> Characters = await GetCharacters(objTimeline.Story);
 
                 // Loop through each Character file
                 foreach (var AIStoryBuildersCharacter in Characters)
@@ -837,7 +837,7 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public bool LocationExists(Models.Location objLocation)
+        public async Task<bool> LocationExists(Models.Location objLocation)
         {
             bool LocationExists = true;
             var AIStoryBuildersLocationsPath = $"{BasePath}/{objLocation.Story.Title}/Locations";
@@ -958,7 +958,7 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public void DeleteLocation(Models.Location objLocation)
+        public async Task DeleteLocation(Models.Location objLocation)
         {
             try
             {
@@ -969,11 +969,11 @@ namespace AIStoryBuilders.Services
                 if (objLocation.LocationName.Trim() != "")
                 {
                     // Loops through every Chapter and Paragraph and remove the Location
-                    var Chapters = GetChapters(objLocation.Story);
+                    var Chapters = await GetChapters(objLocation.Story);
 
                     foreach (var Chapter in Chapters)
                     {
-                        var Paragraphs = GetParagraphs(Chapter);
+                        var Paragraphs = await GetParagraphs(Chapter);
 
                         foreach (var Paragraph in Paragraphs)
                         {
@@ -1016,7 +1016,7 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public void UpdateLocationName(Models.Location objLocation, string paramOriginalLocationName)
+        public async Task UpdateLocationName(Models.Location objLocation, string paramOriginalLocationName)
         {
             try
             {
@@ -1027,11 +1027,11 @@ namespace AIStoryBuilders.Services
                 if (objLocation.LocationName.Trim() != "")
                 {
                     // Loops through every Chapter and Paragraph and remove the Location
-                    var Chapters = GetChapters(objLocation.Story);
+                    var Chapters = await GetChapters(objLocation.Story);
 
                     foreach (var Chapter in Chapters)
                     {
-                        var Paragraphs = GetParagraphs(Chapter);
+                        var Paragraphs = await GetParagraphs(Chapter);
 
                         foreach (var Paragraph in Paragraphs)
                         {
@@ -1181,7 +1181,7 @@ namespace AIStoryBuilders.Services
             File.WriteAllLines(CharacterPath, CharacterContents);
         }
 
-        public void DeleteCharacter(Character character, string paramOrginalCharcterName)
+        public async Task DeleteCharacter(Character character, string paramOrginalCharcterName)
         {
             string StoryPath = $"{BasePath}/{character.Story.Title}";
             string CharactersPath = $"{StoryPath}/Characters";
@@ -1191,11 +1191,11 @@ namespace AIStoryBuilders.Services
             if (character.CharacterName.Trim() != "")
             {
                 // Loops through every Chapter and Paragraph and update the Character
-                var Chapters = GetChapters(character.Story);
+                var Chapters = await GetChapters(character.Story);
 
                 foreach (var Chapter in Chapters)
                 {
-                    var Paragraphs = GetParagraphs(Chapter);
+                    var Paragraphs = await GetParagraphs(Chapter);
 
                     foreach (var Paragraph in Paragraphs)
                     {
@@ -1256,7 +1256,7 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public void UpdateCharacterName(Character character, string paramOrginalCharcterName)
+        public async Task UpdateCharacterName(Character character, string paramOrginalCharcterName)
         {
             string StoryPath = $"{BasePath}/{character.Story.Title}";
             string CharactersPath = $"{StoryPath}/Characters";
@@ -1266,11 +1266,11 @@ namespace AIStoryBuilders.Services
             if (character.CharacterName.Trim() != "")
             {
                 // Loops through every Chapter and Paragraph and update the Character
-                var Chapters = GetChapters(character.Story);
+                var Chapters = await GetChapters(character.Story);
 
                 foreach (var Chapter in Chapters)
                 {
-                    var Paragraphs = GetParagraphs(Chapter);
+                    var Paragraphs = await GetParagraphs(Chapter);
 
                     foreach (var Paragraph in Paragraphs)
                     {
