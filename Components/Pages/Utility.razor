@@ -185,18 +185,20 @@
     async Task DownloadTemplate()
     {
         var response = await Http.GetAsync($"files/FineTunedTemplate.xls");
-        response.EnsureSuccessStatusCode();
+   
         var stream = await response.Content.ReadAsStreamAsync();
 
-        await JsRuntime.InvokeVoidAsync("saveAsFile", "FineTunedTemplate.xls", stream);
+        using var streamRef = new DotNetStreamReference(stream: stream);
+
+        await JsRuntime.InvokeVoidAsync("saveAsFile", "FineTunedTemplate.xls", streamRef);
 
         NotificationService.Notify(new NotificationMessage
-            {
-                Severity = NotificationSeverity.Success,
-                Summary = "Saved",
-                Detail = $"The file was saved successfully.",
-                Duration = 4000
-            });
+        {
+            Severity = NotificationSeverity.Success,
+            Summary = "Saved",
+            Detail = $"The file was saved successfully.",
+            Duration = 4000
+        });
     }
 
     private async Task CreateJasonLFile(InputFileChangeEventArgs e)
@@ -254,7 +256,9 @@
                 await writer.FlushAsync();
                 OutputStream.Position = 0;
 
-                await JsRuntime.InvokeVoidAsync("saveAsFile", "FineTunedJson.jsonL", OutputStream);
+                using var streamRef = new DotNetStreamReference(stream: OutputStream);
+
+                await JsRuntime.InvokeVoidAsync("saveAsFile", "FineTunedJson.jsonL", streamRef);
 
                 NotificationService.Notify(new NotificationMessage
                     {
@@ -392,7 +396,9 @@
             // Read DocumentContents into a MemoryStream
             var stream = new MemoryStream(DocumentContents);
 
-            await JsRuntime.InvokeVoidAsync("saveAsFile", ExportFileName, stream);
+            using var streamRef = new DotNetStreamReference(stream: stream);
+
+            await JsRuntime.InvokeVoidAsync("saveAsFile", ExportFileName, streamRef);
 
             NotificationService.Notify(new NotificationMessage
                 {

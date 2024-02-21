@@ -89,7 +89,9 @@
             // Convert AIStoryBuildersLog to a MemoryStream but keep the line breaks
             using var stream = new MemoryStream(Encoding.Default.GetBytes(FinalLog));
 
-            await JsRuntime.InvokeVoidAsync("saveAsFile", FileName, stream);
+            using var streamRef = new DotNetStreamReference(stream: stream);
+
+            await JsRuntime.InvokeVoidAsync("saveAsFile", FileName, streamRef);
 
             NotificationService.Notify(new NotificationMessage
                 {

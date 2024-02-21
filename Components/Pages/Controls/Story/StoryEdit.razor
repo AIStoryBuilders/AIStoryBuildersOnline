@@ -265,10 +265,11 @@ else // Existing Story
 
         var DocumentContents = await AIStoryBuildersService.ExportWordDocument(objStory);
 
-        // Read DocumentContents into a MemoryStream
         var stream = new MemoryStream(DocumentContents);
 
-        await JsRuntime.InvokeVoidAsync("saveAsFile", ExportFileName, stream);
+        using var streamRef = new DotNetStreamReference(stream: stream);
+
+        await JsRuntime.InvokeVoidAsync("saveAsFile", ExportFileName, streamRef);
 
         NotificationService.Notify(new NotificationMessage
             {
