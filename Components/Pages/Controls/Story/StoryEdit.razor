@@ -212,7 +212,9 @@ else // Existing Story
             if (objStory.Id == -1) // New Story - Do Special Validation
             {
                 // Check for duplicate Story Title
-                if (AIStoryBuildersService.GetStorysAsync().Result.Where(x => x.Title.ToLower() == objStory.Title.ToLower()).Count() > 0)
+                var ExistingStories = await AIStoryBuildersService.GetStorysAsync();
+
+                if (ExistingStories.Where(x => x.Title.ToLower() == objStory.Title.ToLower()).Count() > 0)
                 {
                     NotificationService.Notify(
                         new NotificationMessage
