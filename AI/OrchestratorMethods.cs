@@ -166,7 +166,7 @@ namespace AIStoryBuilders.AI
         #region public bool IsValidFolderName(string folderName)
         public bool IsValidFolderName(string folderName)
         {
-            string invalidChars = new string(Path.GetInvalidPathChars()) + new string(Path.GetInvalidFileNameChars());
+            string invalidChars = @"\/:*?""<>|";
             Regex containsABadCharacter = new Regex("[" + Regex.Escape(invalidChars) + "]");
             if (containsABadCharacter.IsMatch(folderName))
             {
