@@ -28,8 +28,8 @@ namespace AIStoryBuilders.AI
             await LogService.WriteToLogAsync($"GetStoryBeats using {GPTModel} - Start");
 
             // Create a new OpenAIClient object
-            // with the provided API key and organization
-            var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), null, new HttpClient() { Timeout = TimeSpan.FromSeconds(520) });
+            HttpClient.Timeout = TimeSpan.FromSeconds(520);
+            var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
 
             // Create a colection of chatPrompts
             ChatResponse ChatResponseResult = new ChatResponse();

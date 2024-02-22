@@ -24,7 +24,7 @@ namespace AIStoryBuilders.AI
             string ApiKey = SettingsService.ApiKey;
 
             // Create a new OpenAIClient object
-            // with the provided API key and organization
+            HttpClient.Timeout = TimeSpan.FromSeconds(520);
             var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
 
             // Fetch the list of models using the OpenAI API
@@ -144,7 +144,7 @@ namespace AIStoryBuilders.AI
             string ApiKey = SettingsService.ApiKey;
 
             // Create a new OpenAIClient object
-            // with the provided API key and organization
+            HttpClient.Timeout = TimeSpan.FromSeconds(520);
             var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
 
             await api.ModelsEndpoint.DeleteFineTuneModelAsync(paramaModel.ModelId);
