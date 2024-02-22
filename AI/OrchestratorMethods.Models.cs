@@ -24,7 +24,6 @@ namespace AIStoryBuilders.AI
             string ApiKey = SettingsService.ApiKey;
 
             // Create a new OpenAIClient object
-            HttpClient.Timeout = TimeSpan.FromSeconds(520);
             var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
 
             // Fetch the list of models using the OpenAI API
