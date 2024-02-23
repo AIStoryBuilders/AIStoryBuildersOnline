@@ -20,6 +20,7 @@ namespace AIStoryBuilders.AI
         #region public async Task<string> GetStoryBeats(string paramParagraph)
         public async Task<string> GetStoryBeats(string paramParagraph)
         {
+            await SettingsService.LoadSettingsAsync();
             string Organization = SettingsService.Organization;
             string ApiKey = SettingsService.ApiKey;
             string SystemMessage = "";

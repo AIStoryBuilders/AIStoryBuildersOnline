@@ -20,6 +20,7 @@ namespace AIStoryBuilders.AI
         #region public async Task<List<SimpleCharacterSelector>> DetectCharacterAttributes(Paragraph objParagraph, List<Models.Character> colCharacters, string objDetectionType)
         public async Task<List<SimpleCharacterSelector>> DetectCharacterAttributes(Paragraph objParagraph, List<Models.Character> colCharacters, string objDetectionType)
         {
+            await SettingsService.LoadSettingsAsync();
             string Organization = SettingsService.Organization;
             string ApiKey = SettingsService.ApiKey;
             string SystemMessage = "";

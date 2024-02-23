@@ -139,6 +139,7 @@ namespace AIStoryBuilders.AI
         #region public async Task DeleteFineTuneModelAsync(AIStoryBuilderModel paramaModel)
         public async Task DeleteFineTuneModelAsync(AIStoryBuilderModel paramaModel)
         {
+            await SettingsService.LoadSettingsAsync();
             string Organization = SettingsService.Organization;
             string ApiKey = SettingsService.ApiKey;
 

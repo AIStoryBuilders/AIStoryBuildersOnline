@@ -18,7 +18,8 @@ namespace AIStoryBuilders.AI
     {
         #region public async Task<Message> ParseNewStory(string paramStoryTitle, string paramStoryText, string GPTModel)
         public async Task<Message> ParseNewStory(string paramStoryTitle, string paramStoryText, string GPTModel)
-        {            
+        {
+            await SettingsService.LoadSettingsAsync();
             string Organization = SettingsService.Organization;
             string ApiKey = SettingsService.ApiKey;
             string SystemMessage = "";

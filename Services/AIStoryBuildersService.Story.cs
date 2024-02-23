@@ -57,11 +57,6 @@ namespace AIStoryBuilders.Services
             //  ********** Call the LLM to Parse the Story to create the files **********
             OpenAI.Chat.Message ParsedStoryJSON = await OrchestratorMethods.ParseNewStory(story.Title, story.Synopsis, GPTModelId);
 
-            CreateDirectory(StoryPath);
-            CreateDirectory(CharactersPath);
-            CreateDirectory(ChaptersPath);
-            CreateDirectory(LocationsPath);
-
             // Add Story to file
             await AIStoryBuildersStoryService.AddStoryAsync(new AIStoryBuildersStory
             {
@@ -82,26 +77,31 @@ namespace AIStoryBuilders.Services
             // *****************************************************
 
             // Create the Character files
-            TextEvent?.Invoke(this, new TextEventArgs($"Create the Character files", 5));
+            TextEvent?.Invoke(this, new TextEventArgs($"Create the Characters", 5));
+
+            List<AIStoryBuilders.Models.LocalStorage.Character> CharacterContents = new List<AIStoryBuilders.Models.LocalStorage.Character>();
+
             foreach (var character in ParsedNewStory.characters)
             {
-                // Add Character to file
-                string CharacterName = OrchestratorMethods.SanitizeFileName(character.name);
+                AIStoryBuilders.Models.LocalStorage.Character objCharacter = new AIStoryBuilders.Models.LocalStorage.Character();
+                objCharacter.descriptions = new List<AIStoryBuilders.Models.LocalStorage.Descriptions>();
 
-                // Create Character file
-                string CharacterPath = $"{CharactersPath}/{CharacterName}.csv";
-                List<string> CharacterContents = new List<string>();
+                string CharacterName = OrchestratorMethods.SanitizeFileName(character.name);            
 
                 foreach (var description in character.descriptions)
                 {
-                    string description_type = description.description_type ?? "";
-                    string timeline_name = description.timeline_name ?? "";
-                    string VectorDescriptionAndEmbedding = await OrchestratorMethods.GetVectorEmbedding(description.description ?? "", true);
-                    CharacterContents.Add($"{description_type}|{timeline_name}|{VectorDescriptionAndEmbedding}" + Environment.NewLine);
-                }
+                    AIStoryBuilders.Models.LocalStorage.Descriptions objDescription = new AIStoryBuilders.Models.LocalStorage.Descriptions();
 
-                File.WriteAllLines(CharacterPath, CharacterContents);
+                    objDescription.description_type = description.description_type ?? "";
+                    objDescription.timeline_name = description.timeline_name ?? "";
+                    objDescription.description = description.description ?? "";
+                    objDescription.embedding = await OrchestratorMethods.GetVectorEmbedding(description.description ?? "", false);
+
+                    objCharacter.descriptions.Add(objDescription);
+                }                
             }
+
+            await AIStoryBuildersCharactersService.SaveDatabaseAsync(story.Title, CharacterContents);
 
             // Create the Location files
             TextEvent?.Invoke(this, new TextEventArgs($"Create the Location files", 5));
@@ -187,7 +187,6 @@ namespace AIStoryBuilders.Services
             {
                 // Create a folder in Chapters/
                 string ChapterPath = $"{ChaptersPath}/Chapter{ChapterNumber}";
-                CreateDirectory(ChapterPath);
 
                 TextEvent?.Invoke(this, new TextEventArgs($"Create Chapter {ChapterNumber}", 5));
 

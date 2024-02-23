@@ -16,18 +16,21 @@ namespace AIStoryBuilders.Services
         private LogService LogService { get; set; }
         private OrchestratorMethods OrchestratorMethods { get; set; }
         private AIStoryBuildersStoryService AIStoryBuildersStoryService { get; set; }
+        private AIStoryBuildersCharactersService AIStoryBuildersCharactersService { get; set; }
 
         public string BasePath = $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders";
         public AIStoryBuildersService(
             AppMetadata appMetadata,
             LogService _LogService,
             OrchestratorMethods _OrchestratorMethods,
-            AIStoryBuildersStoryService _AIStoryBuildersStoryService)
+            AIStoryBuildersStoryService _AIStoryBuildersStoryService,
+            AIStoryBuildersCharactersService _AIStoryBuildersCharactersService)
         {
             _appMetadata = appMetadata;
             LogService = _LogService;
             OrchestratorMethods = _OrchestratorMethods;
             AIStoryBuildersStoryService = _AIStoryBuildersStoryService;
+            AIStoryBuildersCharactersService = _AIStoryBuildersCharactersService;
         }
 
         // Utility
@@ -65,17 +68,6 @@ namespace AIStoryBuilders.Services
             }
 
             return content.ToArray();
-        }
-        #endregion
-
-        #region public void CreateDirectory(string path)
-        public void CreateDirectory(string path)
-        {
-            // Create directory if it doesn't exist
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
         }
         #endregion
 

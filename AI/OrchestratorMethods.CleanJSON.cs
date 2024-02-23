@@ -17,6 +17,7 @@ namespace AIStoryBuilders.AI
         #region public async Task<string> CleanJSON(string JSON, string GPTModel)
         public async Task<string> CleanJSON(string JSON, string GPTModel)
         {
+            await SettingsService.LoadSettingsAsync();
             string Organization = SettingsService.Organization;
             string ApiKey = SettingsService.ApiKey;
             string SystemMessage = "";
