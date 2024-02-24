@@ -53,5 +53,50 @@ namespace AIStoryBuilders.Model
             // Update the properties
             characters = paramCharacters;
         }
+
+        // Add a new character
+        public async Task AddCharacterAsync(string paramStoryName, Character paramCharacter)
+        {
+            await LoadAIStoryBuildersCharactersAsync(paramStoryName);
+
+            characters.Add(paramCharacter);
+
+            await SaveDatabaseAsync(paramStoryName, characters);
+        }
+
+        // Update a character
+        public async Task UpdateCharacterAsync(string paramStoryName, Character paramCharacter)
+        {
+            await LoadAIStoryBuildersCharactersAsync(paramStoryName);
+
+            var character = characters.Where(x => x.name == paramCharacter.name).FirstOrDefault();
+
+            if (character != null)
+            {
+                characters.Remove(character);
+                characters.Add(paramCharacter);   
+                await SaveDatabaseAsync(paramStoryName, characters);
+            }
+        }
+
+        // Delete a character
+        public async Task DeleteCharacterAsync(string paramStoryName, Character paramCharacter)
+        {
+            await LoadAIStoryBuildersCharactersAsync(paramStoryName);
+
+            var character = characters.Where(x => x.name == paramCharacter.name).FirstOrDefault();
+
+            if (character != null)
+            {
+                characters.Remove(character);
+                await SaveDatabaseAsync(paramStoryName, characters);
+            }
+        }
+
+        // Delete all characters
+        public async Task DeleteAllCharactersAsync(string paramStoryName)
+        {
+            await localStorage.RemoveItemAsync($"{paramStoryName}|{PropertyTypeName}");
+        }
     }
 }

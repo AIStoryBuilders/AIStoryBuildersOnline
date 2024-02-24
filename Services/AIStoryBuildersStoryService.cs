@@ -95,6 +95,8 @@ namespace AIStoryBuilders.Model
         // Update a story
         public async Task UpdateStoryAsync(AIStoryBuildersStory paramAIStoryBuildersStory)
         {
+            await LoadAIStoryBuildersStoriesAsync();
+
             // Find the story in colAIStoryBuildersStory
             AIStoryBuildersStory story = colAIStoryBuildersStory.Where(x => x.Id == paramAIStoryBuildersStory.Id).FirstOrDefault();
 
@@ -113,14 +115,20 @@ namespace AIStoryBuilders.Model
         // Delete a story
         public async Task DeleteStoryAsync(int paramId)
         {
+            await LoadAIStoryBuildersStoriesAsync();
+
             // Find the story in colAIStoryBuildersStory
             AIStoryBuildersStory story = colAIStoryBuildersStory.Where(x => x.Id == paramId).FirstOrDefault();
 
             if (story != null)
             {
+                // Remove the story from colAIStoryBuildersStory
                 colAIStoryBuildersStory.Remove(story);
-
                 await SaveDatabaseAsync(colAIStoryBuildersStory);
+
+                // Delete the story's characters
+                AIStoryBuildersCharactersService AIStoryBuildersCharactersService = new AIStoryBuildersCharactersService(localStorage);
+                await AIStoryBuildersCharactersService.DeleteAllCharactersAsync(story.Title);
             }
         }
     }
