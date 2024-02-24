@@ -30,6 +30,9 @@ namespace AIStoryBuildersOnline
             builder.Services.AddScoped<AIStoryBuildersService>();
             builder.Services.AddScoped<AIStoryBuildersStoryService>();
             builder.Services.AddScoped<AIStoryBuildersCharactersService>();
+            builder.Services.AddScoped<AIStoryBuildersLocationsService>();
+            builder.Services.AddScoped<AIStoryBuildersChaptersService>();
+            builder.Services.AddScoped<AIStoryBuildersTimelinesService>();
 
             // Radzen
             builder.Services.AddScoped<DialogService>();

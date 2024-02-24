@@ -129,6 +129,18 @@ namespace AIStoryBuilders.Model
                 // Delete the story's characters
                 AIStoryBuildersCharactersService AIStoryBuildersCharactersService = new AIStoryBuildersCharactersService(localStorage);
                 await AIStoryBuildersCharactersService.DeleteAllCharactersAsync(story.Title);
+
+                // Delete the story's chapters
+                AIStoryBuildersChaptersService AIStoryBuildersChaptersService = new AIStoryBuildersChaptersService(localStorage);
+                await AIStoryBuildersChaptersService.DeleteAllChaptersAsync(story.Title);
+
+                // Delete the story's locations
+                AIStoryBuildersLocationsService AIStoryBuildersLocationsService = new AIStoryBuildersLocationsService(localStorage);
+                await AIStoryBuildersLocationsService.DeleteAllLocationsAsync(story.Title);
+
+                // Delete the story's timelines
+                AIStoryBuildersTimelinesService AIStoryBuildersTimelinesService = new AIStoryBuildersTimelinesService(localStorage);
+                await AIStoryBuildersTimelinesService.DeleteAllTimelinesAsync(story.Title);
             }
         }
     }
