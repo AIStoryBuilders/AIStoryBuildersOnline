@@ -1,6 +1,7 @@
 ﻿using AIStoryBuilders.Model;
 using AIStoryBuilders.Models;
 using AIStoryBuilders.Models.JSON;
+using AIStoryBuilders.Models.LocalStorage;
 using Markdig.Extensions.TaskLists;
 using static AIStoryBuilders.AI.OrchestratorMethods;
 using Character = AIStoryBuilders.Models.Character;
@@ -10,9 +11,9 @@ namespace AIStoryBuilders.Services
     public partial class AIStoryBuildersService
     {
         #region *** Story ***
-        public async Task<List<Story>> GetStorysAsync()
+        public async Task<List<Models.Story>> GetStorysAsync()
         {
-            List<Story> stories = new List<Story>();
+            List<Models.Story> stories = new List<Models.Story>();
 
             try
             {
@@ -22,7 +23,7 @@ namespace AIStoryBuilders.Services
 
                 foreach (var story in AIStoryBuildersStoriesContent.OrderBy(x => x.Title))
                 {
-                    Story objStr = new Story();
+                    Models.Story objStr = new Models.Story();
 
                     objStr.Id = story.Id;
                     objStr.Title = story.Title;
@@ -39,13 +40,13 @@ namespace AIStoryBuilders.Services
                 await LogService.WriteToLogAsync("GetStorys: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
 
                 // File is empty
-                return new List<Story>();
+                return new List<Models.Story>();
             }
 
             return stories;
         }
 
-        public async Task AddStory(Story story, string GPTModelId)
+        public async Task AddStory(Models.Story story, string GPTModelId)
         {
             // Create Characters, Chapters, Timelines, and Locations sub folders
 
@@ -106,61 +107,68 @@ namespace AIStoryBuilders.Services
             await AIStoryBuildersCharactersService.SaveDatabaseAsync(story.Title, CharacterContents);
 
             // Create the Location files
-            TextEvent?.Invoke(this, new TextEventArgs($"Create the Location files", 5));
+            TextEvent?.Invoke(this, new TextEventArgs($"Create the Locations", 5));
+
+            List<AIStoryBuilders.Models.LocalStorage.Locations> LocationContents = new List<AIStoryBuilders.Models.LocalStorage.Locations>();
+
             foreach (var location in ParsedNewStory.locations)
             {
-                // Add Location to file
-                string LocationName = OrchestratorMethods.SanitizeFileName(location.name);
+                AIStoryBuilders.Models.LocalStorage.Locations objLocation = new AIStoryBuilders.Models.LocalStorage.Locations();
+                objLocation.descriptions = new List<AIStoryBuilders.Models.LocalStorage.Descriptions>();
 
-                // Create Location file
-                string LocationPath = $"{LocationsPath}/{LocationName}.csv";
-                List<string> LocationContents = new List<string>();
+                objLocation.name = OrchestratorMethods.SanitizeFileName(location.name);
 
                 if (location.descriptions != null)
                 {
                     foreach (var description in location.descriptions)
                     {
-                        string VectorEmbedding = await OrchestratorMethods.GetVectorEmbedding(description, false);
+                        AIStoryBuilders.Models.LocalStorage.Descriptions objDescription = new AIStoryBuilders.Models.LocalStorage.Descriptions();
 
+                        objDescription.description = description ?? "";
                         // We are deliberately not setting a LocationTimeline (therefore setting it to empty string)
                         // We did not ask the AI to set this value because it would have ben asking too much
-                        var LocationDescriptionAndTimeline = $"{description}|";
-                        LocationContents.Add($"{LocationDescriptionAndTimeline}|{VectorEmbedding}" + Environment.NewLine);
+                        objDescription.embedding = await OrchestratorMethods.GetVectorEmbedding(description ?? "", false);
+
+                        objLocation.descriptions.Add(objDescription);
                     }
                 }
                 else
                 {
-                    string VectorEmbedding = await OrchestratorMethods.GetVectorEmbedding(location.name, false);
+                    AIStoryBuilders.Models.LocalStorage.Descriptions objDescription = new AIStoryBuilders.Models.LocalStorage.Descriptions();
 
+                    objDescription.description = location.name ?? "";
                     // We are deliberately not setting a LocationTimeline (therefore setting it to empty string)
                     // We did not ask the AI to set this value because it would have ben asking too much
-                    var LocationDescriptionAndTimeline = $"{location.name}|";
-                    LocationContents.Add($"{LocationDescriptionAndTimeline}|{VectorEmbedding}" + Environment.NewLine);
+                    objDescription.embedding = await OrchestratorMethods.GetVectorEmbedding(location.name ?? "", false);
+
+                    objLocation.descriptions.Add(objDescription);
                 }
 
-                File.WriteAllLines(LocationPath, LocationContents);
+                LocationContents.Add(objLocation);
             }
 
+            await AIStoryBuildersLocationsService.SaveDatabaseAsync(story.Title, LocationContents);
+
             // Create the Timeline file
-            TextEvent?.Invoke(this, new TextEventArgs($"Create the Timeline file", 5));
-            List<string> TimelineContents = new List<string>();
+            TextEvent?.Invoke(this, new TextEventArgs($"Create the Timelines", 5));
+
+            List<AIStoryBuilders.Models.LocalStorage.Timelines> TimelinesContents = new List<AIStoryBuilders.Models.LocalStorage.Timelines>();
 
             int i = 0;
             foreach (var timeline in ParsedNewStory.timelines)
             {
-                // Add Timeline to file
-                string TimelineName = OrchestratorMethods.SanitizeFileName(timeline.name);
+                AIStoryBuilders.Models.LocalStorage.Timelines objTimeline = new AIStoryBuilders.Models.LocalStorage.Timelines();
+                objTimeline.name = OrchestratorMethods.SanitizeFileName(timeline.name);
 
-                string StartTime = DateTime.Now.AddDays(i).ToShortDateString() + " " + DateTime.Now.AddDays(i).ToShortTimeString();
-                string StopTime = DateTime.Now.AddDays(i + 1).ToShortDateString() + " " + DateTime.Now.AddDays(i + 1).ToShortTimeString();
-                string TimelineContentsLine = $"{TimelineName}|{timeline.description}|{StartTime}|{StopTime}";
+                objTimeline.description = timeline.description; 
+                objTimeline.StartDate = DateTime.Now.AddDays(i).ToShortDateString() + " " + DateTime.Now.AddDays(i).ToShortTimeString();
+                objTimeline.StopDate = DateTime.Now.AddDays(i + 1).ToShortDateString() + " " + DateTime.Now.AddDays(i + 1).ToShortTimeString();
 
-                TimelineContents.Add(TimelineContentsLine);
+                TimelinesContents.Add(objTimeline);
                 i = i + 2;
             }
 
-            string TimelinePath = $"{StoryPath}/Timelines.csv";
-            File.WriteAllLines(TimelinePath, TimelineContents);
+            await AIStoryBuildersTimelinesService.SaveDatabaseAsync(story.Title, TimelinesContents);
 
             //// **** Create the First Paragraph and the Chapters
 
@@ -184,26 +192,29 @@ namespace AIStoryBuilders.Services
 
             //// **** Create the Files
 
+            List<AIStoryBuilders.Models.LocalStorage.Chapter> ChapterContents = new List<AIStoryBuilders.Models.LocalStorage.Chapter>();
+
             int ChapterNumber = 1;
             foreach (var chapter in ParsedNewChapters.chapter)
             {
-                // Create a folder in Chapters/
-                string ChapterPath = $"{ChaptersPath}/Chapter{ChapterNumber}";
+                AIStoryBuilders.Models.LocalStorage.Chapter objChapter = new AIStoryBuilders.Models.LocalStorage.Chapter();
+                objChapter.paragraphs = new List<AIStoryBuilders.Models.LocalStorage.Paragraphs>();
+
+                objChapter.chapter_name = $"Chapter{ChapterNumber}";
 
                 TextEvent?.Invoke(this, new TextEventArgs($"Create Chapter {ChapterNumber}", 5));
 
                 if (chapter.chapter_synopsis != null)
                 {
-                    // Create a file at: Chapters/Chapter{ChapterNumber}/Chapter{ChapterNumber}.txt
-                    string ChapterFilePath = $"{ChapterPath}/Chapter{ChapterNumber}.txt";
-                    string ChapterSynopsisAndEmbedding = await OrchestratorMethods.GetVectorEmbedding(chapter.chapter_synopsis, true);
-                    File.WriteAllText(ChapterFilePath, $"{ChapterSynopsisAndEmbedding}");
+                    objChapter.chapter_synopsis = chapter.chapter_synopsis;
+                    objChapter.embedding = await OrchestratorMethods.GetVectorEmbedding(chapter.chapter_synopsis ?? "", false);
 
                     if (chapter.paragraphs[0] != null)
                     {
-                        // Create a file at: Chapters/Chapter1/Paragraph1.txt
-                        string FirstParagraphPath = $"{ChapterPath}/Paragraph1.txt";
-                        string VectorDescriptionAndEmbeddingFirstParagraph = await OrchestratorMethods.GetVectorEmbedding(chapter.paragraphs[0].contents, true);
+                        Paragraphs objParagraph = new Paragraphs();
+
+                        objParagraph.contents = chapter.paragraphs[0].contents;
+                        objParagraph.embedding = await OrchestratorMethods.GetVectorEmbedding(chapter.paragraphs[0].contents ?? "", false);
 
                         // Only allow one Location and Timeline
                         var TempLocation = chapter.paragraphs[0].location_name;
@@ -214,8 +225,8 @@ namespace AIStoryBuilders.Services
                         var TempTimelineSplit = TempTimeline.Split(',');
 
                         // Get the first Location and Timeline
-                        string Location = TempLocationSplit[0];
-                        string Timeline = TempTimelineSplit[0];
+                        objParagraph.location_name = TempLocationSplit[0];
+                        objParagraph.timeline_name = TempTimelineSplit[0];
 
                         string Characters = "[";
 
@@ -232,15 +243,20 @@ namespace AIStoryBuilders.Services
                         }
                         Characters = Characters + "]";
 
-                        File.WriteAllText(FirstParagraphPath, $"{Location}|{Timeline}|{Characters}|{VectorDescriptionAndEmbeddingFirstParagraph}");
+                        objParagraph.character_names = Characters;
+
+                        objChapter.paragraphs.Add(objParagraph);
                     }
                 }
 
+                ChapterContents.Add(objChapter);
                 ChapterNumber++;
             }
+
+            await AIStoryBuildersChaptersService.SaveDatabaseAsync(story.Title, ChapterContents);
         }
 
-        public async Task UpdateStoryAsync(Story story)
+        public async Task UpdateStoryAsync(Models.Story story)
         {
             // Remove any line breaks
             story.Style = RemoveLineBreaks(story.Style);
@@ -272,7 +288,7 @@ namespace AIStoryBuilders.Services
         #endregion
 
         #region *** Timelines ***
-        public async Task<List<AIStoryBuilders.Models.Timeline>> GetTimelines(Story story)
+        public async Task<List<AIStoryBuilders.Models.Timeline>> GetTimelines(Models.Story story)
         {
             // Create a collection of Timelines
             List<AIStoryBuilders.Models.Timeline> Timelines = new List<AIStoryBuilders.Models.Timeline>();
@@ -763,7 +779,7 @@ namespace AIStoryBuilders.Services
         #endregion
 
         #region *** Locations ***
-        public async Task<List<AIStoryBuilders.Models.Location>> GetLocations(Story story)
+        public async Task<List<AIStoryBuilders.Models.Location>> GetLocations(Models.Story story)
         {
             // Create a collection of Location
             List<AIStoryBuilders.Models.Location> Locations = new List<AIStoryBuilders.Models.Location>();
@@ -1081,7 +1097,7 @@ namespace AIStoryBuilders.Services
         #endregion
 
         #region *** Character ***
-        public async Task<List<AIStoryBuilders.Models.Character>> GetCharacters(Story story)
+        public async Task<List<AIStoryBuilders.Models.Character>> GetCharacters(Models.Story story)
         {
             // Create a collection of Character
             List<AIStoryBuilders.Models.Character> Characters = new List<AIStoryBuilders.Models.Character>();
@@ -1333,7 +1349,7 @@ namespace AIStoryBuilders.Services
         #endregion
 
         #region *** Chapter ***
-        public async Task<List<AIStoryBuilders.Models.Chapter>> GetChapters(Story story)
+        public async Task<List<AIStoryBuilders.Models.Chapter>> GetChapters(Models.Story story)
         {
             // Create a collection of Chapter
             List<AIStoryBuilders.Models.Chapter> Chapters = new List<AIStoryBuilders.Models.Chapter>();
@@ -1396,7 +1412,7 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public async Task<int> CountChapters(Story story)
+        public async Task<int> CountChapters(Models.Story story)
         {
             int ChapterCount = 0;
 
@@ -1419,7 +1435,7 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public async Task AddChapterAsync(Chapter objChapter, string ChapterName)
+        public async Task AddChapterAsync(Models.Chapter objChapter, string ChapterName)
         {
             if (objChapter.Synopsis == null)
             {
@@ -1438,7 +1454,7 @@ namespace AIStoryBuilders.Services
             File.WriteAllText(ChapterFilePath, $"{ChapterSynopsisAndEmbedding}");
         }
 
-        public async Task InsertChapterAsync(Chapter objChapter)
+        public async Task InsertChapterAsync(Models.Chapter objChapter)
         {
             if (objChapter.Synopsis == null)
             {
@@ -1458,7 +1474,7 @@ namespace AIStoryBuilders.Services
             File.WriteAllText(ChapterFilePath, $"{ChapterSynopsisAndEmbedding}");
         }
 
-        public async Task UpdateChapterAsync(Chapter objChapter)
+        public async Task UpdateChapterAsync(Models.Chapter objChapter)
         {
             string ChapterName = objChapter.ChapterName.Replace(" ", "");
             var AIStoryBuildersChaptersPath = $"{BasePath}/{objChapter.Story.Title}/Chapters";
@@ -1469,7 +1485,7 @@ namespace AIStoryBuilders.Services
             File.WriteAllText(ChapterFilePath, $"{ChapterSynopsisAndEmbedding}");
         }
 
-        public void DeleteChapter(Chapter objChapter)
+        public void DeleteChapter(Models.Chapter objChapter)
         {
             // Delete Chapter
             string ChapterName = objChapter.ChapterName.Replace(" ", "");
@@ -1482,7 +1498,7 @@ namespace AIStoryBuilders.Services
         #endregion
 
         #region *** Paragraph ***
-        public async Task<List<AIStoryBuilders.Models.Paragraph>> GetParagraphs(Chapter chapter)
+        public async Task<List<AIStoryBuilders.Models.Paragraph>> GetParagraphs(Models.Chapter chapter)
         {
             List<Paragraph> colParagraphs = new List<Paragraph>();
 
@@ -1560,7 +1576,7 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public async Task<List<AIParagraph>> GetParagraphVectors(Chapter chapter, string TimelineName)
+        public async Task<List<AIParagraph>> GetParagraphVectors(Models.Chapter chapter, string TimelineName)
         {
             List<AIParagraph> colParagraphs = new List<AIParagraph>();
 
@@ -1640,7 +1656,7 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public async Task<int> CountParagraphs(Chapter chapter)
+        public async Task<int> CountParagraphs(Models.Chapter chapter)
         {
             int ParagraphCount = 0;
 
@@ -1668,7 +1684,7 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public async Task AddParagraph(Chapter chapter, Paragraph Paragraph)
+        public async Task AddParagraph(Models.Chapter chapter, Paragraph Paragraph)
         {
             try
             {
@@ -1698,7 +1714,7 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public async Task UpdateParagraph(Chapter chapter, Paragraph Paragraph)
+        public async Task UpdateParagraph(Models.Chapter chapter, Paragraph Paragraph)
         {
             try
             {
@@ -1727,7 +1743,7 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public async Task DeleteParagraph(Chapter chapter, Paragraph Paragraph)
+        public async Task DeleteParagraph(Models.Chapter chapter, Paragraph Paragraph)
         {
             try
             {

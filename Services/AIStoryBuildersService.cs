@@ -17,6 +17,9 @@ namespace AIStoryBuilders.Services
         private OrchestratorMethods OrchestratorMethods { get; set; }
         private AIStoryBuildersStoryService AIStoryBuildersStoryService { get; set; }
         private AIStoryBuildersCharactersService AIStoryBuildersCharactersService { get; set; }
+        private AIStoryBuildersLocationsService AIStoryBuildersLocationsService { get; set; }
+        private AIStoryBuildersChaptersService AIStoryBuildersChaptersService { get; set; }
+        private AIStoryBuildersTimelinesService AIStoryBuildersTimelinesService { get; set; }
 
         public string BasePath = $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders";
         public AIStoryBuildersService(
@@ -24,13 +27,20 @@ namespace AIStoryBuilders.Services
             LogService _LogService,
             OrchestratorMethods _OrchestratorMethods,
             AIStoryBuildersStoryService _AIStoryBuildersStoryService,
-            AIStoryBuildersCharactersService _AIStoryBuildersCharactersService)
+            AIStoryBuildersCharactersService _AIStoryBuildersCharactersService,
+            AIStoryBuildersLocationsService _AIStoryBuildersLocationsService,
+            AIStoryBuildersChaptersService _AIStoryBuildersChaptersService,
+            AIStoryBuildersTimelinesService _AIStoryBuildersTimelinesService
+            )
         {
             _appMetadata = appMetadata;
             LogService = _LogService;
             OrchestratorMethods = _OrchestratorMethods;
             AIStoryBuildersStoryService = _AIStoryBuildersStoryService;
             AIStoryBuildersCharactersService = _AIStoryBuildersCharactersService;
+            AIStoryBuildersLocationsService = _AIStoryBuildersLocationsService;
+            AIStoryBuildersChaptersService = _AIStoryBuildersChaptersService;
+            AIStoryBuildersTimelinesService = _AIStoryBuildersTimelinesService;
         }
 
         // Utility
