@@ -17,6 +17,7 @@
         public string contents { get; set; }
         public string location_name { get; set; }
         public string timeline_name { get; set; }
+        public string embedding { get; set; }
         public List<string> character_names { get; set; }
     }
 }

@@ -31,7 +31,6 @@
         public List<string> _enum { get; set; }
         public string description { get; set; }
         public string timeline_name { get; set; }
-
         public string embedding { get; set; }
     }
 }

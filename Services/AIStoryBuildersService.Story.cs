@@ -72,7 +72,7 @@ namespace AIStoryBuilders.Services
             JSONStory ParsedNewStory = new JSONStory();
 
             // Convert the JSON to a dynamic object
-            ParsedNewStory = ParseJSONNewStory(ParsedStoryJSON.Content.ToString());
+            ParsedNewStory = await ParseJSONNewStory(ParsedStoryJSON.Content.ToString());
 
             // *****************************************************
 
@@ -86,7 +86,7 @@ namespace AIStoryBuilders.Services
                 AIStoryBuilders.Models.LocalStorage.Character objCharacter = new AIStoryBuilders.Models.LocalStorage.Character();
                 objCharacter.descriptions = new List<AIStoryBuilders.Models.LocalStorage.Descriptions>();
 
-                string CharacterName = OrchestratorMethods.SanitizeFileName(character.name);            
+                objCharacter.name = OrchestratorMethods.SanitizeFileName(character.name);            
 
                 foreach (var description in character.descriptions)
                 {
@@ -98,7 +98,9 @@ namespace AIStoryBuilders.Services
                     objDescription.embedding = await OrchestratorMethods.GetVectorEmbedding(description.description ?? "", false);
 
                     objCharacter.descriptions.Add(objDescription);
-                }                
+                }
+
+                CharacterContents.Add(objCharacter);
             }
 
             await AIStoryBuildersCharactersService.SaveDatabaseAsync(story.Title, CharacterContents);
