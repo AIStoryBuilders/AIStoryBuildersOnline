@@ -1354,49 +1354,39 @@ namespace AIStoryBuilders.Services
             // Create a collection of Chapter
             List<AIStoryBuilders.Models.Chapter> Chapters = new List<AIStoryBuilders.Models.Chapter>();
 
-            var AIStoryBuildersChaptersPath = $"{BasePath}/{story.Title}/Chapters";
-
             try
             {
-                // Get a list of all the Chapter folders
-                // order by the folder name
+                await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(story.Title);
 
-                string[] AIStoryBuildersChaptersFolders = Directory.GetDirectories(AIStoryBuildersChaptersPath);
+                if(AIStoryBuildersChaptersService.Chapters.Count == 0)
+                {
+                    return new List<AIStoryBuilders.Models.Chapter>();
+                }
 
                 // order by the folder name
-                AIStoryBuildersChaptersFolders = AIStoryBuildersChaptersFolders.OrderBy(x => x).ToArray();
+                var AIStoryBuildersChapters = AIStoryBuildersChaptersService.Chapters.OrderBy(x => x.chapter_name).ToList();
 
                 // Loop through each Chapter folder
-                foreach (var AIStoryBuildersChapterFolder in AIStoryBuildersChaptersFolders)
+                int ChapterSequenceNumber = 1;
+                foreach (var AIStoryBuildersChapter in AIStoryBuildersChapters)
                 {
                     // Get the ChapterName from the file name                    
-                    string ChapterName = Path.GetFileNameWithoutExtension(AIStoryBuildersChapterFolder);
-                    string ChapterFileName = Path.Combine(AIStoryBuildersChapterFolder, $"{ChapterName}.txt");
+                    string ChapterName = AIStoryBuildersChapter.chapter_name;
 
                     // Put in a space after the word Chapter
                     ChapterName = ChapterName.Insert(7, " ");
-
-                    // Get sequence number from folder name
-                    string ChapterSequence = ChapterName.Split(' ')[1];
-                    int ChapterSequenceNumber = int.Parse(ChapterSequence);
-
-                    // Get the ChapterContent from the file
-                    string[] ChapterContent = File.ReadAllLines(ChapterFileName);
-
-                    // Remove all empty lines
-                    ChapterContent = ChapterContent.Where(line => line.Trim() != "").ToArray();
-
-                    var ChapterDescription = ChapterContent.Select(x => x.Split('|')).Select(x => x[0]).FirstOrDefault();
 
                     // Create a Chapter
                     AIStoryBuilders.Models.Chapter Chapter = new AIStoryBuilders.Models.Chapter();
                     Chapter.ChapterName = ChapterName;
                     Chapter.Sequence = ChapterSequenceNumber;
-                    Chapter.Synopsis = ChapterDescription;
+                    Chapter.Synopsis = AIStoryBuildersChapter.chapter_synopsis;
                     Chapter.Story = story;
 
                     // Add Chapter to collection
                     Chapters.Add(Chapter);
+
+                    ChapterSequenceNumber++;
                 }
 
                 // Return collection of Chapters
