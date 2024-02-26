@@ -44,8 +44,8 @@ namespace AIStoryBuilders.Model
         {
             await LoadLogAsync();
 
-            // If log has more than 1000 lines, keep only the recent 1000 lines
-            if (Logs.colLogs.Count > 1000)
+            // If log has more than 100 lines, keep only the recent 100 lines
+            if (Logs.colLogs.Count > 100)
             {
                 Logs.colLogs = Logs.colLogs.Take(1000).ToList();
             }
