@@ -20,6 +20,7 @@ namespace AIStoryBuilders.Services
         private AIStoryBuildersLocationsService AIStoryBuildersLocationsService { get; set; }
         private AIStoryBuildersChaptersService AIStoryBuildersChaptersService { get; set; }
         private AIStoryBuildersTimelinesService AIStoryBuildersTimelinesService { get; set; }
+        private AIStoryBuildersManifestService AIStoryBuildersManifestService { get; set; }
 
         public string BasePath = $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders";
         public AIStoryBuildersService(
@@ -30,7 +31,8 @@ namespace AIStoryBuilders.Services
             AIStoryBuildersCharactersService _AIStoryBuildersCharactersService,
             AIStoryBuildersLocationsService _AIStoryBuildersLocationsService,
             AIStoryBuildersChaptersService _AIStoryBuildersChaptersService,
-            AIStoryBuildersTimelinesService _AIStoryBuildersTimelinesService
+            AIStoryBuildersTimelinesService _AIStoryBuildersTimelinesService,
+            AIStoryBuildersManifestService _AIStoryBuildersManifestService
             )
         {
             _appMetadata = appMetadata;
@@ -41,6 +43,7 @@ namespace AIStoryBuilders.Services
             AIStoryBuildersLocationsService = _AIStoryBuildersLocationsService;
             AIStoryBuildersChaptersService = _AIStoryBuildersChaptersService;
             AIStoryBuildersTimelinesService = _AIStoryBuildersTimelinesService;
+            AIStoryBuildersManifestService = _AIStoryBuildersManifestService;
         }
 
         // Utility

@@ -141,6 +141,10 @@ namespace AIStoryBuilders.Model
                 // Delete the story's timelines
                 AIStoryBuildersTimelinesService AIStoryBuildersTimelinesService = new AIStoryBuildersTimelinesService(localStorage);
                 await AIStoryBuildersTimelinesService.DeleteAllTimelinesAsync(story.Title);
+
+                // Delete the story's manifest
+                AIStoryBuildersManifestService AIStoryBuildersManifestService = new AIStoryBuildersManifestService(localStorage);
+                await AIStoryBuildersManifestService.DeleteManifestAsync(story.Title);
             }
         }
     }

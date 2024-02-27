@@ -254,6 +254,21 @@ namespace AIStoryBuilders.Services
             }
 
             await AIStoryBuildersChaptersService.SaveDatabaseAsync(story.Title, ChapterContents);
+
+            // Manifest
+            TextEvent?.Invoke(this, new TextEventArgs($"Create the Manifest", 5));
+
+            JSONManifest objJSONManifest = new JSONManifest
+            {
+                Version = _appMetadata.Version,
+                Title = story.Title,
+                Style = story.Style,
+                Theme = story.Theme,
+                Synopsis = story.Synopsis,
+                ExportedDate = DateTime.Now.ToString()
+            };
+
+            await AIStoryBuildersManifestService.SaveManifestAsync(story.Title, objJSONManifest);
         }
 
         public async Task UpdateStoryAsync(Models.Story story)

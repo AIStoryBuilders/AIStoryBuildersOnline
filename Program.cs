@@ -33,6 +33,7 @@ namespace AIStoryBuildersOnline
             builder.Services.AddScoped<AIStoryBuildersLocationsService>();
             builder.Services.AddScoped<AIStoryBuildersChaptersService>();
             builder.Services.AddScoped<AIStoryBuildersTimelinesService>();
+            builder.Services.AddScoped<AIStoryBuildersManifestService>();
 
             // Radzen
             builder.Services.AddScoped<DialogService>();
