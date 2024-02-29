@@ -1117,42 +1117,30 @@ namespace AIStoryBuilders.Services
             // Create a collection of Character
             List<AIStoryBuilders.Models.Character> Characters = new List<AIStoryBuilders.Models.Character>();
 
-            var AIStoryBuildersCharactersPath = $"{BasePath}/{story.Title}/Characters";
-
             try
             {
-                // Get a list of all the Character files
-                string[] AIStoryBuildersCharactersFiles = Directory.GetFiles(AIStoryBuildersCharactersPath, "*.csv", SearchOption.AllDirectories);
+                await AIStoryBuildersCharactersService.LoadAIStoryBuildersCharactersAsync(story.Title);
+
+                var AIStoryBuildersCharacters = AIStoryBuildersCharactersService.characters;
 
                 // Loop through each Character file
                 int i = 1;
-                foreach (var AIStoryBuildersCharacterFile in AIStoryBuildersCharactersFiles)
+                foreach (var AIStoryBuildersCharacter in AIStoryBuildersCharacters)
                 {
-                    // Get the CharacterName from the file name
-                    string CharacterName = Path.GetFileNameWithoutExtension(AIStoryBuildersCharacterFile);
-
-                    // Get the CharacterBackgroundContent from the file
-                    string[] CharacterBackgroundContent = File.ReadAllLines(AIStoryBuildersCharacterFile);
-
-                    // Remove all empty lines
-                    CharacterBackgroundContent = CharacterBackgroundContent.Where(line => line.Trim() != "").ToArray();
-
                     int ii = 1;
                     List<CharacterBackground> colCharacterBackground = new List<CharacterBackground>();
-                    foreach (var CharacterBackground in CharacterBackgroundContent)
-                    {
-                        // Split CharacterBackground into parts using the pipe character
-                        string[] CharacterBackgroundParts = CharacterBackground.Split('|');
 
+                    foreach (var CharacterBackground in AIStoryBuildersCharacter.descriptions)
+                    {
                         CharacterBackground objCharacterBackground = new CharacterBackground();
 
                         objCharacterBackground.Id = ii;
                         objCharacterBackground.Sequence = ii;
-                        objCharacterBackground.Type = CharacterBackgroundParts[0];
-                        objCharacterBackground.Timeline = new Models.Timeline() { TimelineName = CharacterBackgroundParts[1] };
-                        objCharacterBackground.Description = CharacterBackgroundParts[2];
-                        objCharacterBackground.VectorContent = CharacterBackgroundParts[3];
-                        objCharacterBackground.Character = new Character() { CharacterName = CharacterName };
+                        objCharacterBackground.Type = CharacterBackground.description_type;
+                        objCharacterBackground.Timeline = new Models.Timeline() { TimelineName = CharacterBackground.timeline_name };
+                        objCharacterBackground.Description = CharacterBackground.description;
+                        objCharacterBackground.VectorContent = CharacterBackground.embedding;
+                        objCharacterBackground.Character = new Character() { CharacterName = AIStoryBuildersCharacter.name };
 
                         colCharacterBackground.Add(objCharacterBackground);
                         ii++;
@@ -1161,7 +1149,7 @@ namespace AIStoryBuilders.Services
                     // Create a Character
                     AIStoryBuilders.Models.Character Character = new AIStoryBuilders.Models.Character();
                     Character.Id = i;
-                    Character.CharacterName = CharacterName;
+                    Character.CharacterName = AIStoryBuildersCharacter.name;
                     Character.CharacterBackground = colCharacterBackground;
 
                     // Add Character to collection
