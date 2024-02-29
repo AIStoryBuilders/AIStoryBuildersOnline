@@ -31,6 +31,8 @@ namespace AIStoryBuilders.Model
         public AIStoryBuildersStoryService(ILocalStorageService LocalStorage)
         {
             localStorage = LocalStorage;
+
+            colAIStoryBuildersStory = new List<AIStoryBuildersStory>();
         }
         
         // Load the database
