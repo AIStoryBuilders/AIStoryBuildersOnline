@@ -87,7 +87,7 @@ namespace AIStoryBuilders.Services
                 AIStoryBuilders.Models.LocalStorage.Character objCharacter = new AIStoryBuilders.Models.LocalStorage.Character();
                 objCharacter.descriptions = new List<AIStoryBuilders.Models.LocalStorage.Descriptions>();
 
-                objCharacter.name = OrchestratorMethods.SanitizeFileName(character.name);            
+                objCharacter.name = OrchestratorMethods.SanitizeFileName(character.name);
 
                 foreach (var description in character.descriptions)
                 {
@@ -160,7 +160,7 @@ namespace AIStoryBuilders.Services
                 AIStoryBuilders.Models.LocalStorage.Timelines objTimeline = new AIStoryBuilders.Models.LocalStorage.Timelines();
                 objTimeline.name = OrchestratorMethods.SanitizeFileName(timeline.name);
 
-                objTimeline.description = timeline.description; 
+                objTimeline.description = timeline.description;
                 objTimeline.StartDate = DateTime.Now.AddDays(i).ToShortDateString() + " " + DateTime.Now.AddDays(i).ToShortTimeString();
                 objTimeline.StopDate = DateTime.Now.AddDays(i + 1).ToShortDateString() + " " + DateTime.Now.AddDays(i + 1).ToShortTimeString();
 
@@ -1327,7 +1327,7 @@ namespace AIStoryBuilders.Services
             {
                 await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(story.Title);
 
-                if(AIStoryBuildersChaptersService.Chapters.Count == 0)
+                if (AIStoryBuildersChaptersService.Chapters.Count == 0)
                 {
                     return new List<AIStoryBuilders.Models.Chapter>();
                 }
@@ -1463,46 +1463,17 @@ namespace AIStoryBuilders.Services
 
             try
             {
-                var ChapterNameParts = chapter.ChapterName.Split(' ');
-                string ChapterName = ChapterNameParts[0] + ChapterNameParts[1];
+                await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(chapter.Story.Title);
+                var AIStoryBuildersChapters = AIStoryBuildersChaptersService.Chapters;
 
-                var AIStoryBuildersParagraphsPath = $"{BasePath}/{chapter.Story.Title}/Chapters/{ChapterName}";
-
-                // Get a list of all the Paragraph files
-                string[] AIStoryBuildersParagraphsFiles = Directory.GetFiles(AIStoryBuildersParagraphsPath, "Paragraph*.txt", SearchOption.AllDirectories);
+                // Get the paragraphs for the specified Chapter
+                var AIStoryBuildersPargraphs = AIStoryBuildersChapters.Where(x => x.chapter_name == chapter.ChapterName).FirstOrDefault().paragraphs;
 
                 // Loop through each Paragraph file
-                foreach (var AIStoryBuildersParagraphFile in AIStoryBuildersParagraphsFiles)
+                foreach (var AIStoryBuildersParagraph in AIStoryBuildersPargraphs)
                 {
-                    // Get the ParagraphName from the file name
-                    string ParagraphName = Path.GetFileNameWithoutExtension(AIStoryBuildersParagraphFile);
-
-                    // Put in a space after the word ParagraphName
-                    ParagraphName = ParagraphName.Insert(9, " ");
-
-                    // Get sequence number from Paragraph Name
-                    string ParagraphSequence = ParagraphName.Split(' ')[1];
-                    int ParagraphSequenceNumber = int.Parse(ParagraphSequence);
-
-                    // Get the ChapterContent from the file
-                    string[] ChapterContent = File.ReadAllLines(AIStoryBuildersParagraphFile);
-
-                    // Remove all empty lines
-                    ChapterContent = ChapterContent.Where(line => line.Trim() != "").ToArray();
-
-                    // Concatonate all lines into one string
-                    string RawParagraphContent = string.Join("\n", ChapterContent);
-
-                    // Spilit the string into parts using the pipe character
-                    string[] RawParagraphContentParts = RawParagraphContent.Split('|');
-
-                    var ParagraphLocation = RawParagraphContentParts[0];
-                    var ParagraphTimeline = RawParagraphContentParts[1];
-                    var ParagraphCharactersRaw = RawParagraphContentParts[2];
-                    var ParagraphContent = RawParagraphContentParts[3];
-
                     // Convert ParagraphCharactersRaw to a List
-                    List<string> ParagraphCharacters = ParseStringToList(ParagraphCharactersRaw);
+                    List<string> ParagraphCharacters = ParseStringToList(AIStoryBuildersParagraph.character_names);
 
                     // Convert to List<Models.Character>
                     List<Models.Character> Characters = new List<Models.Character>();
@@ -1513,11 +1484,11 @@ namespace AIStoryBuilders.Services
 
                     // Create a Paragraph
                     AIStoryBuilders.Models.Paragraph Paragraph = new AIStoryBuilders.Models.Paragraph();
-                    Paragraph.Sequence = ParagraphSequenceNumber;
-                    Paragraph.Location = new Models.Location() { LocationName = ParagraphLocation };
-                    Paragraph.Timeline = new Models.Timeline() { TimelineName = ParagraphTimeline };
+                    Paragraph.Sequence = AIStoryBuildersParagraph.sequence;
+                    Paragraph.Location = new Models.Location() { LocationName = AIStoryBuildersParagraph.location_name };
+                    Paragraph.Timeline = new Models.Timeline() { TimelineName = AIStoryBuildersParagraph.timeline_name };
                     Paragraph.Characters = Characters;
-                    Paragraph.ParagraphContent = ParagraphContent;
+                    Paragraph.ParagraphContent = AIStoryBuildersParagraph.contents;
 
                     // Add Paragraph to collection
                     colParagraphs.Add(Paragraph);
