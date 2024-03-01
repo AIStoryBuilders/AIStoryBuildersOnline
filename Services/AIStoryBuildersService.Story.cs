@@ -1463,11 +1463,14 @@ namespace AIStoryBuilders.Services
 
             try
             {
+                string ChapterName = "Chapter" + chapter.Sequence.ToString();
+
                 await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(chapter.Story.Title);
                 var AIStoryBuildersChapters = AIStoryBuildersChaptersService.Chapters;
 
                 // Get the paragraphs for the specified Chapter
-                var AIStoryBuildersPargraphs = AIStoryBuildersChapters.Where(x => x.chapter_name == chapter.ChapterName).FirstOrDefault().paragraphs;
+                var AIStoryBuildersChapter = AIStoryBuildersChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
+                var AIStoryBuildersPargraphs = AIStoryBuildersChapter.paragraphs;
 
                 // Loop through each Paragraph file
                 foreach (var AIStoryBuildersParagraph in AIStoryBuildersPargraphs)
