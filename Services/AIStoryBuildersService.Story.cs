@@ -308,46 +308,27 @@ namespace AIStoryBuilders.Services
             // Create a collection of Timelines
             List<AIStoryBuilders.Models.Timeline> Timelines = new List<AIStoryBuilders.Models.Timeline>();
 
-            var AIStoryBuildersTimelinesPath = $"{BasePath}/{story.Title}/Timelines.csv";
-
             try
             {
-                // load the Timelines file
-                string[] AIStoryBuildersTimelinesContent = File.ReadAllLines(AIStoryBuildersTimelinesPath);
+                await AIStoryBuildersTimelinesService.LoadAIStoryBuildersTimelinesAsync(story.Title);
+                var AIStoryBuildersTimelines = AIStoryBuildersTimelinesService.Timelines;
 
-                // Remove all empty lines
-                AIStoryBuildersTimelinesContent = AIStoryBuildersTimelinesContent.Where(line => line.Trim() != "").ToArray();
-
-                // Loop through each Timeline line
                 int i = 1;
-                foreach (var AIStoryBuildersTimelineLine in AIStoryBuildersTimelinesContent)
+                foreach (var AIStoryBuildersTimelineLine in AIStoryBuildersTimelines)
                 {
-                    // Get the TimelineName from the line
-                    string[] AIStoryBuildersTimelineLineSplit = AIStoryBuildersTimelineLine.Split('|');
-                    string TimelineName = AIStoryBuildersTimelineLineSplit[0];
-
-                    // Get the TimelineDescription from the line
-                    string TimelineDescription = AIStoryBuildersTimelineLineSplit[1];
-
-                    // Get the TimelineStartTime from the line
-                    string TimelineStartTime = AIStoryBuildersTimelineLineSplit[2];
-
-                    // Get the TimelineStopTime from the line
-                    string TimelineStopTime = AIStoryBuildersTimelineLineSplit[3];
-
                     // Create a Timeline
                     AIStoryBuilders.Models.Timeline Timeline = new AIStoryBuilders.Models.Timeline();
                     Timeline.Id = i;
-                    Timeline.TimelineName = TimelineName;
-                    Timeline.TimelineDescription = TimelineDescription;
-                    Timeline.StartDate = DateTime.Parse(TimelineStartTime);
+                    Timeline.TimelineName = AIStoryBuildersTimelineLine.name;
+                    Timeline.TimelineDescription = AIStoryBuildersTimelineLine.description;
+                    Timeline.StartDate = DateTime.Parse(AIStoryBuildersTimelineLine.StartDate);
 
                     // use tryparse to try to parse TimelineStopTime
                     DateTime TimelineStopDate;
-                    DateTime.TryParse(TimelineStopTime, out TimelineStopDate);
+                    DateTime.TryParse(AIStoryBuildersTimelineLine.StopDate, out TimelineStopDate);
                     if (TimelineStopDate != DateTime.MinValue)
                     {
-                        Timeline.StopDate = DateTime.Parse(TimelineStopTime);
+                        Timeline.StopDate = DateTime.Parse(AIStoryBuildersTimelineLine.StopDate);
                     }
 
                     // Add Timeline to collection
