@@ -799,50 +799,35 @@ namespace AIStoryBuilders.Services
             // Create a collection of Location
             List<AIStoryBuilders.Models.Location> Locations = new List<AIStoryBuilders.Models.Location>();
 
-            var AIStoryBuildersLocationsPath = $"{BasePath}/{story.Title}/Locations";
-
             try
             {
-                // Get a list of all the Location files
-                string[] AIStoryBuildersLocationsFiles = Directory.GetFiles(AIStoryBuildersLocationsPath, "*.csv", SearchOption.AllDirectories);
+                await AIStoryBuildersLocationsService.LoadAIStoryBuildersLocationsAsync(story.Title);
+                var AIStoryBuildersLocations = AIStoryBuildersLocationsService.Locations;
 
-                // Loop through each Location file
                 int i = 1;
-                foreach (var AIStoryBuildersLocationFile in AIStoryBuildersLocationsFiles)
+                foreach (var AIStoryBuildersLocation in AIStoryBuildersLocations)
                 {
-                    // Get the LocationName from the file name
-                    string LocationName = Path.GetFileNameWithoutExtension(AIStoryBuildersLocationFile);
-
-                    // Get the LocationContent from the file
-                    string[] LocationContent = File.ReadAllLines(AIStoryBuildersLocationFile);
-
-                    // Remove all empty lines
-                    LocationContent = LocationContent.Where(line => line.Trim() != "").ToArray();
-
-                    var LocationDescriptionRaw = LocationContent.Select(x => x.Split('|')).ToArray();
-
                     // Create a Location
                     AIStoryBuilders.Models.Location Location = new AIStoryBuilders.Models.Location();
                     Location.Id = i;
-                    Location.LocationName = LocationName;
+                    Location.LocationName = AIStoryBuildersLocation.name;
+
                     Location.LocationDescription = new List<LocationDescription>();
 
-                    if (LocationDescriptionRaw.Count() > 0)
+                    if (AIStoryBuildersLocation.descriptions != null)
                     {
                         int ii = 1;
-                        foreach (var description in LocationDescriptionRaw)
+                        foreach (var description in AIStoryBuildersLocation.descriptions)
                         {
-                            var DescriptionRaw = description.Select(x => x.Split('|')).ToArray();
-
                             LocationDescription objLocationDescription = new LocationDescription();
                             objLocationDescription.Id = ii;
-                            objLocationDescription.Description = DescriptionRaw[0][0];
+                            objLocationDescription.Description = description.description;
 
                             // Does the TimelineName element exist?
-                            if (DescriptionRaw[1].Count() > 0)
+                            if (description.timeline_name != null)
                             {
                                 Models.Timeline objTimeline = new Models.Timeline();
-                                objTimeline.TimelineName = DescriptionRaw[1][0];
+                                objTimeline.TimelineName = description.timeline_name;
 
                                 objLocationDescription.Timeline = objTimeline;
                             }
