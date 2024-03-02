@@ -98,5 +98,31 @@ namespace AIStoryBuilders.Model
         {
             await localStorage.RemoveItemAsync($"{paramStoryName}|{PropertyTypeName}");
         }
+
+        // Convert 
+        public Locations ConvertLocationToLocations(Models.Location paramLocation)
+        {
+            Locations newLocations = new Locations();
+
+            newLocations.name = paramLocation.LocationName;
+            newLocations.descriptions = new List<Descriptions>();
+
+            if(paramLocation.LocationDescription == null)
+            {
+                return newLocations;
+            }
+
+            foreach (var description in paramLocation.LocationDescription)
+            {
+                Descriptions newDescription = new Descriptions();
+                newDescription.description = description.Description;
+                newDescription.timeline_name = description.Timeline.TimelineName;
+
+                newLocations.descriptions.Add(newDescription);
+            }
+
+            return newLocations;
+        }
+
     }
 }
