@@ -98,5 +98,14 @@ namespace AIStoryBuilders.Model
         {
             await localStorage.RemoveItemAsync($"{paramStoryName}|{PropertyTypeName}");
         }
+
+        // Convert AIStoryBuilders.Models.Character to AIStoryBuilders.Models.LocalStorage.Character
+        public Character ConvertCharacterToCharacter(Models.Character paramCharacter)
+        {
+            Character character = new Character();
+
+            return character;
+        }
+
     }
 }
