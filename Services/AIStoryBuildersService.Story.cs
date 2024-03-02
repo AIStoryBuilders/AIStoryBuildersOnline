@@ -417,44 +417,34 @@ namespace AIStoryBuilders.Services
             try
             {
                 // ********************************************************
-                // Update in Timeline.csv file
+                // Update in Timelines
                 // ********************************************************
 
-                // Get all Timelines from file
                 var ExistingTimelines = await GetTimelines(objTimeline.Story);
 
                 // Get all Timelines except the one to update
-                ExistingTimelines = ExistingTimelines.Where(line => line.TimelineName != paramTimelineNameOriginal).ToList();
+                ExistingTimelines = ExistingTimelines.Where(x => x.TimelineName != paramTimelineNameOriginal).ToList();
 
                 // Add the updated Timeline - It will have the updated name
                 ExistingTimelines.Add(objTimeline);
 
                 // Create the lines to write to the Timeline file
-                List<string> TimelineContents = new List<string>();
+                List<Models.LocalStorage.Timelines> TimelineContents = new List<Models.LocalStorage.Timelines>();
 
                 foreach (var timeline in ExistingTimelines)
                 {
-                    string StartTime = timeline.StartDate.Value.ToShortDateString() + " " + timeline.StartDate.Value.ToShortTimeString();
-
-                    string StopTime = "";
-
-                    if (timeline.StopDate.HasValue)
-                    {
-                        StopTime = timeline.StopDate.Value.ToShortDateString() + " " + timeline.StopDate.Value.ToShortTimeString();
-                    }
-
-                    string TimelineContentsLine = $"{timeline.TimelineName}|{timeline.TimelineDescription}|{StartTime}|{StopTime}";
-                    TimelineContents.Add(TimelineContentsLine);
+                    var Timelines = AIStoryBuildersTimelinesService.ConvertTimelineToTimelines(timeline);
+                    TimelineContents.Add(Timelines);
                 }
 
-                // Write the file
-                string StoryPath = $"{BasePath}/{objTimeline.Story.Title}";
-                string TimelinesPath = $"{StoryPath}/Timelines.csv";
-                File.WriteAllLines(TimelinesPath, TimelineContents);
+                // Write 
+                await AIStoryBuildersTimelinesService.SaveDatabaseAsync(objTimeline.Story.Title, TimelineContents);
 
                 // ********************************************************
                 // Update Chapter files
                 // ********************************************************
+
+                string StoryPath = $"{BasePath}/{objTimeline.Story.Title}";
 
                 // Loops through every Chapter and Paragraph 
                 var Chapters = await GetChapters(objTimeline.Story);

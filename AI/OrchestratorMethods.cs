@@ -225,5 +225,19 @@ namespace AIStoryBuilders.AI
             }
         }
         #endregion
+
+        #region public string ConvertDateToLongDateString(DateTime paramDate)
+        public static string ConvertDateToLongDateString(DateTime? paramDate)
+        {
+            string response = "";
+
+            if(paramDate.HasValue)
+            {
+                response = paramDate.Value.ToShortDateString() + " " + paramDate.Value.ToShortTimeString();
+            }
+
+            return response;
+        }
+        #endregion
     }
 }

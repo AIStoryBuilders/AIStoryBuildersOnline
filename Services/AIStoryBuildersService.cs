@@ -111,17 +111,6 @@ namespace AIStoryBuilders.Services
         }
         #endregion
 
-        #region public void CreateFile(string path, string content)
-        public void CreateFile(string path, string content)
-        {
-            // Create file if it doesn't exist
-            if (!File.Exists(path))
-            {
-                File.WriteAllText(path, content);
-            }
-        }
-        #endregion
-
         #region public class TextEventArgs : EventArgs
         public class TextEventArgs : EventArgs
         {

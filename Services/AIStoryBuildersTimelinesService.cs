@@ -1,3 +1,4 @@
+using AIStoryBuilders.AI;
 using AIStoryBuilders.Models.LocalStorage;
 using Blazored.LocalStorage;
 using Newtonsoft.Json;
@@ -74,7 +75,7 @@ namespace AIStoryBuilders.Model
             if (Timeline != null)
             {
                 Timelines.Remove(Timeline);
-                Timelines.Add(paramTimeline);   
+                Timelines.Add(paramTimeline);
                 await SaveDatabaseAsync(paramStoryName, Timelines);
             }
         }
@@ -97,6 +98,19 @@ namespace AIStoryBuilders.Model
         public async Task DeleteAllTimelinesAsync(string paramStoryName)
         {
             await localStorage.RemoveItemAsync($"{paramStoryName}|{PropertyTypeName}");
+        }
+
+        // Convert 
+        public Timelines ConvertTimelineToTimelines(Models.Timeline paramTimeline)
+        {
+            Timelines Timelines = new Timelines();
+
+            Timelines.name = paramTimeline.TimelineName;
+            Timelines.description = paramTimeline.TimelineDescription;
+            Timelines.StartDate = OrchestratorMethods.ConvertDateToLongDateString(paramTimeline.StartDate);
+            Timelines.StopDate = OrchestratorMethods.ConvertDateToLongDateString(paramTimeline.StartDate);
+
+            return Timelines;
         }
     }
 }
