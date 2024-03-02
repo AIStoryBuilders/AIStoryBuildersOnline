@@ -29,7 +29,15 @@ namespace AIStoryBuilders.AI
             await LogService.WriteToLogAsync($"Detect Character Attributes using {GPTModel} - Start");
 
             // Create a new OpenAIClient object
-            HttpClient.Timeout = TimeSpan.FromSeconds(520);
+            try
+            {
+                HttpClient.Timeout = TimeSpan.FromSeconds(520);
+            }
+            catch
+            {
+                // Do nothing
+            }
+
             var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
 
             // Create a colection of chatPrompts

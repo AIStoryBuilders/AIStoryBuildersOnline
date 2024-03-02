@@ -24,6 +24,15 @@ namespace AIStoryBuilders.AI
 
             await LogService.WriteToLogAsync($"CreateNewChapters using {GPTModel} - Start");
 
+            try
+            {
+                HttpClient.Timeout = TimeSpan.FromSeconds(520);
+            }
+            catch
+            {
+                // Do nothing
+            }
+
             // Create a new OpenAIClient object
             var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
 

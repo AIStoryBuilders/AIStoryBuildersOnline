@@ -144,7 +144,15 @@ namespace AIStoryBuilders.AI
             string ApiKey = SettingsService.ApiKey;
 
             // Create a new OpenAIClient object
-            HttpClient.Timeout = TimeSpan.FromSeconds(520);
+            try
+            {
+                HttpClient.Timeout = TimeSpan.FromSeconds(520);
+            }
+            catch
+            {
+                // Do nothing
+            }
+
             var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
 
             await api.ModelsEndpoint.DeleteFineTuneModelAsync(paramaModel.ModelId);

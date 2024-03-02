@@ -22,7 +22,15 @@ namespace AIStoryBuilders.AI
 
             await LogService.WriteToLogAsync($"TestAccess using {GPTModel} - Start");
 
-            HttpClient.Timeout = TimeSpan.FromSeconds(520);
+            try
+            {
+                HttpClient.Timeout = TimeSpan.FromSeconds(520);
+            }
+            catch
+            {
+                // Do nothing
+            }
+
             var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
 
             // Create a colection of chatPrompts
