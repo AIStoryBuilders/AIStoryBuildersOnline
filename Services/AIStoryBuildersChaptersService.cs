@@ -99,14 +99,43 @@ namespace AIStoryBuilders.Model
             await localStorage.RemoveItemAsync($"{paramStoryName}|{PropertyTypeName}");
         }
 
-        // Convert // Convert AIStoryBuilders.Models.Chapter to AIStoryBuilders.Models.LocalStorage.Chapter
         public Chapter ConvertChapterToChapters(Models.Chapter paramChapter)
         {
             Chapter chapter = new Chapter();
 
+            chapter.chapter_name = paramChapter.ChapterName;
+            chapter.chapter_synopsis = paramChapter.Synopsis;
+            chapter.sequence = paramChapter.Sequence.ToString();
+
+            chapter.paragraphs = new List<Paragraphs>();
+
+            if(paramChapter.Paragraph == null)
+            {
+                return chapter;
+            }
+
+            foreach (var paragraph in paramChapter.Paragraph)
+            {
+                Paragraphs newParagraph = new Paragraphs();
+
+                newParagraph.sequence = paragraph.Sequence;
+                newParagraph.contents = paragraph.ParagraphContent;
+                newParagraph.location_name = paragraph.Location.LocationName;
+                newParagraph.timeline_name = paragraph.Timeline.TimelineName;
+
+                if(paragraph.Characters == null)
+                {
+                    newParagraph.character_names = "";
+                }
+                else
+                {
+                    newParagraph.character_names = string.Join(",", paragraph.Characters.Select(x => x.CharacterName));
+                }
+
+                chapter.paragraphs.Add(newParagraph);
+            }
 
             return chapter;
         }
-
     }
 }
