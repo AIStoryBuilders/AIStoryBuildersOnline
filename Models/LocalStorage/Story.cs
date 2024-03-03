@@ -40,7 +40,7 @@
     {
         public string chapter_name { get; set; }
         public string chapter_synopsis { get; set; }
-        public string sequence { get; set; }
+        public int sequence { get; set; }
         public string embedding { get; set; }
         public List<Paragraphs> paragraphs { get; set; }
     }

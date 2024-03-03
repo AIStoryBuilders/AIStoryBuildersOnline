@@ -105,7 +105,7 @@ namespace AIStoryBuilders.Model
 
             chapter.chapter_name = paramChapter.ChapterName;
             chapter.chapter_synopsis = paramChapter.Synopsis;
-            chapter.sequence = paramChapter.Sequence.ToString();
+            chapter.sequence = paramChapter.Sequence;
 
             chapter.paragraphs = new List<Paragraphs>();
 

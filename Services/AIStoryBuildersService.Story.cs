@@ -201,6 +201,7 @@ namespace AIStoryBuilders.Services
                 objChapter.paragraphs = new List<AIStoryBuilders.Models.LocalStorage.Paragraphs>();
 
                 objChapter.chapter_name = $"Chapter{ChapterNumber}";
+                objChapter.sequence = ChapterNumber;
 
                 TextEvent?.Invoke(this, new TextEventArgs($"Create Chapter {ChapterNumber}", 5));
 
@@ -212,6 +213,8 @@ namespace AIStoryBuilders.Services
                     if (chapter.paragraphs[0] != null)
                     {
                         Paragraphs objParagraph = new Paragraphs();
+
+                        objParagraph.sequence = 1;
 
                         objParagraph.contents = chapter.paragraphs[0].contents;
                         objParagraph.embedding = await OrchestratorMethods.GetVectorEmbedding(chapter.paragraphs[0].contents ?? "", false);
