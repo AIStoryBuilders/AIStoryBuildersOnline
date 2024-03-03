@@ -99,10 +99,26 @@ namespace AIStoryBuilders.Model
             await localStorage.RemoveItemAsync($"{paramStoryName}|{PropertyTypeName}");
         }
 
-        // Convert AIStoryBuilders.Models.Character to AIStoryBuilders.Models.LocalStorage.Character
         public Character ConvertCharacterToCharacter(Models.Character paramCharacter)
         {
             Character character = new Character();
+            character.name = paramCharacter.CharacterName;
+            character.descriptions = new List<Descriptions>();
+
+            if(paramCharacter.CharacterBackground == null)
+            {
+                return character;
+            }
+
+            foreach (var background in paramCharacter.CharacterBackground)
+            {
+                Descriptions description = new Descriptions();
+                description.description_type = background.Type;
+                description.description = background.Description;
+                description.timeline_name = background.Timeline.TimelineName;
+                description.embedding = background.VectorContent;
+                character.descriptions.Add(description);
+            }
 
             return character;
         }
