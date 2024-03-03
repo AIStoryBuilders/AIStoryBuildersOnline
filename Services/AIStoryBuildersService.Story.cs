@@ -447,51 +447,43 @@ namespace AIStoryBuilders.Services
                 // Update Chapter files
                 // ********************************************************
 
-                string StoryPath = $"{BasePath}/{objTimeline.Story.Title}";
-
                 // Loops through every Chapter and Paragraph 
-                var Chapters = await GetChapters(objTimeline.Story);
+                await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(objTimeline.Story.Title);
+                var Chapters = AIStoryBuildersChaptersService.Chapters;
+
+                List<Models.LocalStorage.Chapter> NewChapters = new List<Models.LocalStorage.Chapter>();
 
                 foreach (var Chapter in Chapters)
                 {
-                    var Paragraphs = await GetParagraphs(Chapter);
+                    Models.LocalStorage.Chapter NewChapter = new Models.LocalStorage.Chapter();
+                    NewChapter.chapter_name = Chapter.chapter_name;
+                    NewChapter.sequence = Chapter.sequence;
+                    NewChapter.chapter_synopsis = Chapter.chapter_synopsis;
+                    NewChapter.embedding = Chapter.embedding;
 
-                    foreach (var Paragraph in Paragraphs)
+                    NewChapter.paragraphs = new List<Models.LocalStorage.Paragraphs>();
+
+                    foreach (var Paragraph in Chapter.paragraphs)
                     {
-                        // Create the path to the Paragraph file
-                        var ChapterNameParts = Chapter.ChapterName.Split(' ');
-                        string ChapterName = ChapterNameParts[0] + ChapterNameParts[1];
-                        string ParagraphPath = $"{StoryPath}/Chapters/{ChapterName}/Paragraph{Paragraph.Sequence}.txt";
-
-                        // Get the ParagraphContent from the file
-                        string[] ParagraphContent = File.ReadAllLines(ParagraphPath);
-
-                        // Remove all empty lines
-                        ParagraphContent = ParagraphContent.Where(line => line.Trim() != "").ToArray();
-
-                        // Get the Timeline from the file
-                        string[] ParagraphTimeline = ParagraphContent[0].Split('|');
-
                         // If the Location is the one to update, then set it to new name
-                        if (ParagraphTimeline[1] == paramTimelineNameOriginal)
+                        if (Paragraph.timeline_name == paramTimelineNameOriginal)
                         {
-                            // Set to the new name
-                            ParagraphTimeline[1] = objTimeline.TimelineName;
-
-                            // Put the ParagraphContent back together
-                            ParagraphContent[0] = string.Join("|", ParagraphTimeline);
-
-                            // Write the ParagraphContent back to the file
-                            File.WriteAllLines(ParagraphPath, ParagraphContent);
+                            Paragraph.timeline_name = objTimeline.TimelineName;
                         }
+
+                        NewChapter.paragraphs.Add(Paragraph);
                     }
+
+                    NewChapters.Add(NewChapter);
                 }
+
+                await AIStoryBuildersChaptersService.SaveDatabaseAsync(objTimeline.Story.Title, NewChapters);
 
                 // ********************************************************
                 // Update Location files
                 // ********************************************************
 
-                string LocationsPath = $"{StoryPath}/Locations";
+                string LocationsPath = $"";
                 List<AIStoryBuilders.Models.Location> Locations = await GetLocations(objTimeline.Story);
 
                 // Loop through each Location file
@@ -537,7 +529,7 @@ namespace AIStoryBuilders.Services
                 // Update Character files
                 // ********************************************************
 
-                string CharactersPath = $"{StoryPath}/Characters";
+                string CharactersPath = $"";
                 List<AIStoryBuilders.Models.Character> Characters = await GetCharacters(objTimeline.Story);
 
                 // Loop through each Character file
