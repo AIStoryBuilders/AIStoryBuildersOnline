@@ -887,52 +887,86 @@ namespace AIStoryBuilders.Services
         {
             try
             {
-                string StoryPath = $"{BasePath}/{objLocation.Story.Title}";
-                string LocationsPath = $"{StoryPath}/Locations";
-                string LocationPath = $"{LocationsPath}/{objLocation.LocationName}.csv";
-
                 if (objLocation.LocationName.Trim() != "")
                 {
                     // Loops through every Chapter and Paragraph and remove the Location
-                    var Chapters = await GetChapters(objLocation.Story);
+
+                    // ********************************************************
+                    // Update Chapter files
+                    // ********************************************************
+
+                    // Loops through every Chapter and Paragraph 
+                    await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(objLocation.Story.Title);
+                    var Chapters = AIStoryBuildersChaptersService.Chapters;
+
+                    List<Models.LocalStorage.Chapter> NewChapters = new List<Models.LocalStorage.Chapter>();
 
                     foreach (var Chapter in Chapters)
                     {
-                        var Paragraphs = await GetParagraphs(Chapter);
+                        Models.LocalStorage.Chapter NewChapter = new Models.LocalStorage.Chapter();
+                        NewChapter.chapter_name = Chapter.chapter_name;
+                        NewChapter.sequence = Chapter.sequence;
+                        NewChapter.chapter_synopsis = Chapter.chapter_synopsis;
+                        NewChapter.embedding = Chapter.embedding;
 
-                        foreach (var Paragraph in Paragraphs)
+                        NewChapter.paragraphs = new List<Models.LocalStorage.Paragraphs>();
+
+                        foreach (var Paragraph in Chapter.paragraphs)
                         {
-                            // Create the path to the Paragraph file
-                            var ChapterNameParts = Chapter.ChapterName.Split(' ');
-                            string ChapterName = ChapterNameParts[0] + ChapterNameParts[1];
-                            string ParagraphPath = $"{StoryPath}/Chapters/{ChapterName}/Paragraph{Paragraph.Sequence}.txt";
-
-                            // Get the ParagraphContent from the file
-                            string[] ParagraphContent = File.ReadAllLines(ParagraphPath);
-
-                            // Remove all empty lines
-                            ParagraphContent = ParagraphContent.Where(line => line.Trim() != "").ToArray();
-
-                            // Get the Location from the file
-                            string[] ParagraphLocation = ParagraphContent[0].Split('|');
-
-                            // If the Location is the one to delete, then set it to empty string
-                            if (ParagraphLocation[0] == objLocation.LocationName)
+                            // If the Location is the one to delete, then set it to nothing
+                            if (Paragraph.location_name == objLocation.LocationName)
                             {
-                                ParagraphLocation[0] = "";
-
-                                // Put the ParagraphContent back together
-                                ParagraphContent[0] = string.Join("|", ParagraphLocation);
-
-                                // Write the ParagraphContent back to the file
-                                File.WriteAllLines(ParagraphPath, ParagraphContent);
+                                Paragraph.location_name = "";
                             }
+                            else
+                            {
+                                // Use existing location_name name
+                                Paragraph.location_name = Paragraph.location_name;
+                            }
+
+                            NewChapter.paragraphs.Add(Paragraph);
+                        }
+
+                        NewChapters.Add(NewChapter);
+                    }
+
+                    await AIStoryBuildersChaptersService.SaveDatabaseAsync(objLocation.Story.Title, NewChapters);
+
+                    // ********************************************************
+                    // Delete Location
+                    // ********************************************************
+
+                    await AIStoryBuildersLocationsService.LoadAIStoryBuildersLocationsAsync(objLocation.Story.Title);
+                    List<Models.LocalStorage.Locations> Locations = AIStoryBuildersLocationsService.Locations;
+
+                    List<Models.LocalStorage.Locations> LocationContents = new List<Models.LocalStorage.Locations>();
+
+                    // Loop through each Location 
+                    foreach (var AIStoryBuildersLocation in Locations)
+                    {
+                        Models.LocalStorage.Locations objLocations = new Models.LocalStorage.Locations();
+                        objLocations.descriptions = new List<Models.LocalStorage.Descriptions>();
+
+                        foreach (var LocationDescription in AIStoryBuildersLocation.descriptions)
+                        {
+                            Models.LocalStorage.Descriptions objDescriptions = new Models.LocalStorage.Descriptions();
+
+                            objDescriptions.description = LocationDescription.description;
+                            objDescriptions.description_type = LocationDescription.description_type;
+                            objDescriptions.embedding = LocationDescription.embedding;
+
+                            objLocations.descriptions.Add(objDescriptions);
+                        }
+
+                        // only add if it is not the Location being deleted
+                        if (AIStoryBuildersLocation.name != objLocation.LocationName)
+                        {
+                            LocationContents.Add(objLocations);
                         }
                     }
-                }
 
-                // Delete Location file
-                File.Delete(LocationPath);
+                    await AIStoryBuildersLocationsService.SaveDatabaseAsync(objLocation.Story.Title, LocationContents);
+                }
             }
             catch (Exception ex)
             {
