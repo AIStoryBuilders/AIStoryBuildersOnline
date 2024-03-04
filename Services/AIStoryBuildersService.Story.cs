@@ -420,28 +420,27 @@ namespace AIStoryBuilders.Services
             try
             {
                 // ********************************************************
-                // Update in Timelines
+                // Update Timelines
                 // ********************************************************
 
-                var ExistingTimelines = await GetTimelines(objTimeline.Story);
+                await AIStoryBuildersTimelinesService.LoadAIStoryBuildersTimelinesAsync(objTimeline.Story.Title);
+
+                var ExistingTimelines = AIStoryBuildersTimelinesService.Timelines;
 
                 // Get all Timelines except the one to update
-                ExistingTimelines = ExistingTimelines.Where(x => x.TimelineName != paramTimelineNameOriginal).ToList();
+                ExistingTimelines = ExistingTimelines.Where(x => x.name != paramTimelineNameOriginal).ToList();
 
-                // Add the updated Timeline - It will have the updated name
-                ExistingTimelines.Add(objTimeline);
+                // Convert the passed Timeline to Timelines
+                var ObjNewTimelines = AIStoryBuildersTimelinesService.ConvertTimelineToTimelines(objTimeline);
 
-                // Create the lines to write to the Timeline file
-                List<Models.LocalStorage.Timelines> TimelineContents = new List<Models.LocalStorage.Timelines>();
+                // Set the new name
+                ObjNewTimelines.name = objTimeline.TimelineName;
 
-                foreach (var timeline in ExistingTimelines)
-                {
-                    var Timelines = AIStoryBuildersTimelinesService.ConvertTimelineToTimelines(timeline);
-                    TimelineContents.Add(Timelines);
-                }
+                // Add the new Timeline - It will have the updated name
+                ExistingTimelines.Add(ObjNewTimelines);
 
-                // Write 
-                await AIStoryBuildersTimelinesService.SaveDatabaseAsync(objTimeline.Story.Title, TimelineContents);
+                // Write All Timelines
+                await AIStoryBuildersTimelinesService.SaveDatabaseAsync(objTimeline.Story.Title, ExistingTimelines);
 
                 // ********************************************************
                 // Update Chapter files
@@ -483,47 +482,44 @@ namespace AIStoryBuilders.Services
                 // Update Location files
                 // ********************************************************
 
-                string LocationsPath = $"";
-                List<AIStoryBuilders.Models.Location> Locations = await GetLocations(objTimeline.Story);
+                await AIStoryBuildersLocationsService.LoadAIStoryBuildersLocationsAsync(objTimeline.Story.Title);
+                List<Models.LocalStorage.Locations> Locations = AIStoryBuildersLocationsService.Locations;
+
+                List<Models.LocalStorage.Locations> LocationContents = new List<Models.LocalStorage.Locations>();
 
                 // Loop through each Location file
                 foreach (var AIStoryBuildersLocation in Locations)
                 {
-                    List<string> LocationContents = new List<string>();
+                    Models.LocalStorage.Locations objLocations = new Models.LocalStorage.Locations();
+                    objLocations.descriptions = new List<Models.LocalStorage.Descriptions>();
 
-                    foreach (var LocationDescription in AIStoryBuildersLocation.LocationDescription)
+                    foreach (var LocationDescription in AIStoryBuildersLocation.descriptions)
                     {
-                        string LocationDescriptionAndTimeline = "";
+                        Models.LocalStorage.Descriptions objDescriptions = new Models.LocalStorage.Descriptions();
 
-                        // Does the TimelineName element exist?
-                        if (LocationDescription.Timeline != null)
+                        // Is the TimelineName the one to update?
+                        if (LocationDescription.timeline_name == paramTimelineNameOriginal)
                         {
-                            // Is the TimelineName the one to update?
-                            if (LocationDescription.Timeline.TimelineName == paramTimelineNameOriginal)
-                            {
-                                // Update to new name
-                                LocationDescriptionAndTimeline = $"{LocationDescription.Description}|{objTimeline.TimelineName}";
-                            }
-                            else
-                            {
-                                // Use existing values
-                                LocationDescriptionAndTimeline = $"{LocationDescription.Description}|{LocationDescription.Timeline.TimelineName}";
-                            }
+                            // Use new Timeline name
+                            objDescriptions.timeline_name = paramTimelineNameOriginal;
                         }
                         else
                         {
-                            // Use existing values - No TimelineName
-                            LocationDescriptionAndTimeline = $"{LocationDescription.Description}|";
+                            // Use existing Timeline name
+                            objDescriptions.timeline_name = LocationDescription.timeline_name;
                         }
 
-                        string VectorEmbedding = await OrchestratorMethods.GetVectorEmbedding(LocationDescription.Description, false);
+                        objDescriptions.description = LocationDescription.description;
+                        objDescriptions.description_type = LocationDescription.description_type;
+                        objDescriptions.embedding = LocationDescription.embedding;
 
-                        LocationContents.Add($"{LocationDescriptionAndTimeline}|{VectorEmbedding}" + Environment.NewLine);
+                        objLocations.descriptions.Add(objDescriptions);
                     }
 
-                    string LocationPath = $"{LocationsPath}/{AIStoryBuildersLocation.LocationName}.csv";
-                    File.WriteAllLines(LocationPath, LocationContents);
+                    LocationContents.Add(objLocations);
                 }
+
+                await AIStoryBuildersLocationsService.SaveDatabaseAsync(objTimeline.Story.Title, LocationContents);
 
                 // ********************************************************
                 // Update Character files
