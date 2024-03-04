@@ -469,6 +469,11 @@ namespace AIStoryBuilders.Services
                         {
                             Paragraph.timeline_name = objTimeline.TimelineName;
                         }
+                        else
+                        {
+                            // Use existing Timeline name
+                            Paragraph.timeline_name = Paragraph.timeline_name;
+                        }
 
                         NewChapter.paragraphs.Add(Paragraph);
                     }
@@ -576,173 +581,144 @@ namespace AIStoryBuilders.Services
             try
             {
                 // ********************************************************
-                // Update in Timeline.csv file
+                // Update Timelines
                 // ********************************************************
 
-                // Get all Timelines from file
-                var ExistingTimelines = await GetTimelines(objTimeline.Story);
+                await AIStoryBuildersTimelinesService.LoadAIStoryBuildersTimelinesAsync(objTimeline.Story.Title);
+
+                var ExistingTimelines = AIStoryBuildersTimelinesService.Timelines;
 
                 // Get all Timelines except the one to update
-                ExistingTimelines = ExistingTimelines.Where(line => line.TimelineName != paramTimelineNameOriginal).ToList();
+                ExistingTimelines = ExistingTimelines.Where(x => x.name != paramTimelineNameOriginal).ToList();
 
-                // Create the lines to write to the Timeline file
-                List<string> TimelineContents = new List<string>();
-
-                // Write all existing lines to the file
-                // This will delete the Timeline
-                foreach (var timeline in ExistingTimelines)
-                {
-                    string StartTime = timeline.StartDate.Value.ToShortDateString() + " " + timeline.StartDate.Value.ToShortTimeString();
-
-                    string StopTime = "";
-
-                    if (timeline.StopDate.HasValue)
-                    {
-                        StopTime = timeline.StopDate.Value.ToShortDateString() + " " + timeline.StopDate.Value.ToShortTimeString();
-                    }
-
-                    string TimelineContentsLine = $"{timeline.TimelineName}|{timeline.TimelineDescription}|{StartTime}|{StopTime}";
-                    TimelineContents.Add(TimelineContentsLine);
-                }
-
-                // Write the file
-                string StoryPath = $"{BasePath}/{objTimeline.Story.Title}";
-                string TimelinesPath = $"{StoryPath}/Timelines.csv";
-                File.WriteAllLines(TimelinesPath, TimelineContents);
+                // Write All Timelines - This will remove the Timeline to delete
+                await AIStoryBuildersTimelinesService.SaveDatabaseAsync(objTimeline.Story.Title, ExistingTimelines);
 
                 // ********************************************************
                 // Update Chapter files
                 // ********************************************************
 
                 // Loops through every Chapter and Paragraph 
-                var Chapters = await GetChapters(objTimeline.Story);
+                await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(objTimeline.Story.Title);
+                var Chapters = AIStoryBuildersChaptersService.Chapters;
+
+                List<Models.LocalStorage.Chapter> NewChapters = new List<Models.LocalStorage.Chapter>();
 
                 foreach (var Chapter in Chapters)
                 {
-                    var Paragraphs = await GetParagraphs(Chapter);
+                    Models.LocalStorage.Chapter NewChapter = new Models.LocalStorage.Chapter();
+                    NewChapter.chapter_name = Chapter.chapter_name;
+                    NewChapter.sequence = Chapter.sequence;
+                    NewChapter.chapter_synopsis = Chapter.chapter_synopsis;
+                    NewChapter.embedding = Chapter.embedding;
 
-                    foreach (var Paragraph in Paragraphs)
+                    NewChapter.paragraphs = new List<Models.LocalStorage.Paragraphs>();
+
+                    foreach (var Paragraph in Chapter.paragraphs)
                     {
-                        // Create the path to the Paragraph file
-                        var ChapterNameParts = Chapter.ChapterName.Split(' ');
-                        string ChapterName = ChapterNameParts[0] + ChapterNameParts[1];
-                        string ParagraphPath = $"{StoryPath}/Chapters/{ChapterName}/Paragraph{Paragraph.Sequence}.txt";
-
-                        // Get the ParagraphContent from the file
-                        string[] ParagraphContent = File.ReadAllLines(ParagraphPath);
-
-                        // Remove all empty lines
-                        ParagraphContent = ParagraphContent.Where(line => line.Trim() != "").ToArray();
-
-                        // Get the Timeline from the file
-                        string[] ParagraphTimeline = ParagraphContent[0].Split('|');
-
-                        // If the Timeline is the one to remove, then set it to a space
-                        if (ParagraphTimeline[1] == paramTimelineNameOriginal)
+                        // If the Location is the one to update, then set it to blank
+                        if (Paragraph.timeline_name == paramTimelineNameOriginal)
                         {
-                            // Set to nothing
-                            ParagraphTimeline[1] = "";
-
-                            // Put the ParagraphContent back together
-                            ParagraphContent[0] = string.Join("|", ParagraphTimeline);
-
-                            // Write the ParagraphContent back to the file
-                            File.WriteAllLines(ParagraphPath, ParagraphContent);
+                            Paragraph.timeline_name = "";
                         }
+                        else
+                        {
+                            Paragraph.timeline_name = Paragraph.timeline_name;
+                        }
+
+                        NewChapter.paragraphs.Add(Paragraph);
                     }
+
+                    NewChapters.Add(NewChapter);
                 }
+
+                await AIStoryBuildersChaptersService.SaveDatabaseAsync(objTimeline.Story.Title, NewChapters);
 
                 // ********************************************************
                 // Update Location files
                 // ********************************************************
 
-                string LocationsPath = $"{StoryPath}/Locations";
-                List<AIStoryBuilders.Models.Location> Locations = await GetLocations(objTimeline.Story);
+                await AIStoryBuildersLocationsService.LoadAIStoryBuildersLocationsAsync(objTimeline.Story.Title);
+                List<Models.LocalStorage.Locations> Locations = AIStoryBuildersLocationsService.Locations;
+
+                List<Models.LocalStorage.Locations> LocationContents = new List<Models.LocalStorage.Locations>();
 
                 // Loop through each Location file
                 foreach (var AIStoryBuildersLocation in Locations)
                 {
-                    List<string> LocationContents = new List<string>();
+                    Models.LocalStorage.Locations objLocations = new Models.LocalStorage.Locations();
+                    objLocations.descriptions = new List<Models.LocalStorage.Descriptions>();
 
-                    foreach (var LocationDescription in AIStoryBuildersLocation.LocationDescription)
+                    foreach (var LocationDescription in AIStoryBuildersLocation.descriptions)
                     {
-                        string LocationDescriptionAndTimeline = "";
+                        Models.LocalStorage.Descriptions objDescriptions = new Models.LocalStorage.Descriptions();
 
-                        // Does the TimelineName element exist?
-                        if (LocationDescription.Timeline != null)
+                        // Is the TimelineName the one to update?
+                        if (LocationDescription.timeline_name == paramTimelineNameOriginal)
                         {
-                            // Is the TimelineName the one to update?
-                            if (LocationDescription.Timeline.TimelineName == paramTimelineNameOriginal)
-                            {
-                                // Update to nothing
-                                LocationDescriptionAndTimeline = $"{LocationDescription.Description}|";
-                            }
-                            else
-                            {
-                                // Use existing values
-                                LocationDescriptionAndTimeline = $"{LocationDescription.Description}|{LocationDescription.Timeline.TimelineName}";
-                            }
+                            // Set it to blank
+                            objDescriptions.timeline_name = "";
                         }
                         else
                         {
-                            // Use existing values - No TimelineName
-                            LocationDescriptionAndTimeline = $"{LocationDescription.Description}|";
+                            // Use existing Timeline name
+                            objDescriptions.timeline_name = LocationDescription.timeline_name;
                         }
 
-                        string VectorEmbedding = await OrchestratorMethods.GetVectorEmbedding(LocationDescription.Description, false);
+                        objDescriptions.description = LocationDescription.description;
+                        objDescriptions.description_type = LocationDescription.description_type;
+                        objDescriptions.embedding = LocationDescription.embedding;
 
-                        LocationContents.Add($"{LocationDescriptionAndTimeline}|{VectorEmbedding}" + Environment.NewLine);
+                        objLocations.descriptions.Add(objDescriptions);
                     }
 
-                    string LocationPath = $"{LocationsPath}/{AIStoryBuildersLocation.LocationName}.csv";
-                    File.WriteAllLines(LocationPath, LocationContents);
+                    LocationContents.Add(objLocations);
                 }
+
+                await AIStoryBuildersLocationsService.SaveDatabaseAsync(objTimeline.Story.Title, LocationContents);
 
                 // ********************************************************
                 // Update Character files
                 // ********************************************************
 
-                string CharactersPath = $"{StoryPath}/Characters";
-                List<AIStoryBuilders.Models.Character> Characters = await GetCharacters(objTimeline.Story);
+                await AIStoryBuildersCharactersService.LoadAIStoryBuildersCharactersAsync(objTimeline.Story.Title);
+                List<Models.LocalStorage.Character> Characters = AIStoryBuildersCharactersService.characters;
 
-                // Loop through each Character file
+                List<Models.LocalStorage.Character> CharacterContents = new List<Models.LocalStorage.Character>();
+
+                // Loop through each Character 
                 foreach (var AIStoryBuildersCharacter in Characters)
                 {
-                    List<string> CharacterContents = new List<string>();
+                    Models.LocalStorage.Character objCharacter = new Models.LocalStorage.Character();
+                    objCharacter.descriptions = new List<Models.LocalStorage.Descriptions>();
 
-                    foreach (var CharacterDescription in AIStoryBuildersCharacter.CharacterBackground)
+                    foreach (var CharacterDescription in AIStoryBuildersCharacter.descriptions)
                     {
-                        string CharacterDescriptionAndTimeline = "";
+                        Models.LocalStorage.Descriptions objDescriptions = new Models.LocalStorage.Descriptions();
 
-                        // Does the TimelineName element exist?
-                        if (CharacterDescription.Timeline != null)
+                        // Is the TimelineName the one to update?
+                        if (CharacterDescription.timeline_name == paramTimelineNameOriginal)
                         {
-                            // Is the TimelineName the one to update?
-                            if (CharacterDescription.Timeline.TimelineName == paramTimelineNameOriginal)
-                            {
-                                // Update to remove the TimelineName
-                                CharacterDescriptionAndTimeline = $"{CharacterDescription.Type}||{CharacterDescription.Description}";
-                            }
-                            else
-                            {
-                                // Use existing values
-                                CharacterDescriptionAndTimeline = $"{CharacterDescription.Type}|{CharacterDescription.Timeline.TimelineName}|{CharacterDescription.Description}";
-                            }
+                            // Set it to blank
+                            objDescriptions.timeline_name = "";
                         }
                         else
                         {
-                            // Use existing values - No TimelineName
-                            CharacterDescriptionAndTimeline = $"{CharacterDescription.Type}||{CharacterDescription.Description}";
+                            // Use existing Timeline name
+                            objDescriptions.timeline_name = CharacterDescription.timeline_name;
                         }
 
-                        string VectorEmbedding = await OrchestratorMethods.GetVectorEmbedding(CharacterDescription.Description, false);
+                        objDescriptions.description = CharacterDescription.description;
+                        objDescriptions.description_type = CharacterDescription.description_type;
+                        objDescriptions.embedding = CharacterDescription.embedding;
 
-                        CharacterContents.Add($"{CharacterDescriptionAndTimeline}|{VectorEmbedding}" + Environment.NewLine);
+                        objCharacter.descriptions.Add(objDescriptions);
                     }
 
-                    string CharacterPath = $"{CharactersPath}/{AIStoryBuildersCharacter.CharacterName}.csv";
-                    File.WriteAllLines(CharacterPath, CharacterContents);
+                    CharacterContents.Add(objCharacter);
                 }
+
+                await AIStoryBuildersCharactersService.SaveDatabaseAsync(objTimeline.Story.Title, CharacterContents);
             }
             catch (Exception ex)
             {
