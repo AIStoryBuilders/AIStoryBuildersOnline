@@ -525,47 +525,44 @@ namespace AIStoryBuilders.Services
                 // Update Character files
                 // ********************************************************
 
-                string CharactersPath = $"";
-                List<AIStoryBuilders.Models.Character> Characters = await GetCharacters(objTimeline.Story);
+                await AIStoryBuildersCharactersService.LoadAIStoryBuildersCharactersAsync(objTimeline.Story.Title);
+                List<Models.LocalStorage.Character> Characters = AIStoryBuildersCharactersService.characters;
 
-                // Loop through each Character file
+                List<Models.LocalStorage.Character> CharacterContents = new List<Models.LocalStorage.Character>();
+
+                // Loop through each Character 
                 foreach (var AIStoryBuildersCharacter in Characters)
                 {
-                    List<string> CharacterContents = new List<string>();
+                    Models.LocalStorage.Character objCharacter = new Models.LocalStorage.Character();
+                    objCharacter.descriptions = new List<Models.LocalStorage.Descriptions>();
 
-                    foreach (var CharacterDescription in AIStoryBuildersCharacter.CharacterBackground)
+                    foreach (var CharacterDescription in AIStoryBuildersCharacter.descriptions)
                     {
-                        string CharacterDescriptionAndTimeline = "";
+                        Models.LocalStorage.Descriptions objDescriptions = new Models.LocalStorage.Descriptions();
 
-                        // Does the TimelineName element exist?
-                        if (CharacterDescription.Timeline != null)
+                        // Is the TimelineName the one to update?
+                        if (CharacterDescription.timeline_name == paramTimelineNameOriginal)
                         {
-                            // Is the TimelineName the one to update?
-                            if (CharacterDescription.Timeline.TimelineName == paramTimelineNameOriginal)
-                            {
-                                // Update to new name
-                                CharacterDescriptionAndTimeline = $"{CharacterDescription.Type}|{objTimeline.TimelineName}|{CharacterDescription.Description}";
-                            }
-                            else
-                            {
-                                // Use existing values
-                                CharacterDescriptionAndTimeline = $"{CharacterDescription.Type}|{CharacterDescription.Timeline.TimelineName}|{CharacterDescription.Description}";
-                            }
+                            // Use new Timeline name
+                            objDescriptions.timeline_name = paramTimelineNameOriginal;
                         }
                         else
                         {
-                            // Use existing values - No TimelineName
-                            CharacterDescriptionAndTimeline = $"{CharacterDescription.Type}||{CharacterDescription.Description}";
+                            // Use existing Timeline name
+                            objDescriptions.timeline_name = CharacterDescription.timeline_name;
                         }
 
-                        string VectorEmbedding = await OrchestratorMethods.GetVectorEmbedding(CharacterDescription.Description, false);
+                        objDescriptions.description = CharacterDescription.description;
+                        objDescriptions.description_type = CharacterDescription.description_type;
+                        objDescriptions.embedding = CharacterDescription.embedding;
 
-                        CharacterContents.Add($"{CharacterDescriptionAndTimeline}|{VectorEmbedding}" + Environment.NewLine);
+                        objCharacter.descriptions.Add(objDescriptions);
                     }
 
-                    string CharacterPath = $"{CharactersPath}/{AIStoryBuildersCharacter.CharacterName}.csv";
-                    File.WriteAllLines(CharacterPath, CharacterContents);
+                    CharacterContents.Add(objCharacter);
                 }
+
+                await AIStoryBuildersCharactersService.SaveDatabaseAsync(objTimeline.Story.Title, CharacterContents);
             }
             catch (Exception ex)
             {
