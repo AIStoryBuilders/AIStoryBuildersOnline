@@ -357,12 +357,11 @@ namespace AIStoryBuilders.Services
         {
             try
             {
-                string StoryPath = $"{BasePath}/{objTimeline.Story.Title}";
-                string TimelinesPath = $"{StoryPath}/Timelines.csv";
+                // Convert the passed Timeline to Timelines
+                var ObjNewTimelines = AIStoryBuildersTimelinesService.ConvertTimelineToTimelines(objTimeline);
 
-                // Add Timeline to file
-                string TimelineContents = $"{objTimeline.TimelineName}|{objTimeline.TimelineDescription}|{objTimeline.StartDate}|{objTimeline.StopDate}" + Environment.NewLine;
-                File.AppendAllText(TimelinesPath, TimelineContents);
+                // Update the Timeline
+                await AIStoryBuildersTimelinesService.AddTimelineAsync(objTimeline.Story.Title, ObjNewTimelines);
             }
             catch (Exception ex)
             {
@@ -371,42 +370,15 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public async Task UpdateTimeline(Models.Timeline objTimeline, string paramTimelineNameOriginal)
+        public async Task UpdateTimeline(Models.Timeline objTimeline)
         {
             try
             {
-                // Get all Timelines from file
-                var ExistingTimelines = await GetTimelines(objTimeline.Story);
+                // Convert the passed Timeline to Timelines
+                var ObjNewTimelines = AIStoryBuildersTimelinesService.ConvertTimelineToTimelines(objTimeline);
 
-                // Get all Timelines except the one to update
-                ExistingTimelines = ExistingTimelines.Where(line => line.TimelineName != paramTimelineNameOriginal).ToList();
-
-                // Add the updated Timeline - first update it to use the paramTimelineNameOriginal (in case it was changed)
-                objTimeline.TimelineName = paramTimelineNameOriginal;
-                ExistingTimelines.Add(objTimeline);
-
-                // Create the lines to write to the Timeline file
-                List<string> TimelineContents = new List<string>();
-
-                foreach (var timeline in ExistingTimelines)
-                {
-                    string StartTime = timeline.StartDate.Value.ToShortDateString() + " " + timeline.StartDate.Value.ToShortTimeString();
-
-                    string StopTime = "";
-
-                    if (timeline.StopDate.HasValue)
-                    {
-                        StopTime = timeline.StopDate.Value.ToShortDateString() + " " + timeline.StopDate.Value.ToShortTimeString();
-                    }
-
-                    string TimelineContentsLine = $"{timeline.TimelineName}|{timeline.TimelineDescription}|{StartTime}|{StopTime}";
-                    TimelineContents.Add(TimelineContentsLine);
-                }
-
-                // Write the file
-                string StoryPath = $"{BasePath}/{objTimeline.Story.Title}";
-                string TimelinesPath = $"{StoryPath}/Timelines.csv";
-                File.WriteAllLines(TimelinesPath, TimelineContents);
+                // Update the Timeline
+                await AIStoryBuildersTimelinesService.UpdateTimelineAsync(objTimeline.Story.Title, ObjNewTimelines);
             }
             catch (Exception ex)
             {
