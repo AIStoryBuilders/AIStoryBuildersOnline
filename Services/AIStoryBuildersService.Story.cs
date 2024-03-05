@@ -807,34 +807,16 @@ namespace AIStoryBuilders.Services
         {
             try
             {
-                string StoryPath = $"{BasePath}/{objLocation.Story.Title}";
-                string LocationsPath = $"{StoryPath}/Locations";
+                // Convert the passed Location to Location
+                var ObjNewLocation = AIStoryBuildersLocationsService.ConvertLocationToLocations(objLocation);
 
-                // Add Location to file
-                List<string> LocationContents = new List<string>();
-                string LocationName = OrchestratorMethods.SanitizeFileName(objLocation.LocationName);
-
-                foreach (var description in objLocation.LocationDescription)
+                foreach (var description in ObjNewLocation.descriptions)
                 {
-                    string VectorEmbedding = await OrchestratorMethods.GetVectorEmbedding(description.Description, false);
-
-                    // Set TimelineName to empty string if null
-                    string TimelineName = "";
-                    if (description.Timeline == null)
-                    {
-                        TimelineName = "";
-                    }
-                    else
-                    {
-                        TimelineName = description.Timeline.TimelineName ?? "";
-                    }
-
-                    var LocationDescriptionAndTimeline = $"{description.Description}|{TimelineName}";
-                    LocationContents.Add($"{LocationDescriptionAndTimeline}|{VectorEmbedding}" + Environment.NewLine);
+                    description.embedding = await OrchestratorMethods.GetVectorEmbedding(description.description, false);
                 }
 
-                string LocationPath = $"{LocationsPath}/{LocationName}.csv";
-                File.WriteAllLines(LocationPath, LocationContents);
+                // Add the Location
+                await AIStoryBuildersLocationsService.AddLocationAsync(objLocation.Story.Title, ObjNewLocation);
             }
             catch (Exception ex)
             {
@@ -843,38 +825,20 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public async Task UpdateLocationDescriptions(Models.Location objLocation)
+        public async Task UpdateLocationDescriptions(Models.Location paramObjLocation)
         {
             try
             {
-                string StoryPath = $"{BasePath}/{objLocation.Story.Title}";
-                string LocationsPath = $"{StoryPath}/Locations";
+                // Convert the passed Location to Location
+                var ObjLocation = AIStoryBuildersLocationsService.ConvertLocationToLocations(paramObjLocation);
 
-                // Add Location to file
-                List<string> LocationContents = new List<string>();
-                string LocationName = OrchestratorMethods.SanitizeFileName(objLocation.LocationName);
-
-                foreach (var description in objLocation.LocationDescription)
+                foreach (var description in ObjLocation.descriptions)
                 {
-                    string VectorEmbedding = await OrchestratorMethods.GetVectorEmbedding(description.Description, false);
-
-                    // Set TimelineName to empty string if null
-                    string TimelineName = "";
-                    if (description.Timeline == null)
-                    {
-                        TimelineName = "";
-                    }
-                    else
-                    {
-                        TimelineName = description.Timeline.TimelineName ?? "";
-                    }
-
-                    var LocationDescriptionAndTimeline = $"{description.Description}|{TimelineName}";
-                    LocationContents.Add($"{LocationDescriptionAndTimeline}|{VectorEmbedding}" + Environment.NewLine);
+                    description.embedding = await OrchestratorMethods.GetVectorEmbedding(description.description, false);
                 }
 
-                string LocationPath = $"{LocationsPath}/{LocationName}.csv";
-                File.WriteAllLines(LocationPath, LocationContents);
+                // Update the Location
+                await AIStoryBuildersLocationsService.UpdateLocationAsync(paramObjLocation.Story.Title, ObjLocation);
             }
             catch (Exception ex)
             {
