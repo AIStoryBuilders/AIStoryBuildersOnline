@@ -1054,34 +1054,42 @@ namespace AIStoryBuilders.Services
 
         public async Task AddUpdateCharacterAsync(Character character, string paramOrginalCharacterName)
         {
-            string StoryPath = $"{BasePath}/{character.Story.Title}";
-            string CharactersPath = $"{StoryPath}/Characters";
-            string ChaptersPath = $"{StoryPath}/Chapters";
+            // Convert the passed Character to Character
+            var ObjConvertedCharacter = AIStoryBuildersCharactersService.ConvertCharacterToCharacter(character);
 
-            // Add Character to file
-            string CharacterName = OrchestratorMethods.SanitizeFileName(paramOrginalCharacterName);
-
-            // Create Character file
-            string CharacterPath = $"{CharactersPath}/{CharacterName}.csv";
-            List<string> CharacterContents = new List<string>();
+            ObjConvertedCharacter.descriptions = new List<AIStoryBuilders.Models.LocalStorage.Descriptions>();
 
             foreach (var description in character.CharacterBackground)
             {
-                string description_type = description.Type ?? "";
+                AIStoryBuilders.Models.LocalStorage.Descriptions objDescriptions = new AIStoryBuilders.Models.LocalStorage.Descriptions();
 
-                string TimeLineName = "";
+                objDescriptions.description = description.Description ?? "";
+                objDescriptions.description_type = description.Type ?? "";
+                objDescriptions.timeline_name = description.Timeline.TimelineName ?? "";
 
-                if (description.Timeline != null)
-                {
-                    TimeLineName = description.Timeline.TimelineName ?? "";
-                }
+                // Get embeddings
+                objDescriptions.embedding = await OrchestratorMethods.GetVectorEmbedding(description.Description ?? "", true);
 
-                string timeline_name = TimeLineName;
-                string VectorDescriptionAndEmbedding = await OrchestratorMethods.GetVectorEmbedding(description.Description ?? "", true);
-                CharacterContents.Add($"{description_type}|{timeline_name}|{VectorDescriptionAndEmbedding}" + Environment.NewLine);
+                ObjConvertedCharacter.descriptions.Add(objDescriptions);
             }
 
-            File.WriteAllLines(CharacterPath, CharacterContents);
+            // Get all Characters
+            await AIStoryBuildersCharactersService.LoadAIStoryBuildersCharactersAsync(character.Story.Title);
+            var Characters = AIStoryBuildersCharactersService.characters;
+
+            // See if the Character exists
+            var ExistingCharacter = Characters.Where(x => x.name == paramOrginalCharacterName).FirstOrDefault();
+
+            if (ExistingCharacter == null)
+            {
+                // Add the Character
+                await AIStoryBuildersCharactersService.AddCharacterAsync(character.Story.Title, ObjConvertedCharacter);
+            }
+            else
+            {
+                // Update the Character
+                await AIStoryBuildersCharactersService.UpdateCharacterAsync(character.Story.Title, ObjConvertedCharacter);
+            }
         }
 
         public async Task DeleteCharacter(Character character, string paramOrginalCharcterName)
