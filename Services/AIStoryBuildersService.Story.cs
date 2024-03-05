@@ -1094,76 +1094,64 @@ namespace AIStoryBuilders.Services
 
         public async Task DeleteCharacter(Character character, string paramOrginalCharcterName)
         {
-            string StoryPath = $"{BasePath}/{character.Story.Title}";
-            string CharactersPath = $"{StoryPath}/Characters";
-            string ChaptersPath = $"{StoryPath}/Chapters";
-            string CharacterPath = $"{CharactersPath}/{paramOrginalCharcterName}.csv";
-
             if (character.CharacterName.Trim() != "")
             {
-                // Loops through every Chapter and Paragraph and update the Character
-                var Chapters = await GetChapters(character.Story);
+                // Loop through every Chapter and Paragraph and update the Character
+
+                await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(character.Story.Title);
+                var Chapters = AIStoryBuildersChaptersService.Chapters;
+
+                List<Models.LocalStorage.Chapter> NewChapters = new List<Models.LocalStorage.Chapter>();
 
                 foreach (var Chapter in Chapters)
                 {
-                    var Paragraphs = await GetParagraphs(Chapter);
+                    Models.LocalStorage.Chapter NewChapter = new Models.LocalStorage.Chapter();
+                    NewChapter.chapter_name = Chapter.chapter_name;
+                    NewChapter.sequence = Chapter.sequence;
+                    NewChapter.chapter_synopsis = Chapter.chapter_synopsis;
+                    NewChapter.embedding = Chapter.embedding;
 
-                    foreach (var Paragraph in Paragraphs)
+                    NewChapter.paragraphs = new List<Models.LocalStorage.Paragraphs>();
+
+                    foreach (var Paragraph in Chapter.paragraphs)
                     {
-                        // Create the path to the Paragraph file
-                        var ChapterNameParts = Chapter.ChapterName.Split(' ');
-                        string ChapterName = ChapterNameParts[0] + ChapterNameParts[1];
-                        string ParagraphPath = $"{StoryPath}/Chapters/{ChapterName}/Paragraph{Paragraph.Sequence}.txt";
+                        // Convert ParagraphCharactersRaw to a List
+                        List<string> ParagraphCharacters = ParseStringToList(Paragraph.character_names);
 
-                        // Get the ParagraphContent from the file
-                        string[] ParagraphContent = File.ReadAllLines(ParagraphPath);
-
-                        // Remove all empty lines
-                        ParagraphContent = ParagraphContent.Where(line => line.Trim() != "").ToArray();
-
-                        // Get the file as an array
-                        string[] ParagraphArray = ParagraphContent[0].Split('|');
-
-                        // Remove the [ and ] from the array
-                        ParagraphArray[2] = ParagraphArray[2].Replace("[", "");
-                        ParagraphArray[2] = ParagraphArray[2].Replace("]", "");
-
-                        // Get the Character array from the file
-                        string[] ParagraphCharacters = ParagraphArray[2].Split(',');
+                        List<string> ParagraphCharactersWithoutDeletedCharacter = new List<string>();
 
                         // Loop through each Character to see if the Character is the one to delete
-                        for (int i = 0; i < ParagraphCharacters.Length; i++)
+                        foreach (var Character in ParagraphCharacters)
                         {
-                            // If the Character is the one to update, then set it to new name
-                            if (ParagraphCharacters[i] == paramOrginalCharcterName)
+                            // If the Character is the one to delete, then don't add it to the list
+                            if (Character != paramOrginalCharcterName)
                             {
-                                // Remove the Character
-                                ParagraphCharacters[i] = "";
+                                ParagraphCharactersWithoutDeletedCharacter.Add(Character);
                             }
                         }
 
-                        // Create an array of Characters that are not empty
-                        ParagraphCharacters = ParagraphCharacters.Where(x => !string.IsNullOrEmpty(x)).ToArray();
-
                         // Put the ParagraphCharacters back together
-                        string ParagraphCharacterString = string.Join(",", ParagraphCharacters);
+                        string ParagraphCharacterString = string.Join(",", ParagraphCharactersWithoutDeletedCharacter);
 
                         // Put the [ and ] back on the array
                         ParagraphCharacterString = "[" + ParagraphCharacterString + "]";
+                        Paragraph.character_names = ParagraphCharacterString;
 
-                        // Set the Character array back to the ParagraphArray
-                        ParagraphArray[2] = ParagraphCharacterString;
-
-                        // Put the ParagraphContent back together
-                        ParagraphContent[0] = string.Join("|", ParagraphArray);
-
-                        // Write the ParagraphContent back to the file
-                        File.WriteAllLines(ParagraphPath, ParagraphContent);
+                        NewChapter.paragraphs.Add(Paragraph);
                     }
+
+                    NewChapters.Add(NewChapter);
                 }
 
-                // Delete the Character file
-                File.Delete(CharacterPath);
+                await AIStoryBuildersChaptersService.SaveDatabaseAsync(character.Story.Title, NewChapters);
+
+                // **** DELETE CHARACTER ****
+
+                // Convert the passed Character to Character
+                var ObjConvertedCharacter = AIStoryBuildersCharactersService.ConvertCharacterToCharacter(character);
+
+                // Delete the Character 
+                await AIStoryBuildersCharactersService.DeleteCharacterAsync(character.Story.Title, ObjConvertedCharacter);
             }
         }
 
