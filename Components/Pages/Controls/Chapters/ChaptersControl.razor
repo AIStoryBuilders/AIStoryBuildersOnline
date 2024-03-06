@@ -298,7 +298,7 @@
                 newChapter.ChapterName = strNewChapterName;
                 newChapter.Synopsis = "New Chapter";
 
-                await AIStoryBuildersService.InsertChapterAsync(newChapter);
+                await AIStoryBuildersService.AddChapterAsync(newChapter);
 
                 // Reload the chapters
                 await LoadChapters(objStory, null);

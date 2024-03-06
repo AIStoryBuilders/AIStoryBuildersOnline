@@ -1068,7 +1068,7 @@ namespace AIStoryBuilders.Services
                 objDescriptions.timeline_name = description.Timeline.TimelineName ?? "";
 
                 // Get embeddings
-                objDescriptions.embedding = await OrchestratorMethods.GetVectorEmbedding(description.Description ?? "", true);
+                objDescriptions.embedding = await OrchestratorMethods.GetVectorEmbedding(description.Description ?? "", false);
 
                 ObjConvertedCharacter.descriptions.Add(objDescriptions);
             }
@@ -1309,43 +1309,21 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public async Task AddChapterAsync(Models.Chapter objChapter, string ChapterName)
+        public async Task AddChapterAsync(Models.Chapter objChapter)
         {
             if (objChapter.Synopsis == null)
             {
                 objChapter.Synopsis = " ";
             }
 
-            var AIStoryBuildersChaptersPath = $"{BasePath}/{objChapter.Story.Title}/Chapters";
+            var ConvertedChapter = AIStoryBuildersChaptersService.ConvertChapterToChapters(objChapter);
 
-            // Create the Chapter folder
-            string ChapterPath = $"{AIStoryBuildersChaptersPath}/{ChapterName}";
-            Directory.CreateDirectory(ChapterPath);
+            // Do embedding on the synopsis
+            ConvertedChapter.chapter_name = ConvertedChapter.chapter_name.Replace(" ", "");
+            ConvertedChapter.embedding = await OrchestratorMethods.GetVectorEmbedding(objChapter.Synopsis, false);
 
-            // Create the Chapter file
-            string ChapterFilePath = $"{ChapterPath}/{ChapterName}.txt";
-            string ChapterSynopsisAndEmbedding = await OrchestratorMethods.GetVectorEmbedding(objChapter.Synopsis, true);
-            File.WriteAllText(ChapterFilePath, $"{ChapterSynopsisAndEmbedding}");
-        }
-
-        public async Task InsertChapterAsync(Models.Chapter objChapter)
-        {
-            if (objChapter.Synopsis == null)
-            {
-                objChapter.Synopsis = " ";
-            }
-
-            string ChapterName = objChapter.ChapterName.Replace(" ", "");
-            var AIStoryBuildersChaptersPath = $"{BasePath}/{objChapter.Story.Title}/Chapters";
-
-            // Create the Chapter folder
-            string ChapterPath = $"{AIStoryBuildersChaptersPath}/{ChapterName}";
-            Directory.CreateDirectory(ChapterPath);
-
-            // Create the Chapter file
-            string ChapterFilePath = $"{ChapterPath}/{ChapterName}.txt";
-            string ChapterSynopsisAndEmbedding = await OrchestratorMethods.GetVectorEmbedding(objChapter.Synopsis, true);
-            File.WriteAllText(ChapterFilePath, $"{ChapterSynopsisAndEmbedding}");
+            // Add the Chapter
+            await AIStoryBuildersChaptersService.AddChapterAsync(objChapter.Story.Title, ConvertedChapter);
         }
 
         public async Task UpdateChapterAsync(Models.Chapter objChapter)
@@ -1355,7 +1333,7 @@ namespace AIStoryBuilders.Services
             string ChapterPath = $"{AIStoryBuildersChaptersPath}/{ChapterName}";
             string ChapterFilePath = $"{ChapterPath}/{ChapterName}.txt";
 
-            string ChapterSynopsisAndEmbedding = await OrchestratorMethods.GetVectorEmbedding(objChapter.Synopsis, true);
+            string ChapterSynopsisAndEmbedding = await OrchestratorMethods.GetVectorEmbedding(objChapter.Synopsis, false);
             File.WriteAllText(ChapterFilePath, $"{ChapterSynopsisAndEmbedding}");
         }
 
@@ -1575,7 +1553,7 @@ namespace AIStoryBuilders.Services
                 string ParagraphPath = $"{AIStoryBuildersParagraphsPath}/Paragraph{Paragraph.Sequence}.txt";
 
                 // Create the ParagraphContent
-                string VectorDescriptionAndEmbedding = await OrchestratorMethods.GetVectorEmbedding(Paragraph.ParagraphContent, true);
+                string VectorDescriptionAndEmbedding = await OrchestratorMethods.GetVectorEmbedding(Paragraph.ParagraphContent, false);
                 string ParagraphContent = $"{Paragraph.Location.LocationName ?? ""}|{Paragraph.Timeline.TimelineName ?? ""}|[{string.Join(",", Paragraph.Characters.Select(x => x.CharacterName))}]|{VectorDescriptionAndEmbedding}";
 
                 // Preserve any line breaks
