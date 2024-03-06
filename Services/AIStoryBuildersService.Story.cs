@@ -1157,74 +1157,77 @@ namespace AIStoryBuilders.Services
 
         public async Task UpdateCharacterName(Character character, string paramOrginalCharcterName)
         {
-            string StoryPath = $"{BasePath}/{character.Story.Title}";
-            string CharactersPath = $"{StoryPath}/Characters";
-            string ChaptersPath = $"{StoryPath}/Chapters";
-            string CharacterPath = $"{CharactersPath}/{paramOrginalCharcterName}.csv";
-
             if (character.CharacterName.Trim() != "")
             {
-                // Loops through every Chapter and Paragraph and update the Character
-                var Chapters = await GetChapters(character.Story);
+                // Loop through every Chapter and Paragraph and update the Character
+
+                await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(character.Story.Title);
+                var Chapters = AIStoryBuildersChaptersService.Chapters;
+
+                List<Models.LocalStorage.Chapter> NewChapters = new List<Models.LocalStorage.Chapter>();
 
                 foreach (var Chapter in Chapters)
                 {
-                    var Paragraphs = await GetParagraphs(Chapter);
+                    Models.LocalStorage.Chapter NewChapter = new Models.LocalStorage.Chapter();
+                    NewChapter.chapter_name = Chapter.chapter_name;
+                    NewChapter.sequence = Chapter.sequence;
+                    NewChapter.chapter_synopsis = Chapter.chapter_synopsis;
+                    NewChapter.embedding = Chapter.embedding;
 
-                    foreach (var Paragraph in Paragraphs)
+                    NewChapter.paragraphs = new List<Models.LocalStorage.Paragraphs>();
+
+                    foreach (var Paragraph in Chapter.paragraphs)
                     {
-                        // Create the path to the Paragraph file
-                        var ChapterNameParts = Chapter.ChapterName.Split(' ');
-                        string ChapterName = ChapterNameParts[0] + ChapterNameParts[1];
-                        string ParagraphPath = $"{StoryPath}/Chapters/{ChapterName}/Paragraph{Paragraph.Sequence}.txt";
+                        // Convert ParagraphCharactersRaw to a List
+                        List<string> ParagraphCharacters = ParseStringToList(Paragraph.character_names);
 
-                        // Get the ParagraphContent from the file
-                        string[] ParagraphContent = File.ReadAllLines(ParagraphPath);
+                        List<string> NewParagraphCharacters = new List<string>();
 
-                        // Remove all empty lines
-                        ParagraphContent = ParagraphContent.Where(line => line.Trim() != "").ToArray();
-
-                        // Get the file as an array
-                        string[] ParagraphArray = ParagraphContent[0].Split('|');
-
-                        // Remove the [ and ] from the array
-                        ParagraphArray[2] = ParagraphArray[2].Replace("[", "");
-                        ParagraphArray[2] = ParagraphArray[2].Replace("]", "");
-
-                        // Get the Character array from the file
-                        string[] ParagraphCharacters = ParagraphArray[2].Split(',');
-
-                        // Loop through each Character to see if the Character is the one to update
-                        for (int i = 0; i < ParagraphCharacters.Length; i++)
+                        // Loop through each Character to see if the Character is the one to delete
+                        foreach (var Character in ParagraphCharacters)
                         {
-                            // If the Character is the one to update, then set it to new name
-                            if (ParagraphCharacters[i] == paramOrginalCharcterName)
+                            // Check if the Character is the one to rename
+                            if (Character != paramOrginalCharcterName)
                             {
-                                // Set to the new name
-                                ParagraphCharacters[i] = character.CharacterName;
+                                NewParagraphCharacters.Add(Character);
+                            }
+                            else
+                            {
+                                // Add using the new Character name
+                                NewParagraphCharacters.Add(character.CharacterName);
                             }
                         }
 
                         // Put the ParagraphCharacters back together
-                        string ParagraphCharacterString = string.Join(",", ParagraphCharacters);
+                        string ParagraphCharacterString = string.Join(",", NewParagraphCharacters);
 
                         // Put the [ and ] back on the array
                         ParagraphCharacterString = "[" + ParagraphCharacterString + "]";
+                        Paragraph.character_names = ParagraphCharacterString;
 
-                        // Set the Character array back to the ParagraphArray
-                        ParagraphArray[2] = ParagraphCharacterString;
-
-                        // Put the ParagraphContent back together
-                        ParagraphContent[0] = string.Join("|", ParagraphArray);
-
-                        // Write the ParagraphContent back to the file
-                        File.WriteAllLines(ParagraphPath, ParagraphContent);
+                        NewChapter.paragraphs.Add(Paragraph);
                     }
+
+                    NewChapters.Add(NewChapter);
                 }
 
-                // Rename Character file
-                string NewCharacterPath = $"{CharactersPath}/{character.CharacterName.Trim()}.csv";
-                File.Move(CharacterPath, NewCharacterPath);
+                // Save Chapters and Paragraphs
+                await AIStoryBuildersChaptersService.SaveDatabaseAsync(character.Story.Title, NewChapters);
+
+                // **** DELETE CHARACTER and RE-ADD as RENAMED ****
+
+                // Convert the passed Character to Character
+                var ObjConvertedCharacter = AIStoryBuildersCharactersService.ConvertCharacterToCharacter(character);
+
+                // Rename Character 
+                var objRenamedCharacter = ObjConvertedCharacter;
+                objRenamedCharacter.name = character.CharacterName;
+
+                // Delete the Character 
+                await AIStoryBuildersCharactersService.DeleteCharacterAsync(character.Story.Title, ObjConvertedCharacter);
+
+                // Add the renamed Character
+                await AIStoryBuildersCharactersService.AddCharacterAsync(character.Story.Title, objRenamedCharacter);
             }
         }
         #endregion
