@@ -1316,8 +1316,10 @@ namespace AIStoryBuilders.Services
 
             var ConvertedChapter = AIStoryBuildersChaptersService.ConvertChapterToChapters(objChapter);
 
-            // Do embedding on the synopsis
+            // Fix Chapter name
             ConvertedChapter.chapter_name = ConvertedChapter.chapter_name.Replace(" ", "");
+
+            // Do embedding on the synopsis
             ConvertedChapter.embedding = await OrchestratorMethods.GetVectorEmbedding(objChapter.Synopsis, false);
 
             // Add the Chapter
@@ -1326,13 +1328,17 @@ namespace AIStoryBuilders.Services
 
         public async Task UpdateChapterAsync(Models.Chapter objChapter)
         {
-            string ChapterName = objChapter.ChapterName.Replace(" ", "");
-            var AIStoryBuildersChaptersPath = $"{BasePath}/{objChapter.Story.Title}/Chapters";
-            string ChapterPath = $"{AIStoryBuildersChaptersPath}/{ChapterName}";
-            string ChapterFilePath = $"{ChapterPath}/{ChapterName}.txt";
 
-            string ChapterSynopsisAndEmbedding = await OrchestratorMethods.GetVectorEmbedding(objChapter.Synopsis, false);
-            File.WriteAllText(ChapterFilePath, $"{ChapterSynopsisAndEmbedding}");
+            var ConvertedChapter = AIStoryBuildersChaptersService.ConvertChapterToChapters(objChapter);
+
+            // Fix Chapter name
+            ConvertedChapter.chapter_name = ConvertedChapter.chapter_name.Replace(" ", "");
+
+            // Do embedding on the synopsis
+            ConvertedChapter.embedding = await OrchestratorMethods.GetVectorEmbedding(objChapter.Synopsis, false);
+
+            // Update the Chapter
+            await AIStoryBuildersChaptersService.UpdateChapterAsync(objChapter.Story.Title, ConvertedChapter);
         }
 
         public void DeleteChapter(Models.Chapter objChapter)
