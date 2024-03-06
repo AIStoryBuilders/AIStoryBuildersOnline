@@ -1292,10 +1292,8 @@ namespace AIStoryBuilders.Services
 
             try
             {
-                var AIStoryBuildersChaptersPath = $"{BasePath}/{story.Title}/Chapters";
-                string[] AIStoryBuildersChaptersFolders = Directory.GetDirectories(AIStoryBuildersChaptersPath);
-
-                ChapterCount = AIStoryBuildersChaptersFolders.Count();
+                await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(story.Title);
+                ChapterCount = AIStoryBuildersChaptersService.Chapters.Count();
 
                 return ChapterCount;
             }
