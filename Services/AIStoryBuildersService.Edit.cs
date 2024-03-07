@@ -56,10 +56,8 @@ namespace AIStoryBuilders.Services
         {
             try
             {
-                string OldChapterPath = "";
-                string NewChapterPath = "";
-                string OldChapterFolderPath = "";
-                string NewChapterFolderPath = "";
+                await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(objChapter.Story.Title);
+                var AllChapters = AIStoryBuildersChaptersService.Chapters;
 
                 int CountOfChapters = await CountChapters(objChapter.Story);
 
@@ -67,30 +65,55 @@ namespace AIStoryBuilders.Services
                 {
                     for (int i = CountOfChapters; objChapter.Sequence <= i; i--)
                     {
-                        // Rename Chapter file
-                        OldChapterPath = $"{BasePath}/{objChapter.Story.Title}/Chapters/Chapter{i}/Chapter{i}.txt";
-                        NewChapterPath = $"{BasePath}/{objChapter.Story.Title}/Chapters/Chapter{i}/Chapter{i + 1}.txt";
-                        System.IO.File.Move(OldChapterPath, NewChapterPath);
+                        var ChapterName = "Chapter" + i.ToString();
 
-                        // Rename Chapter folder
-                        OldChapterFolderPath = $"{BasePath}/{objChapter.Story.Title}/Chapters/Chapter{i}";
-                        NewChapterFolderPath = $"{BasePath}/{objChapter.Story.Title}/Chapters/Chapter{i + 1}";
-                        System.IO.Directory.Move(OldChapterFolderPath, NewChapterFolderPath);
+                        // Get current Chapter
+                        var objCurrentChapter = AllChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
+
+                        if (objCurrentChapter == null)
+                        {
+                            continue;
+                        }
+
+                        // Delete Chapter
+                        await AIStoryBuildersChaptersService.DeleteChapterAsync(objChapter.Story.Title, objCurrentChapter);
+
+                        // Add 1 to the sequence
+                        objCurrentChapter.sequence = objCurrentChapter.sequence + 1;
+
+                        // Set new Chapter name
+                        objCurrentChapter.chapter_name = "Chapter" + objCurrentChapter.sequence;
+
+                        // Add Chapter
+                        await AIStoryBuildersChaptersService.AddChapterAsync(objChapter.Story.Title, objCurrentChapter);
                     }
                 }
                 else if (RestructureType == RestructureType.Delete)
                 {
                     for (int i = objChapter.Sequence; i <= CountOfChapters; i++)
                     {
-                        // Rename Chapter file
-                        OldChapterPath = $"{BasePath}/{objChapter.Story.Title}/Chapters/Chapter{i + 1}/Chapter{i + 1}.txt";
-                        NewChapterPath = $"{BasePath}/{objChapter.Story.Title}/Chapters/Chapter{i + 1}/Chapter{i}.txt";
-                        System.IO.File.Move(OldChapterPath, NewChapterPath);
+                        var ChapterName = "Chapter" + (i + 1).ToString();
 
-                        // Rename Chapter folder
-                        OldChapterFolderPath = $"{BasePath}/{objChapter.Story.Title}/Chapters/Chapter{i + 1}";
-                        NewChapterFolderPath = $"{BasePath}/{objChapter.Story.Title}/Chapters/Chapter{i}";
-                        System.IO.Directory.Move(OldChapterFolderPath, NewChapterFolderPath);
+                        // Get current Chapter
+                        var objCurrentChapter = AllChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
+
+                        if (objCurrentChapter == null)
+                        {
+                            continue;
+                        }
+
+                        // Delete Chapter
+                        await AIStoryBuildersChaptersService.DeleteChapterAsync(objChapter.Story.Title, objCurrentChapter);
+
+                        // Add 1 to the sequence
+                        objCurrentChapter.sequence = objCurrentChapter.sequence;
+
+                        // Set new Chapter name
+                        objCurrentChapter.chapter_name = "Chapter" + objCurrentChapter.sequence;
+
+                        // Add Chapter
+                        await AIStoryBuildersChaptersService.AddChapterAsync(objChapter.Story.Title, objCurrentChapter);
+
                     }
                 }
             }
