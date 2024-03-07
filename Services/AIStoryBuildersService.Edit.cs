@@ -1,5 +1,6 @@
 ﻿using AIStoryBuilders.Models;
 using AIStoryBuilders.Models.JSON;
+using AIStoryBuilders.Models.LocalStorage;
 using Newtonsoft.Json;
 using System.Text.Json;
 
@@ -8,40 +9,82 @@ namespace AIStoryBuilders.Services
     public partial class AIStoryBuildersService
     {
         #region public async Task RestructureParagraphs(Chapter objChapter, int ParagraphNumber, RestructureType RestructureType)
-        public async Task RestructureParagraphs(Chapter objChapter, int ParagraphNumber, RestructureType RestructureType)
+        public async Task RestructureParagraphs(Models.Chapter objChapter, int ParagraphNumber, RestructureType RestructureType)
         {
             try
             {
-                string OldParagraphPath = "";
-                string NewParagraphPath = "";
-                var ChapterNameParts = objChapter.ChapterName.Split(' ');
-                string ChapterName = ChapterNameParts[0] + ChapterNameParts[1];
-                var AIStoryBuildersParagraphsPath = $"{BasePath}/{objChapter.Story.Title}/Chapters/{ChapterName}";
-                int CountOfParagraphs = await CountParagraphs(objChapter);
+                // Get current Chapter
+                await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(objChapter.Story.Title);
+                var AllChapters = AIStoryBuildersChaptersService.Chapters;
+
+                var ChapterName = objChapter.ChapterName;
+                var objCurrentChapter = AllChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
+
+                // Get all paragraphs
+                var ColParagraphs = objCurrentChapter.paragraphs;
+
+                int CountOfParagraphs = ColParagraphs.Count;
+
+                List<Paragraphs> lstParagraphs = new List<Paragraphs>();
 
                 // Loop through all remaining paragraphs and rename them
                 if (RestructureType == RestructureType.Add)
                 {
                     for (int i = CountOfParagraphs; ParagraphNumber <= i; i--)
                     {
-                        OldParagraphPath = $"{AIStoryBuildersParagraphsPath}/Paragraph{i}.txt";
-                        NewParagraphPath = $"{AIStoryBuildersParagraphsPath}/Paragraph{i + 1}.txt";
+                        Paragraphs objParagraphs = new Paragraphs();
 
-                        // Rename file
-                        System.IO.File.Move(OldParagraphPath, NewParagraphPath);
+                        // Get current Paragraph
+                        var objCurrentParagraph = ColParagraphs.Where(x => x.sequence == i).FirstOrDefault();
+
+                        if (objCurrentParagraph == null)
+                        {
+                            continue;
+                        }
+
+                        objParagraphs.sequence = objCurrentParagraph.sequence + 1;
+                        objParagraphs.character_names = objCurrentParagraph.character_names;
+                        objParagraphs.contents = objCurrentParagraph.contents;
+                        objParagraphs.timeline_name = objCurrentParagraph.timeline_name;
+                        objParagraphs.location_name = objCurrentParagraph.location_name;
+                        objParagraphs.embedding = objCurrentParagraph.embedding;
+
+                        lstParagraphs.Add(objParagraphs);
                     }
                 }
                 else if (RestructureType == RestructureType.Delete)
                 {
                     for (int i = ParagraphNumber; i <= CountOfParagraphs; i++)
                     {
-                        OldParagraphPath = $"{AIStoryBuildersParagraphsPath}/Paragraph{i + 1}.txt";
-                        NewParagraphPath = $"{AIStoryBuildersParagraphsPath}/Paragraph{i}.txt";
+                        Paragraphs objParagraphs = new Paragraphs();
 
-                        // Rename file
-                        System.IO.File.Move(OldParagraphPath, NewParagraphPath);
+                        // Get current Paragraph
+                        var objCurrentParagraph = ColParagraphs.Where(x => x.sequence == (i + 1)).FirstOrDefault();
+
+                        if (objCurrentParagraph == null)
+                        {
+                            continue;
+                        }
+
+                        objParagraphs.sequence = objCurrentParagraph.sequence;
+                        objParagraphs.character_names = objCurrentParagraph.character_names;
+                        objParagraphs.contents = objCurrentParagraph.contents;
+                        objParagraphs.timeline_name = objCurrentParagraph.timeline_name;
+                        objParagraphs.location_name = objCurrentParagraph.location_name;
+                        objParagraphs.embedding = objCurrentParagraph.embedding;
+
+                        lstParagraphs.Add(objParagraphs);
                     }
                 }
+
+                // Delete Chapter
+                await AIStoryBuildersChaptersService.DeleteChapterAsync(objChapter.Story.Title, objCurrentChapter);
+
+                // Update Chapter
+                objCurrentChapter.paragraphs = lstParagraphs;
+
+                // Add Chapter
+                await AIStoryBuildersChaptersService.AddChapterAsync(objChapter.Story.Title, objCurrentChapter);
             }
             catch (Exception ex)
             {
@@ -52,7 +95,7 @@ namespace AIStoryBuilders.Services
         #endregion
 
         #region public async Task RestructureChapters(Chapter objChapter, RestructureType RestructureType)
-        public async Task RestructureChapters(Chapter objChapter, RestructureType RestructureType)
+        public async Task RestructureChapters(Models.Chapter objChapter, RestructureType RestructureType)
         {
             try
             {

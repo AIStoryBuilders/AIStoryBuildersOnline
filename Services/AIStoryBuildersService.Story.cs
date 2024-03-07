@@ -1492,15 +1492,13 @@ namespace AIStoryBuilders.Services
 
             try
             {
-                var ChapterNameParts = chapter.ChapterName.Split(' ');
-                string ChapterName = ChapterNameParts[0] + ChapterNameParts[1];
+                await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(chapter.Story.Title);
+                var AIStoryBuildersChapters = AIStoryBuildersChaptersService.Chapters;
 
-                var AIStoryBuildersParagraphsPath = $"{BasePath}/{chapter.Story.Title}/Chapters/{ChapterName}";
+                var ChapterName = chapter.ChapterName;
+                var objCurrentChapter = AIStoryBuildersChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
 
-                // Get a list of all the Paragraph files
-                string[] AIStoryBuildersParagraphsFiles = Directory.GetFiles(AIStoryBuildersParagraphsPath, "Paragraph*.txt", SearchOption.AllDirectories);
-
-                ParagraphCount = AIStoryBuildersParagraphsFiles.Count();
+                ParagraphCount = objCurrentChapter.paragraphs.Count();
 
                 return ParagraphCount;
             }
