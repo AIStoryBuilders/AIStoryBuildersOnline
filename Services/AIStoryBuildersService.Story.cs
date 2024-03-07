@@ -1552,23 +1552,36 @@ namespace AIStoryBuilders.Services
         {
             try
             {
-                var ChapterNameParts = chapter.ChapterName.Split(' ');
-                string ChapterName = ChapterNameParts[0] + ChapterNameParts[1];
+                // Get current Chapter
+                await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(chapter.Story.Title);
+                var AllChapters = AIStoryBuildersChaptersService.Chapters;
 
-                var AIStoryBuildersParagraphsPath = $"{BasePath}/{chapter.Story.Title}/Chapters/{ChapterName}";
+                var ChapterName = chapter.ChapterName;
+                var objCurrentChapter = AllChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
 
-                // Create the Paragraph file
-                string ParagraphPath = $"{AIStoryBuildersParagraphsPath}/Paragraph{Paragraph.Sequence}.txt";
+                if (objCurrentChapter.paragraphs == null)
+                {
+                    objCurrentChapter.paragraphs = new List<Models.LocalStorage.Paragraphs>();
+                }
 
-                // Create the ParagraphContent
-                string VectorDescriptionAndEmbedding = await OrchestratorMethods.GetVectorEmbedding(Paragraph.ParagraphContent, false);
-                string ParagraphContent = $"{Paragraph.Location.LocationName ?? ""}|{Paragraph.Timeline.TimelineName ?? ""}|[{string.Join(",", Paragraph.Characters.Select(x => x.CharacterName))}]|{VectorDescriptionAndEmbedding}";
+                // Add the new Paragraph
+                Models.LocalStorage.Paragraphs objParagraph = new Models.LocalStorage.Paragraphs();
 
-                // Preserve any line breaks
-                ParagraphContent = ParagraphContent.Replace("\n", "\r\n");
+                objParagraph.sequence = Paragraph.Sequence;
+                objParagraph.location_name = Paragraph.Location.LocationName;
+                objParagraph.timeline_name = Paragraph.Timeline.TimelineName;
+                objParagraph.character_names = string.Join(",", Paragraph.Characters.Select(x => x.CharacterName));
+                objParagraph.contents = Paragraph.ParagraphContent;
+                if (Paragraph.ParagraphContent != null && Paragraph.ParagraphContent != "")
+                {
+                    objParagraph.embedding = await OrchestratorMethods.GetVectorEmbedding(Paragraph.ParagraphContent, false);
+                }
 
-                // Write the ParagraphContent to the file
-                File.WriteAllText(ParagraphPath, ParagraphContent);
+                // Add the Paragraph to the Chapter
+                objCurrentChapter.paragraphs.Add(objParagraph);
+
+                // Update the Chapter
+                await AIStoryBuildersChaptersService.UpdateChapterAsync(chapter.Story.Title, objCurrentChapter);
             }
             catch (Exception ex)
             {
@@ -1581,16 +1594,26 @@ namespace AIStoryBuilders.Services
         {
             try
             {
-                var ChapterNameParts = chapter.ChapterName.Split(' ');
-                string ChapterName = ChapterNameParts[0] + ChapterNameParts[1];
+                // Get current Chapter
+                await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(chapter.Story.Title);
+                var AllChapters = AIStoryBuildersChaptersService.Chapters;
 
-                var AIStoryBuildersParagraphsPath = $"{BasePath}/{chapter.Story.Title}/Chapters/{ChapterName}";
+                var ChapterName = chapter.ChapterName;
+                var objCurrentChapter = AllChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
 
-                // Delete the Paragraph file
-                string ParagraphPath = $"{AIStoryBuildersParagraphsPath}/Paragraph{Paragraph.Sequence}.txt";
-                File.Delete(ParagraphPath);
+                if (objCurrentChapter.paragraphs == null)
+                {
+                    objCurrentChapter.paragraphs = new List<Models.LocalStorage.Paragraphs>();
+                }
 
-                await RestructureParagraphs(chapter, Paragraph.Sequence, RestructureType.Delete);
+                // Get Current Paragraph
+                var objCurrentParagraph = objCurrentChapter.paragraphs.Where(x => x.sequence == Paragraph.Sequence).FirstOrDefault();
+
+                // Remove the Paragraph from the Chapter
+                objCurrentChapter.paragraphs.Remove(objCurrentParagraph);
+
+                // Update the Chapter
+                await AIStoryBuildersChaptersService.UpdateChapterAsync(chapter.Story.Title, objCurrentChapter);
             }
             catch (Exception ex)
             {
