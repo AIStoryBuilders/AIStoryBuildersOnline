@@ -1519,21 +1519,27 @@ namespace AIStoryBuilders.Services
                 // First restructure the existing Paragraphs
                 await RestructureParagraphs(chapter, Paragraph.Sequence, RestructureType.Add);
 
-                // Create a file for the new Paragraph
-                var ChapterNameParts = chapter.ChapterName.Split(' ');
-                string ChapterName = ChapterNameParts[0] + ChapterNameParts[1];
+                // Get current Chapter
+                await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(chapter.Story.Title);
+                var AllChapters = AIStoryBuildersChaptersService.Chapters;
 
-                var AIStoryBuildersParagraphsPath = $"{BasePath}/{chapter.Story.Title}/Chapters/{ChapterName}";
+                var ChapterName = chapter.ChapterName;
+                var objCurrentChapter = AllChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
 
-                // Create the Paragraph file
-                string ParagraphPath = $"{AIStoryBuildersParagraphsPath}/Paragraph{Paragraph.Sequence}.txt";
+                // Create new Paragraph
+                Models.LocalStorage.Paragraphs objParagraph = new Models.LocalStorage.Paragraphs();
 
-                // Create the ParagraphContent
-                string VectorDescriptionAndEmbedding = "|";
-                string ParagraphContent = $"{Paragraph.Location.LocationName ?? ""}|{Paragraph.Timeline.TimelineName ?? ""}|[{string.Join(",", Paragraph.Characters.Select(x => x.CharacterName))}]|{VectorDescriptionAndEmbedding}";
+                objParagraph.sequence = Paragraph.Sequence;
+                objParagraph.location_name = Paragraph.Location.LocationName;
+                objParagraph.timeline_name = Paragraph.Timeline.TimelineName;
+                objParagraph.character_names = string.Join(",", Paragraph.Characters.Select(x => x.CharacterName));
+                objParagraph.contents = "";
 
-                // Write the ParagraphContent to the file
-                File.WriteAllText(ParagraphPath, ParagraphContent);
+                // Add the Paragraph to the Chapter
+                objCurrentChapter.paragraphs.Add(objParagraph);
+
+                // Update the Chapter
+                await AIStoryBuildersChaptersService.UpdateChapterAsync(chapter.Story.Title, objCurrentChapter);
             }
             catch (Exception ex)
             {
