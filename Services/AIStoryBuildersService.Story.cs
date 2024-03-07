@@ -1495,7 +1495,7 @@ namespace AIStoryBuilders.Services
                 await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(chapter.Story.Title);
                 var AIStoryBuildersChapters = AIStoryBuildersChaptersService.Chapters;
 
-                var ChapterName = chapter.ChapterName;
+                var ChapterName = chapter.ChapterName.Replace(" ", "");
                 var objCurrentChapter = AIStoryBuildersChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
 
                 ParagraphCount = objCurrentChapter.paragraphs.Count();
@@ -1523,7 +1523,7 @@ namespace AIStoryBuilders.Services
                 await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(chapter.Story.Title);
                 var AllChapters = AIStoryBuildersChaptersService.Chapters;
 
-                var ChapterName = chapter.ChapterName;
+                var ChapterName = chapter.ChapterName.Replace(" ", "");
                 var objCurrentChapter = AllChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
 
                 // Create new Paragraph
@@ -1556,7 +1556,7 @@ namespace AIStoryBuilders.Services
                 await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(chapter.Story.Title);
                 var AllChapters = AIStoryBuildersChaptersService.Chapters;
 
-                var ChapterName = chapter.ChapterName;
+                var ChapterName = chapter.ChapterName.Replace(" ", "");
                 var objCurrentChapter = AllChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
 
                 if (objCurrentChapter.paragraphs == null)
@@ -1598,7 +1598,7 @@ namespace AIStoryBuilders.Services
                 await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(chapter.Story.Title);
                 var AllChapters = AIStoryBuildersChaptersService.Chapters;
 
-                var ChapterName = chapter.ChapterName;
+                var ChapterName = chapter.ChapterName.Replace(" ", "");
                 var objCurrentChapter = AllChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
 
                 if (objCurrentChapter.paragraphs == null)
