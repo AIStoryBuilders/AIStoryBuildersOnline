@@ -765,24 +765,15 @@ namespace AIStoryBuilders.Services
         public async Task<bool> LocationExists(Models.Location objLocation)
         {
             bool LocationExists = true;
-            var AIStoryBuildersLocationsPath = $"{BasePath}/{objLocation.Story.Title}/Locations";
 
             try
             {
-                // Get a list of all the Location files
-                string[] AIStoryBuildersLocationsFiles = Directory.GetFiles(AIStoryBuildersLocationsPath, "*.csv", SearchOption.AllDirectories);
+                await AIStoryBuildersLocationsService.LoadAIStoryBuildersLocationsAsync(objLocation.Story.Title);
+                var AIStoryBuildersLocations = AIStoryBuildersLocationsService.Locations;
 
-                List<string> ExistingLocations = new List<string>();
-                // Loop through each Location file
-                foreach (var AIStoryBuildersLocationFile in AIStoryBuildersLocationsFiles)
-                {
-                    // Get the LocationName from the file name
-                    string LocationName = Path.GetFileNameWithoutExtension(AIStoryBuildersLocationFile);
+                var LocationFound = AIStoryBuildersLocations.Where(x => x.name == objLocation.LocationName).FirstOrDefault();
 
-                    ExistingLocations.Add(LocationName.ToLower());
-                }
-
-                if (ExistingLocations.Contains(objLocation.LocationName.ToLower()))
+                if (LocationFound != null)
                 {
                     LocationExists = true;
                 }
