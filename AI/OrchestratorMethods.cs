@@ -45,8 +45,6 @@ namespace AIStoryBuilders.AI
             string Organization = SettingsService.Organization;
             string ApiKey = SettingsService.ApiKey;
 
-            await LogService.WriteToLogAsync($"GetVectorEmbedding - Start");
-
             var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
 
             // Get the model details

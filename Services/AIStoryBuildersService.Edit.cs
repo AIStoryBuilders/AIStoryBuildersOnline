@@ -17,7 +17,7 @@ namespace AIStoryBuilders.Services
                 await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(objChapter.Story.Title);
                 var AllChapters = AIStoryBuildersChaptersService.Chapters;
 
-                var ChapterName = objChapter.ChapterName;
+                var ChapterName = objChapter.ChapterName.Replace(" ","");
                 var objCurrentChapter = AllChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
 
                 // Get all paragraphs

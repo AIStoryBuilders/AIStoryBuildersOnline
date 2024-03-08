@@ -341,9 +341,7 @@
             if (confirmResult.HasValue && confirmResult.Value)
             {
                 // Delete
-                AIStoryBuildersService.DeleteChapter(SelectedChapter);
-
-                await AIStoryBuildersService.RestructureChapters(SelectedChapter, RestructureType.Delete);
+                await AIStoryBuildersService.DeleteChapter(SelectedChapter);
 
                 // Find the previous chapter
                 var PreviousChapter = colChapters.Where(x => x.ChapterName != SelectedChapter.ChapterName).LastOrDefault();

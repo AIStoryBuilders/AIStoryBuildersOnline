@@ -1341,15 +1341,17 @@ namespace AIStoryBuilders.Services
             await AIStoryBuildersChaptersService.UpdateChapterAsync(objChapter.Story.Title, ConvertedChapter);
         }
 
-        public void DeleteChapter(Models.Chapter objChapter)
+        public async Task DeleteChapter(Models.Chapter objChapter)
         {
-            // Delete Chapter
-            string ChapterName = objChapter.ChapterName.Replace(" ", "");
-            var AIStoryBuildersChaptersPath = $"{BasePath}/{objChapter.Story.Title}/Chapters";
-            string ChapterPath = $"{AIStoryBuildersChaptersPath}/{ChapterName}";
+            // Get current Chapter
+            await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(objChapter.Story.Title);
+            var AllChapters = AIStoryBuildersChaptersService.Chapters;
 
-            // Delete folder
-            Directory.Delete(ChapterPath, true);
+            var ChapterName = objChapter.ChapterName.Replace(" ", "");
+            var objCurrentChapter = AllChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
+
+            // Delete Chapter
+            await AIStoryBuildersChaptersService.DeleteChapterAsync(objChapter.Story.Title, objCurrentChapter);
         }
         #endregion
 
