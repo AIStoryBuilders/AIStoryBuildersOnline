@@ -40,8 +40,15 @@ namespace AIStoryBuilders.AI
         public async Task<string> GetVectorEmbedding(string EmbeddingContent, bool Combine)
         {
             // **** Call OpenAI and get embeddings for the memory text
-            // Create an instance of the OpenAI client
-            var api = new OpenAIClient(new OpenAIAuthentication(SettingsService.ApiKey), client: HttpClient);
+
+            await SettingsService.LoadSettingsAsync();
+            string Organization = SettingsService.Organization;
+            string ApiKey = SettingsService.ApiKey;
+
+            await LogService.WriteToLogAsync($"GetVectorEmbedding - Start");
+
+            var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
+
             // Get the model details
             var model = await api.ModelsEndpoint.GetModelDetailsAsync("text-embedding-ada-002");
             // Get embeddings for the text
