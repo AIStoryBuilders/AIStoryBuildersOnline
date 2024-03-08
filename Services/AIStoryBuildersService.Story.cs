@@ -1412,38 +1412,20 @@ namespace AIStoryBuilders.Services
 
             try
             {
-                var ChapterNameParts = chapter.ChapterName.Split(' ');
-                string ChapterName = ChapterNameParts[0] + ChapterNameParts[1];
+                await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(chapter.Story.Title);
+                var AIStoryBuildersChapters = AIStoryBuildersChaptersService.Chapters;
 
-                var AIStoryBuildersParagraphsPath = $"{BasePath}/{chapter.Story.Title}/Chapters/{ChapterName}";
-
-                // Get a list of all the Paragraph files
-                string[] AIStoryBuildersParagraphsFiles = Directory.GetFiles(AIStoryBuildersParagraphsPath, "Paragraph*.txt", SearchOption.AllDirectories);
+                var ChapterName = chapter.ChapterName.Replace(" ", "");
+                var objCurrentChapter = AIStoryBuildersChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
 
                 // Loop through each Paragraph file
-                foreach (var AIStoryBuildersParagraphFile in AIStoryBuildersParagraphsFiles)
+                foreach (var AIStoryBuildersParagraph in objCurrentChapter.paragraphs)
                 {
-                    // Get the ParagraphName from the file name
-                    string ParagraphName = Path.GetFileNameWithoutExtension(AIStoryBuildersParagraphFile);
-
-                    // Put in a space after the word ParagraphName
-                    ParagraphName = ParagraphName.Insert(9, " ");
-
-                    // Get sequence number from Paragraph Name
-                    string ParagraphSequence = ParagraphName.Split(' ')[1];
-                    int ParagraphSequenceNumber = int.Parse(ParagraphSequence);
-
-                    // Get the ChapterContent from the file
-                    string[] ChapterContent = File.ReadAllLines(AIStoryBuildersParagraphFile);
-
-                    // Remove all empty lines
-                    ChapterContent = ChapterContent.Where(line => line.Trim() != "").ToArray();
-
-                    var ParagraphLocation = ChapterContent.Select(x => x.Split('|')).Select(x => x[0]).FirstOrDefault();
-                    var ParagraphTimeline = ChapterContent.Select(x => x.Split('|')).Select(x => x[1]).FirstOrDefault();
-                    var ParagraphCharactersRaw = ChapterContent.Select(x => x.Split('|')).Select(x => x[2]).FirstOrDefault();
-                    var ParagraphContent = ChapterContent.Select(x => x.Split('|')).Select(x => x[3]).FirstOrDefault();
-                    var ParagraphVectors = ChapterContent.Select(x => x.Split('|')).Select(x => x[4]).FirstOrDefault();
+                    var ParagraphLocation = AIStoryBuildersParagraph.location_name;
+                    var ParagraphTimeline = AIStoryBuildersParagraph.timeline_name;
+                    var ParagraphCharactersRaw = AIStoryBuildersParagraph.character_names;
+                    var ParagraphContent = AIStoryBuildersParagraph.contents;
+                    var ParagraphVectors = AIStoryBuildersParagraph.embedding;
 
                     // Only get Paragraphs for the specified Timeline
                     if (TimelineName == ParagraphTimeline)
@@ -1462,7 +1444,7 @@ namespace AIStoryBuilders.Services
 
                         // Create a Paragraph
                         AIParagraph Paragraph = new AIParagraph();
-                        Paragraph.sequence = ParagraphSequenceNumber;
+                        Paragraph.sequence = AIStoryBuildersParagraph.sequence;
                         Paragraph.location_name = ParagraphLocation;
                         Paragraph.timeline_name = ParagraphTimeline;
                         Paragraph.character_names = CharactersArray;
