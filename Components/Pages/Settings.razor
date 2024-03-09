@@ -22,21 +22,18 @@
                               Click="GetAPIKey"
                               Style="margin-bottom: 10px; width: 500px" />
             }
-            else
-            {
-                <RadzenFormField Text="Default AI Model:" Variant="@variant">
-                    <RadzenDropDown Data=@colModels @bind-Value="@AIModel" Style="width:300px" />
-                </RadzenFormField>
-                <RadzenLabel Text="Note: GPT 3.5 is faster and cost less than GPT 4, but does not perform as well." style="font-size:x-small" />
+            <RadzenFormField Text="Default AI Model:" Variant="@variant">
+                <RadzenDropDown Data=@colModels @bind-Value="@AIModel" Style="width:300px" />
+            </RadzenFormField>
+            <RadzenLabel Text="Note: GPT 3.5 is faster and cost less than GPT 4, but does not perform as well." style="font-size:x-small" />
 
-                <div class="row">
-                    <div class="col">
-                        <RadzenButton Text="Save" ButtonStyle="ButtonStyle.Success"
-                                      Click="SettingsSave"
-                                      Style="margin-bottom: 10px; width: 150px" />&nbsp;&nbsp;
-                    </div>
+            <div class="row">
+                <div class="col">
+                    <RadzenButton Text="Save" ButtonStyle="ButtonStyle.Success"
+                                  Click="SettingsSave"
+                                  Style="margin-bottom: 10px; width: 150px" />&nbsp;&nbsp;
                 </div>
-            }
+            </div>
         </RadzenStack>
     </RadzenColumn>
 </RadzenRow>
