@@ -1569,9 +1569,6 @@ namespace AIStoryBuilders.Services
         {
             try
             {
-                // First restructure the existing Paragraphs
-                await RestructureParagraphs(chapter, Paragraph.Sequence, RestructureType.Delete);
-
                 // Get current Chapter
                 await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(chapter.Story.Title);
                 var AllChapters = AIStoryBuildersChaptersService.Chapters;
@@ -1592,6 +1589,9 @@ namespace AIStoryBuilders.Services
 
                 // Update the Chapter
                 await AIStoryBuildersChaptersService.UpdateChapterAsync(chapter.Story.Title, objCurrentChapter);
+
+                // Restructure the existing Paragraphs
+                await RestructureParagraphs(chapter, Paragraph.Sequence, RestructureType.Delete);
             }
             catch (Exception ex)
             {

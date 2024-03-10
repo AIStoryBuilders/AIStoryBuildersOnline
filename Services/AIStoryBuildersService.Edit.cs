@@ -27,22 +27,22 @@ namespace AIStoryBuilders.Services
 
                 List<Paragraphs> lstParagraphs = new List<Paragraphs>();
 
-                // Loop through all remaining paragraphs and rename them
+                // Loop through all remaining paragraphs and add 1 to the sequence above the current paragraph
                 if (RestructureType == RestructureType.Add)
                 {
-                    for (int i = CountOfParagraphs; ParagraphNumber <= i; i--)
+                    foreach (Paragraphs objCurrentParagraph in ColParagraphs)
                     {
                         Paragraphs objParagraphs = new Paragraphs();
 
-                        // Get current Paragraph
-                        var objCurrentParagraph = ColParagraphs.Where(x => x.sequence == i).FirstOrDefault();
-
-                        if (objCurrentParagraph == null)
+                        if(ParagraphNumber >= objCurrentParagraph.sequence)
                         {
-                            continue;
+                            objParagraphs.sequence = (objCurrentParagraph.sequence + 1);
+                        }
+                        else
+                        {
+                            objParagraphs.sequence = objCurrentParagraph.sequence;
                         }
 
-                        objParagraphs.sequence = objCurrentParagraph.sequence + 1;
                         objParagraphs.character_names = objCurrentParagraph.character_names;
                         objParagraphs.contents = objCurrentParagraph.contents;
                         objParagraphs.timeline_name = objCurrentParagraph.timeline_name;
@@ -54,19 +54,19 @@ namespace AIStoryBuilders.Services
                 }
                 else if (RestructureType == RestructureType.Delete)
                 {
-                    for (int i = ParagraphNumber; i <= CountOfParagraphs; i++)
+                    foreach (Paragraphs objCurrentParagraph in ColParagraphs)
                     {
                         Paragraphs objParagraphs = new Paragraphs();
 
-                        // Get current Paragraph
-                        var objCurrentParagraph = ColParagraphs.Where(x => x.sequence == (i + 1)).FirstOrDefault();
-
-                        if (objCurrentParagraph == null)
+                        if (objCurrentParagraph.sequence >=  ParagraphNumber)
                         {
-                            continue;
+                            objParagraphs.sequence = (objCurrentParagraph.sequence - 1);
+                        }
+                        else
+                        {
+                            objParagraphs.sequence = objCurrentParagraph.sequence;
                         }
 
-                        objParagraphs.sequence = objCurrentParagraph.sequence;
                         objParagraphs.character_names = objCurrentParagraph.character_names;
                         objParagraphs.contents = objCurrentParagraph.contents;
                         objParagraphs.timeline_name = objCurrentParagraph.timeline_name;
