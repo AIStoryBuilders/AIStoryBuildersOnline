@@ -1519,7 +1519,7 @@ namespace AIStoryBuilders.Services
             catch (Exception ex)
             {
                 // Log error
-                await LogService.WriteToLogAsync("UpdateParagraph: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
+                await LogService.WriteToLogAsync("AddParagraph: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
             }
         }
 
@@ -1539,6 +1539,12 @@ namespace AIStoryBuilders.Services
                     objCurrentChapter.paragraphs = new List<Models.LocalStorage.Paragraphs>();
                 }
 
+                // Get Current Paragraph
+                var objCurrentParagraph = objCurrentChapter.paragraphs.Where(x => x.sequence == Paragraph.Sequence).FirstOrDefault();
+
+                // Remove the Paragraph from the Chapter
+                objCurrentChapter.paragraphs.Remove(objCurrentParagraph);
+
                 // Add the new Paragraph
                 Models.LocalStorage.Paragraphs objParagraph = new Models.LocalStorage.Paragraphs();
 
@@ -1552,7 +1558,7 @@ namespace AIStoryBuilders.Services
                     objParagraph.embedding = await OrchestratorMethods.GetVectorEmbedding(Paragraph.ParagraphContent, false);
                 }
 
-                // Add the Paragraph to the Chapter
+                // Re-Add the Paragraph to the Chapter
                 objCurrentChapter.paragraphs.Add(objParagraph);
 
                 // Update the Chapter
