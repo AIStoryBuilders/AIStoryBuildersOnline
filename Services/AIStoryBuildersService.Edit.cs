@@ -34,7 +34,7 @@ namespace AIStoryBuilders.Services
                     {
                         Paragraphs objParagraphs = new Paragraphs();
 
-                        if(ParagraphNumber >= objCurrentParagraph.sequence)
+                        if(objCurrentParagraph.sequence >= ParagraphNumber)
                         {
                             objParagraphs.sequence = (objCurrentParagraph.sequence + 1);
                         }
