@@ -25,17 +25,10 @@ namespace AIStoryBuilders.AI
             string ApiKey = SettingsService.ApiKey;
             string SystemMessage = "";
 
-            await LogService.WriteToLogAsync($"Detect Characters using {GPTModel} - Start");
+            await LogService.WriteToLogAsync($"WriteParagraph using {GPTModel} - Start");
 
-            // Create a new OpenAIClient object
-            try
-            {
-                HttpClient.Timeout = TimeSpan.FromSeconds(520);
-            }
-            catch
-            {
-                // Do nothing
-            }
+            HttpClient HttpClient = new HttpClient();
+            HttpClient.Timeout = TimeSpan.FromSeconds(520);
 
             var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
 
