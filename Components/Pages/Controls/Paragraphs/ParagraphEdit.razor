@@ -113,6 +113,8 @@ else
 
     private async Task onClickParagraph()
     {
+        InProgress = true;
+
         // Compute Deleteable
         int CountOfParagraphs = await AIStoryBuildersService.CountParagraphs(objChapter);
         Deleteable = (objParagraph.Id > -1);
@@ -122,6 +124,7 @@ else
         objParagraph = AIStoryBuildersService.RemoveParagraphIndenting(objParagraph);
 
         InEditMode = true;
+        InProgress = false;
     }
 
     private void onClickClose()

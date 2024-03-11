@@ -267,29 +267,32 @@ namespace AIStoryBuilders.Services
 
             if (objParamLocation != null)
             {
-                objLocations.name = objParamLocation.LocationName.Replace("\n", " ");
+                if (objParamLocation.LocationName != null)
+                {
+                    objLocations.name = objParamLocation.LocationName.Replace("\n", " ");
 
-                if (objParamLocation.LocationDescription != null)
-                {
-                    objLocations.descriptions = new string[objParamLocation.LocationDescription.Count];
-                }
-                else
-                {
-                    objLocations.descriptions = new string[0];
-                }
-
-                if (objParamLocation.LocationDescription != null)
-                {
-                    int i = 0;
-                    foreach (var location in objParamLocation.LocationDescription)
+                    if (objParamLocation.LocationDescription != null)
                     {
-                        bool shouldAddDescription = ((objParagraph.Timeline.TimelineName == null || objParagraph.Timeline.TimelineName.Length == 0)
-                                        || location.Timeline.TimelineName == objParagraph.Timeline.TimelineName);
+                        objLocations.descriptions = new string[objParamLocation.LocationDescription.Count];
+                    }
+                    else
+                    {
+                        objLocations.descriptions = new string[0];
+                    }
 
-                        if (shouldAddDescription)
+                    if (objParamLocation.LocationDescription != null)
+                    {
+                        int i = 0;
+                        foreach (var location in objParamLocation.LocationDescription)
                         {
-                            objLocations.descriptions[i] = location.Description.Replace("\n", " ");
-                            i++;
+                            bool shouldAddDescription = ((objParagraph.Timeline.TimelineName == null || objParagraph.Timeline.TimelineName.Length == 0)
+                                            || location.Timeline.TimelineName == objParagraph.Timeline.TimelineName);
+
+                            if (shouldAddDescription)
+                            {
+                                objLocations.descriptions[i] = location.Description.Replace("\n", " ");
+                                i++;
+                            }
                         }
                     }
                 }
