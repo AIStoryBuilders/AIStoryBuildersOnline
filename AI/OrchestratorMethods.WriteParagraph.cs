@@ -60,11 +60,15 @@ namespace AIStoryBuilders.AI
                 presencePenalty: 0,
                 responseFormat: ChatResponseFormat.Json);
 
+            await LogService.WriteToLogAsync($"WriteParagraph: Check Moderation");
+
             // Check Moderation
             var ModerationResult = await api.ModerationsEndpoint.GetModerationAsync(SystemMessage);
 
             if (ModerationResult)
             {
+                await LogService.WriteToLogAsync($"WriteParagraph: ModerationResult = {ModerationResult}");
+
                 ModerationsResponse moderationsResponse = await api.ModerationsEndpoint.CreateModerationAsync(new ModerationsRequest(SystemMessage));
 
                 // Serailize the ModerationsResponse
@@ -73,6 +77,8 @@ namespace AIStoryBuilders.AI
                 await LogService.WriteToLogAsync($"OpenAI Moderation flagged the content: [{SystemMessage}] as violating its policies: {ModerationsResponseString}");
                 ReadTextEvent?.Invoke(this, new ReadTextEventArgs($"WARNING! OpenAI Moderation flagged the content as violating its policies. See the logs for more details.", 30));
             }
+
+            await LogService.WriteToLogAsync($"WriteParagraph: GetCompletionAsync");
 
             ChatResponseResult = await api.ChatEndpoint.GetCompletionAsync(FinalChatRequest);
 
@@ -96,6 +102,8 @@ namespace AIStoryBuilders.AI
             {
                 await LogService.WriteToLogAsync($"Error - WriteParagraph: {ex.Message} {ex.StackTrace ?? ""}");
             }
+
+            await LogService.WriteToLogAsync($"WriteParagraph: {strParagraphOutput}");
 
             return strParagraphOutput;
         }
