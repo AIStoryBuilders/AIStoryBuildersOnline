@@ -114,6 +114,7 @@ else
     private async Task onClickParagraph()
     {
         InProgress = true;
+        StateHasChanged();
 
         // Compute Deleteable
         int CountOfParagraphs = await AIStoryBuildersService.CountParagraphs(objChapter);
@@ -125,6 +126,7 @@ else
 
         InEditMode = true;
         InProgress = false;
+        StateHasChanged();
     }
 
     private void onClickClose()
