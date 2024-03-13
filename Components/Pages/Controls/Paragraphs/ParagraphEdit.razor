@@ -88,7 +88,7 @@ else
     OrchestratorMethods OrchestratorMethods;
     SettingsService SettingsService;
 
-    bool EnableToolbar = true;
+    bool EnableToolbar = false;
     bool ToolBarEnabled = false;
 
     bool InEditMode = false;
@@ -111,8 +111,6 @@ else
                 Deleteable = false;
                 Addable = false;
                 Closeable = false;
-
-                EnableToolbar = false;
             }
 
             AIStoryBuildersService = (AIStoryBuildersService)ScopedServices.GetService(typeof(AIStoryBuildersService));
@@ -150,21 +148,25 @@ else
             }
 
             var confirmResult = await dialogService.Alert(DialogMessage, "Editing", new AlertOptions() { Height = "50px", Width = "350px", ShowTitle = false, OkButtonText = "Ok" });
-            
+
             EnableToolbar = true;           
         }
     }
 
-    private void onClickParagraph()
+    private async Task onClickParagraph()
     {
         // Compute Buttons
         Deleteable = (objParagraph.Id > -1);
         Addable = (objParagraph.Id > -1);
 
-        // **** Un-indent the paragraph
-        objParagraph = AIStoryBuildersService.RemoveParagraphIndenting(objParagraph);
-
         InEditMode = true;
+
+        // **** Un-indent the paragraph
+        objParagraph.ParagraphContent = objParagraph.ParagraphContent.Replace("&nbsp;", "");
+        objParagraph.ParagraphContent = objParagraph.ParagraphContent.Replace("<br />", "\n");
+        StateHasChanged();
+
+        await onRadzenTextAreaClick();
     }
 
     private void onClickClose()
