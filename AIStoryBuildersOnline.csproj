@@ -9,16 +9,16 @@
 
 	<ItemGroup>
 		<PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
-		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.2" />
-		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.2" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.3" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.3" PrivateAssets="all" />
 		<PackageReference Include="DocX" Version="3.0.0" />
-		<PackageReference Include="EPPlus" Version="7.0.8" />
+		<PackageReference Include="EPPlus" Version="7.0.10" />
 		<PackageReference Include="ExcelDataReader" Version="3.6.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-		<PackageReference Include="Radzen.Blazor" Version="4.24.5" />
-		<PackageReference Include="OpenAI-DotNet" Version="7.6.4" />
-		<PackageReference Include="Markdig" Version="0.34.0" />
+		<PackageReference Include="Radzen.Blazor" Version="4.26.1" />
+		<PackageReference Include="OpenAI-DotNet" Version="7.7.5" />
+		<PackageReference Include="Markdig" Version="0.35.0" />
 	</ItemGroup>
 
 	<ItemGroup>

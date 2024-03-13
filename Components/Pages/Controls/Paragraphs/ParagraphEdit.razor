@@ -102,6 +102,17 @@ else
     {
         try
         {
+            // If this is a new Paragraph put it in Edit mode
+            if (objParagraph.Id == -1)
+            {
+                InEditMode = true;
+                Deleteable = false;
+                Addable = false;
+                Closeable = false;
+
+                EnableToolbar = false;
+            }
+
             AIStoryBuildersService = (AIStoryBuildersService)ScopedServices.GetService(typeof(AIStoryBuildersService));
             OrchestratorMethods = (OrchestratorMethods)ScopedServices.GetService(typeof(OrchestratorMethods));
             SettingsService = (SettingsService)ScopedServices.GetService(typeof(SettingsService));
@@ -118,37 +129,20 @@ else
         }
     }
 
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender)
-        {
-            // If this is a new Paragraph put it in Edit mode
-            if (objParagraph.Id == -1)
-            {
-                InEditMode = true;
-                Deleteable = false;
-                Addable = false;
-                Closeable = false;
+    // Events
 
-                EnableToolbar = false;
-            }
+    private async Task onRadzenTextAreaClick()
+    {
+        if(!EnableToolbar)
+        {
+            var confirmResult = await dialogService.Alert("Enable Toolbar", $"Editing");
+            EnableToolbar = true;
         }
     }
 
-    // Events
-
-    private void onRadzenTextAreaClick()
+    private void onClickParagraph()
     {
-        EnableToolbar = true;
-    }
-
-    private async Task onClickParagraph()
-    {
-        InProgress = true;
-        StateHasChanged();
-
-        // Compute Deleteable
-        int CountOfParagraphs = await AIStoryBuildersService.CountParagraphs(objChapter);
+        // Compute Buttons
         Deleteable = (objParagraph.Id > -1);
         Addable = (objParagraph.Id > -1);
 
@@ -156,8 +150,6 @@ else
         objParagraph = AIStoryBuildersService.RemoveParagraphIndenting(objParagraph);
 
         InEditMode = true;
-        InProgress = false;
-        StateHasChanged();
     }
 
     private void onClickClose()
