@@ -72,6 +72,7 @@
                 else
                 {
                     // Add the chapter
+                    objChapter.ChapterName = ChapterName;
                     await AIStoryBuildersService.AddChapterAsync(objChapter);
 
                     DialogService.Close(ChapterName);
