@@ -89,7 +89,6 @@ else
     AIStoryBuildersTempService AIStoryBuildersTempService;
 
     bool EnabledToolbar = false;
-    bool ToolBarEnabled = false;
 
     bool InEditMode = false;
     bool Deleteable = false;
@@ -140,19 +139,7 @@ else
 
         if (!EnabledToolbar)
         {
-            string DialogMessage = "";
-
-            if (ToolBarEnabled)
-            {
-                DialogMessage = "Enable Toolbar";
-            }
-            else
-            {
-                DialogMessage = "Initialize Editing";
-                ToolBarEnabled = true;
-            }
-
-            var confirmResult = await dialogService.Alert(DialogMessage, "Editing", new AlertOptions() { Height = "50px", Width = "350px", ShowTitle = false, OkButtonText = "Ok" });
+            var confirmResult = await dialogService.Alert("Editing Initialized. Please try again.", "Editing", new AlertOptions() { Height = "25px", Width = "350px", ShowTitle = false, OkButtonText = "Ok" });
 
             EnabledToolbar = true;
             await SetToolbarEnabledToTrue();
