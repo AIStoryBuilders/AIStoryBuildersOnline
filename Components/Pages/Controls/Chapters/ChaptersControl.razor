@@ -61,6 +61,7 @@
 
     AIStoryBuildersService AIStoryBuildersService;
     OrchestratorMethods OrchestratorMethods;
+    AIStoryBuildersTempService AIStoryBuildersTempService;
 
     RadzenDataList<Paragraph> objDatalist;
     Variant variant = Variant.Outlined;
@@ -81,6 +82,7 @@
         {
             AIStoryBuildersService = (AIStoryBuildersService)ScopedServices.GetService(typeof(AIStoryBuildersService));
             OrchestratorMethods = (OrchestratorMethods)ScopedServices.GetService(typeof(OrchestratorMethods));
+            AIStoryBuildersTempService = (AIStoryBuildersTempService)ScopedServices.GetService(typeof(AIStoryBuildersTempService));
 
             await LoadChapters(objStory, null);
         }

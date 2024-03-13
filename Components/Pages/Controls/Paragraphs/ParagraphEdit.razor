@@ -87,6 +87,7 @@ else
     AIStoryBuildersService AIStoryBuildersService;
     OrchestratorMethods OrchestratorMethods;
     SettingsService SettingsService;
+    AIStoryBuildersTempService AIStoryBuildersTempService;
 
     bool EnableToolbar = false;
     bool ToolBarEnabled = false;
@@ -116,6 +117,7 @@ else
             AIStoryBuildersService = (AIStoryBuildersService)ScopedServices.GetService(typeof(AIStoryBuildersService));
             OrchestratorMethods = (OrchestratorMethods)ScopedServices.GetService(typeof(OrchestratorMethods));
             SettingsService = (SettingsService)ScopedServices.GetService(typeof(SettingsService));
+            AIStoryBuildersTempService = (AIStoryBuildersTempService)ScopedServices.GetService(typeof(AIStoryBuildersTempService));
         }
         catch (Exception ex)
         {
