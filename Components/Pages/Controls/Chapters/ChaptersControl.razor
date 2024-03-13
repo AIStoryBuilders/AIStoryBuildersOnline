@@ -84,6 +84,8 @@
             OrchestratorMethods = (OrchestratorMethods)ScopedServices.GetService(typeof(OrchestratorMethods));
             AIStoryBuildersTempService = (AIStoryBuildersTempService)ScopedServices.GetService(typeof(AIStoryBuildersTempService));
 
+            await ClearToolbarEnabled();
+
             await LoadChapters(objStory, null);
         }
         catch (Exception ex)
@@ -96,6 +98,20 @@
                         Duration = 4000
                     });
         }
+    }
+
+    private async Task ClearToolbarEnabled()
+    {
+        // Get colAIStoryBuildersTemp
+        await AIStoryBuildersTempService.LoadTempAsync();
+        // Get all elements 
+        Dictionary<string, string> colAIStoryBuildersTemp = AIStoryBuildersTempService.colAIStoryBuildersTemp;
+        // Remove "ToolbarEnabled"
+        colAIStoryBuildersTemp.Remove("ToolbarEnabled");
+        // Add "ToolbarEnabled" set to false
+        colAIStoryBuildersTemp.Add("ToolbarEnabled", "false");
+        // Save colAIStoryBuildersTemp
+        await AIStoryBuildersTempService.SaveTempAsync(colAIStoryBuildersTemp);
     }
 
     public async Task LoadChapters(Story paramStory, string paramSelectedChapter)
