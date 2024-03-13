@@ -6,6 +6,12 @@
 @inherits OwningComponentBase
 @inject DialogService dialogService
 @inject NotificationService NotificationService
+<style>
+    .highlight {
+        border: 2px solid blue; /* Change this to your desired highlight style */
+        border-radius: 5px;
+    }
+</style>
 @if (@InProgress)
 {
     <div class="rz-m-10">
@@ -16,8 +22,11 @@ else
 {
     @if (!InEditMode)
     {
-        <div id="ParagraphDiv" @onclick="onClickParagraph">
-            <span style="white-space: pre-wrap">@((MarkupString)objParagraph.ParagraphContent)</span>
+        <div onmouseover="this.classList.add('highlight')"
+             onmouseout="this.classList.remove('highlight')">
+            <div id="ParagraphDiv" @onclick="onClickParagraph">
+                <span style="white-space: pre-wrap">@((MarkupString)objParagraph.ParagraphContent)</span>
+            </div>
         </div>
     }
     else
@@ -55,7 +64,10 @@ else
             }
         </RadzenStack>
 
-        <RadzenTextArea @bind-Value="@objParagraph.ParagraphContent" MaxLength="5000" Rows="12" Style="width:100%;height:100%" />
+        <RadzenTextArea @bind-Value="@objParagraph.ParagraphContent"
+                        MaxLength="5000"
+                        Rows="12"
+                        Style="width:100%;height:100%" />
     }
 }
 @code {
@@ -149,10 +161,10 @@ else
         var SelectedCharacterList = objParagraph.Characters.Select(c => c.CharacterName).OrderBy(x => x).ToList();
 
         var EditStoryResult = await dialogService.OpenAsync(
-         "Select Characters", ds =>
-         @<CharacterSelector colCharacters="@AllCharacterList" SelectedCharacters="@SelectedCharacterList" DialogReference="ds">
-         </CharacterSelector>
-         , new DialogOptions() { Height = "350px", Width = "500px" });
+     "Select Characters", ds =>
+    @<CharacterSelector colCharacters="@AllCharacterList" SelectedCharacters="@SelectedCharacterList" DialogReference="ds">
+    </CharacterSelector>
+     , new DialogOptions() { Height = "350px", Width = "500px" });
 
         // Set objParagraph.Characters
         if (EditStoryResult != null)
@@ -182,7 +194,7 @@ else
         AllLocationList.Add(new Location() { Id = -1, LocationName = "" });
 
         // handle if location is null
-        if(objParagraph.Location == null)
+        if (objParagraph.Location == null)
         {
             objParagraph.Location = new Location();
         }
@@ -191,10 +203,10 @@ else
         var SelectedLocation = objParagraph.Location;
 
         Location EditStoryResult = await dialogService.OpenAsync(
-        "Select Location", ds =>
-        @<LocationSelector colLocations="@AllLocationList" SelectedLocation="@SelectedLocation" DialogReference="ds">
-        </LocationSelector>
-        , new DialogOptions() { Height = "200px", Width = "500px" });
+    "Select Location", ds =>
+    @<LocationSelector colLocations="@AllLocationList" SelectedLocation="@SelectedLocation" DialogReference="ds">
+    </LocationSelector>
+    , new DialogOptions() { Height = "200px", Width = "500px" });
 
         // Set objParagraph.Location.LocationName to SelectedLocation
         if (EditStoryResult != null)
@@ -231,10 +243,10 @@ else
         var SelectedTimeline = objParagraph.Timeline.TimelineName;
 
         var EditStoryResult = await dialogService.OpenAsync(
-        "Select Timeline", ds =>
-        @<TimelineSelector colTimelines="@AllTimelineList" SelectedTimeline="@SelectedTimeline" DialogReference="ds">
-        </TimelineSelector>
-        , new DialogOptions() { Height = "200px", Width = "500px" });
+    "Select Timeline", ds =>
+    @<TimelineSelector colTimelines="@AllTimelineList" SelectedTimeline="@SelectedTimeline" DialogReference="ds">
+    </TimelineSelector>
+    , new DialogOptions() { Height = "200px", Width = "500px" });
 
         // Set objParagraph.Timeline.TimelineName to SelectedTimeline
         if (EditStoryResult != null)
@@ -263,14 +275,14 @@ else
             if (objParagraph.ParagraphContent.Trim().Length < 1)
             {
                 NotificationService.Notify(
-                new NotificationMessage
-                        {
-                            Severity = NotificationSeverity.Error,
-                            Summary = "Error",
-                            Detail = "Paragraph content is required",
-                            Duration = 4000
+    new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Error",
+                Detail = "Paragraph content is required",
+                Duration = 4000
 
-                        });
+            });
                 return;
             }
 
@@ -368,8 +380,8 @@ else
                     {
                         // Open CharacterAttributes dialog -- passing colAllCharactersAndAttributes
                         var EditStoryResult = await dialogService.OpenAsync("Select Character Attributes", ds =>
-                        @<CharacterAttributes colCharacters=@colAllCharactersAndAttributes DialogReference="ds">
-                        </CharacterAttributes>, new DialogOptions() { Height = "360px", Width = "500px" });
+    @<CharacterAttributes colCharacters=@colAllCharactersAndAttributes DialogReference="ds">
+    </CharacterAttributes>, new DialogOptions() { Height = "360px", Width = "500px" });
 
                         if (EditStoryResult != null)
                         {
@@ -546,7 +558,7 @@ else
 
             // Ask for confirmation:
             var confirmResult = await dialogService.Confirm("Are you sure?", $"Add Section above this Section",
-            new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
+        new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
 
             if (confirmResult.HasValue && confirmResult.Value)
             {
@@ -592,7 +604,7 @@ else
 
             // Ask for confirmation:
             var confirmResult = await dialogService.Confirm("Are you sure?", $"Delete Section",
-              new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
+          new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
 
             if (confirmResult.HasValue && confirmResult.Value)
             {
@@ -643,9 +655,9 @@ else
 
             // Display inline dialog to capture text
             AIPrompt AIPromptResult = await dialogService.OpenAsync("AI Prompt Instructions", ds =>
-            @<ParagraphPrompt AIPromptText="@AIPrompt" SelectedNumberOfWords="@NumberOfWords" DialogReference="ds">
-            </ParagraphPrompt>
-            , new DialogOptions() { Height = "390px", Width = "600px" });
+    @<ParagraphPrompt AIPromptText="@AIPrompt" SelectedNumberOfWords="@NumberOfWords" DialogReference="ds">
+    </ParagraphPrompt>
+    , new DialogOptions() { Height = "390px", Width = "600px" });
 
             if (AIPromptResult != null)
             {
