@@ -222,7 +222,10 @@ namespace AIStoryBuilders.Services
 
             if (objParagraph.Location != null)
             {
-                objParagraphs.location_name = objParagraph.Location.LocationName;
+                if (objParagraph.Location.LocationName != null)
+                {
+                    objParagraphs.location_name = objParagraph.Location.LocationName;
+                }
             }
 
             if (objParagraph.Timeline != null)
