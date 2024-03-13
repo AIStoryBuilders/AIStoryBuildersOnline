@@ -50,12 +50,15 @@
 
     List<Character> colCharacters = new List<Character>();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        AIStoryBuildersService = (AIStoryBuildersService)ScopedServices.GetService(typeof(AIStoryBuildersService));
-        OrchestratorMethods = (OrchestratorMethods)ScopedServices.GetService(typeof(OrchestratorMethods));
+        await Task.Run(() =>
+        {
+            AIStoryBuildersService = (AIStoryBuildersService)ScopedServices.GetService(typeof(AIStoryBuildersService));
+            OrchestratorMethods = (OrchestratorMethods)ScopedServices.GetService(typeof(OrchestratorMethods));
 
-        OrchestratorMethods.ReadTextEvent += OrchestratorMethods_ReadTextEvent;
+            OrchestratorMethods.ReadTextEvent += OrchestratorMethods_ReadTextEvent;
+        });
     }
 
     private async Task SaveStory()
