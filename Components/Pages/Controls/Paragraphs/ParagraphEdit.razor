@@ -36,7 +36,6 @@ else
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Wrap="FlexWrap.NoWrap" Style="margin-bottom:10px">
                 <RadzenSpeechToTextButton Change="@(args => OnSpeechCaptured(args, false, "TextToSpeech"))" />
                 <RadzenButton Click="onClickAI" Icon="app_registration" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Medium" />
-
                 <RadzenButton Click="onClickCharacter" Text="Characters" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Medium" />
                 <RadzenButton Click="onClickLocation" Text="Location" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Medium" />
                 <RadzenButton Click="onClickTimeline" Text="Timeline" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Medium" />
@@ -729,6 +728,7 @@ else
 
             if (AIPromptResult != null)
             {
+                dialogService.Refresh();
                 InProgress = true;
                 StateHasChanged();
 
