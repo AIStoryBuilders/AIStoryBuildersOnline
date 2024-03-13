@@ -57,6 +57,7 @@
 </RadzenDataList>
 @code {
     [Parameter] public Story objStory { get; set; }
+    [Parameter] public bool InitialLoad { get; set; }
 
     AIStoryBuildersService AIStoryBuildersService;
     OrchestratorMethods OrchestratorMethods;
@@ -125,6 +126,7 @@
     public async Task LoadParagraphs(Chapter paramChapter)
     {
         colParagraphs = new List<Paragraph>();
+
         if (objDatalist != null)
         {
             await objDatalist.Reload();

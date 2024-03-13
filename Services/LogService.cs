@@ -47,7 +47,7 @@ namespace AIStoryBuilders.Model
             // If log has more than 100 lines, keep only the recent 100 lines
             if (Logs.colLogs.Count > 100)
             {
-                Logs.colLogs = Logs.colLogs.Take(1000).ToList();
+                Logs.colLogs = Logs.colLogs.Take(100).ToList();
             }
 
             // Add to the top of the list
