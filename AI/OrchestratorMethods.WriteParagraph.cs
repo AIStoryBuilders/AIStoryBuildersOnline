@@ -78,8 +78,6 @@ namespace AIStoryBuilders.AI
                 ReadTextEvent?.Invoke(this, new ReadTextEventArgs($"WARNING! OpenAI Moderation flagged the content as violating its policies. See the logs for more details.", 30));
             }
 
-            await LogService.WriteToLogAsync($"WriteParagraph: GetCompletionAsync");
-
             ChatResponseResult = await api.ChatEndpoint.GetCompletionAsync(FinalChatRequest);
 
             // *****************************************************
@@ -102,8 +100,6 @@ namespace AIStoryBuilders.AI
             {
                 await LogService.WriteToLogAsync($"Error - WriteParagraph: {ex.Message} {ex.StackTrace ?? ""}");
             }
-
-            await LogService.WriteToLogAsync($"WriteParagraph: {strParagraphOutput}");
 
             return strParagraphOutput;
         }

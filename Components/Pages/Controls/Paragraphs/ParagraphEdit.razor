@@ -31,44 +31,48 @@ else
     }
     else
     {
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Wrap="FlexWrap.NoWrap" Style="margin-bottom:10px">
-            <RadzenSpeechToTextButton Change="@(args => OnSpeechCaptured(args, false, "TextToSpeech"))" />
-            <RadzenButton Click="onClickAI" Icon="app_registration" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Medium" />
+        @if (EnableToolbar)
+        {
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Wrap="FlexWrap.NoWrap" Style="margin-bottom:10px">
+                <RadzenSpeechToTextButton Change="@(args => OnSpeechCaptured(args, false, "TextToSpeech"))" />
+                <RadzenButton Click="onClickAI" Icon="app_registration" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Medium" />
 
-            <RadzenButton Click="onClickCharacter" Text="Characters" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Medium" />
-            <RadzenButton Click="onClickLocation" Text="Location" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Medium" />
-            <RadzenButton Click="onClickTimeline" Text="Timeline" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Medium" />
+                <RadzenButton Click="onClickCharacter" Text="Characters" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Medium" />
+                <RadzenButton Click="onClickLocation" Text="Location" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Medium" />
+                <RadzenButton Click="onClickTimeline" Text="Timeline" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Medium" />
 
-            @if (Undoable)
-            {
-                <RadzenButton Click="onClickUndo" Icon="undo" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Medium" />
-            }
-            @if (Deleteable)
-            {
-                <RadzenButton Click="onClickDelete" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Medium" />
-            }
-            @if (Addable)
-            {
-                <RadzenButton Click="onClickAdd" Icon="note_add" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Medium" />
-            }
+                @if (Undoable)
+                {
+                    <RadzenButton Click="onClickUndo" Icon="undo" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Medium" />
+                }
+                @if (Deleteable)
+                {
+                    <RadzenButton Click="onClickDelete" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Medium" />
+                }
+                @if (Addable)
+                {
+                    <RadzenButton Click="onClickAdd" Icon="note_add" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Medium" />
+                }
 
-            <RadzenSplitButton Icon="save" Click=@(args => onClickSave(args)) Text="Save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Medium">
-                <ChildContent>
-                    <RadzenSplitButtonItem Text="Autodetect Attributes" Value="Autodetect" />
-                </ChildContent>
-            </RadzenSplitButton>
+                <RadzenSplitButton Icon="save" Click=@(args => onClickSave(args)) Text="Save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Medium">
+                    <ChildContent>
+                        <RadzenSplitButtonItem Text="Autodetect Attributes" Value="Autodetect" />
+                    </ChildContent>
+                </RadzenSplitButton>
 
-            @if (Closeable)
-            {
-                <RadzenButton Click="onClickClose" Icon="exit_to_app" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Medium" />
-            }
-        </RadzenStack>
+                @if (Closeable)
+                {
+                    <RadzenButton Click="onClickClose" Icon="exit_to_app" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Medium" />
+                }
+            </RadzenStack>
+        }
 
         <RadzenTextArea @bind-Value="@objParagraph.ParagraphContent"
+                        @onclick="onRadzenTextAreaClick"
                         MaxLength="5000"
-                        Rows="12" 
-                        Style="width:100%;height:100%" />                     
-        
+                        Rows="12"
+                        Style="width:100%;height:100%" />
+
     }
 }
 @code {
@@ -84,6 +88,7 @@ else
     OrchestratorMethods OrchestratorMethods;
     SettingsService SettingsService;
 
+    bool EnableToolbar = true;
     bool InEditMode = false;
     bool Deleteable = false;
     bool Addable = false;
@@ -124,11 +129,18 @@ else
                 Deleteable = false;
                 Addable = false;
                 Closeable = false;
+
+                EnableToolbar = false;
             }
         }
     }
 
     // Events
+
+    private void onRadzenTextAreaClick()
+    {
+        EnableToolbar = true;
+    }
 
     private async Task onClickParagraph()
     {
@@ -168,10 +180,10 @@ else
         var SelectedCharacterList = objParagraph.Characters.Select(c => c.CharacterName).OrderBy(x => x).ToList();
 
         var EditStoryResult = await dialogService.OpenAsync(
-     "Select Characters", ds =>
+         "Select Characters", ds =>
     @<CharacterSelector colCharacters="@AllCharacterList" SelectedCharacters="@SelectedCharacterList" DialogReference="ds">
     </CharacterSelector>
-     , new DialogOptions() { Height = "350px", Width = "500px" });
+         , new DialogOptions() { Height = "350px", Width = "500px" });
 
         // Set objParagraph.Characters
         if (EditStoryResult != null)
@@ -210,10 +222,10 @@ else
         var SelectedLocation = objParagraph.Location;
 
         Location EditStoryResult = await dialogService.OpenAsync(
-    "Select Location", ds =>
+        "Select Location", ds =>
     @<LocationSelector colLocations="@AllLocationList" SelectedLocation="@SelectedLocation" DialogReference="ds">
     </LocationSelector>
-    , new DialogOptions() { Height = "200px", Width = "500px" });
+        , new DialogOptions() { Height = "200px", Width = "500px" });
 
         // Set objParagraph.Location.LocationName to SelectedLocation
         if (EditStoryResult != null)
@@ -250,10 +262,10 @@ else
         var SelectedTimeline = objParagraph.Timeline.TimelineName;
 
         var EditStoryResult = await dialogService.OpenAsync(
-    "Select Timeline", ds =>
+        "Select Timeline", ds =>
     @<TimelineSelector colTimelines="@AllTimelineList" SelectedTimeline="@SelectedTimeline" DialogReference="ds">
     </TimelineSelector>
-    , new DialogOptions() { Height = "200px", Width = "500px" });
+        , new DialogOptions() { Height = "200px", Width = "500px" });
 
         // Set objParagraph.Timeline.TimelineName to SelectedTimeline
         if (EditStoryResult != null)
@@ -282,13 +294,13 @@ else
             if (objParagraph.ParagraphContent.Trim().Length < 1)
             {
                 NotificationService.Notify(new NotificationMessage
-            {
-                Severity = NotificationSeverity.Error,
-                Summary = "Error",
-                Detail = "Paragraph content is required",
-                Duration = 4000
+                        {
+                            Severity = NotificationSeverity.Error,
+                            Summary = "Error",
+                            Detail = "Paragraph content is required",
+                            Duration = 4000
 
-            });
+                        });
                 return;
             }
 
@@ -564,7 +576,7 @@ else
 
             // Ask for confirmation:
             var confirmResult = await dialogService.Confirm("Are you sure?", $"Add Section above this Section",
-        new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
+    new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
 
             if (confirmResult.HasValue && confirmResult.Value)
             {
@@ -610,7 +622,7 @@ else
 
             // Ask for confirmation:
             var confirmResult = await dialogService.Confirm("Are you sure?", $"Delete Section",
-          new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
+      new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
 
             if (confirmResult.HasValue && confirmResult.Value)
             {
