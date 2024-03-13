@@ -124,6 +124,15 @@
 
     public async Task LoadParagraphs(Chapter paramChapter)
     {
+        colParagraphs = new List<Paragraph>();
+        if (objDatalist != null)
+        {
+            await objDatalist.Reload();
+            dialogService.Refresh();
+        }
+
+        List<Paragraph> colTempParagraphs = new List<Paragraph>();
+
         // Load colAllCharacters
         colAllCharacters = await AIStoryBuildersService.GetCharacters(objStory);
 
@@ -134,20 +143,20 @@
         colAllTimelines = await AIStoryBuildersService.GetTimelines(objStory);
 
         // Load colParagraphs
-        colParagraphs = await AIStoryBuildersService.GetParagraphs(paramChapter);
+        colTempParagraphs = await AIStoryBuildersService.GetParagraphs(paramChapter);
 
         // **** Indent the paragraphs
-        colParagraphs = AIStoryBuildersService.AddParagraphIndenting(colParagraphs);
+        colTempParagraphs = AIStoryBuildersService.AddParagraphIndenting(colTempParagraphs);
 
         // *******************
         // Add a blank paragraph to the end of the Paragraphs collection
         var objParagraph = new Paragraph();
         objParagraph.Id = -1; // So we know it is new
         objParagraph.Chapter = paramChapter;
-        objParagraph.Sequence = colParagraphs.Count + 1;
+        objParagraph.Sequence = colTempParagraphs.Count + 1;
         objParagraph.ParagraphContent = "";
 
-        var LastParagraph = colParagraphs.LastOrDefault();
+        var LastParagraph = colTempParagraphs.LastOrDefault();
 
         if (LastParagraph != null)
         {
@@ -191,7 +200,9 @@
             }
         }
 
-        colParagraphs.Add(objParagraph);
+        colTempParagraphs.Add(objParagraph);
+
+        colParagraphs = new List<Paragraph>(colTempParagraphs);
 
         if (objDatalist != null)
         {
