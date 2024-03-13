@@ -135,7 +135,7 @@ else
     {
         if(!EnableToolbar)
         {
-            var confirmResult = await dialogService.Alert("Enable Toolbar", "Editing",new AlertOptions(){ Height = "20px", Width = "250px", ShowTitle = false, OkButtonText = "Ok" });
+            var confirmResult = await dialogService.Alert("Enable Toolbar (may need to try it twice)", "Editing",new AlertOptions(){ Height = "20px", Width = "250px", ShowTitle = false, OkButtonText = "Ok" });
             EnableToolbar = true;
         }
     }
