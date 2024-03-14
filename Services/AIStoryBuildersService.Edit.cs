@@ -17,7 +17,7 @@ namespace AIStoryBuilders.Services
                 await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(objChapter.Story.Title);
                 var AllChapters = AIStoryBuildersChaptersService.Chapters;
 
-                var ChapterName = objChapter.ChapterName.Replace(" ","");
+                var ChapterName = objChapter.ChapterName.Replace(" ", "");
                 var objCurrentChapter = AllChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
 
                 // Get all paragraphs
@@ -34,7 +34,7 @@ namespace AIStoryBuilders.Services
                     {
                         Paragraphs objParagraphs = new Paragraphs();
 
-                        if(objCurrentParagraph.sequence >= ParagraphNumber)
+                        if (objCurrentParagraph.sequence >= ParagraphNumber)
                         {
                             objParagraphs.sequence = (objCurrentParagraph.sequence + 1);
                         }
@@ -58,7 +58,7 @@ namespace AIStoryBuilders.Services
                     {
                         Paragraphs objParagraphs = new Paragraphs();
 
-                        if (objCurrentParagraph.sequence >=  ParagraphNumber)
+                        if (objCurrentParagraph.sequence >= ParagraphNumber)
                         {
                             objParagraphs.sequence = (objCurrentParagraph.sequence - 1);
                         }
@@ -99,66 +99,50 @@ namespace AIStoryBuilders.Services
         {
             try
             {
+                // Final List of Chapters
+                List<Models.LocalStorage.Chapter> lstChapters = new List<Models.LocalStorage.Chapter>();
+
+                // Load chapters
                 await AIStoryBuildersChaptersService.LoadAIStoryBuildersChaptersAsync(objChapter.Story.Title);
-                var AllChapters = AIStoryBuildersChaptersService.Chapters;
+                var AllChapters = AIStoryBuildersChaptersService.Chapters.ToList();
 
-                int CountOfChapters = await CountChapters(objChapter.Story);
-
+                // Adjust the sequence of chapters based on RestructureType
                 if (RestructureType == RestructureType.Add)
                 {
-                    for (int i = CountOfChapters; objChapter.Sequence <= i; i--)
+                    // Increase sequence number for chapters after the current chapter
+                    foreach (var chapter in AllChapters)
                     {
-                        var ChapterName = "Chapter" + i.ToString();
-
-                        // Get current Chapter
-                        var objCurrentChapter = AllChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
-
-                        if (objCurrentChapter == null)
+                        if (chapter.sequence >= objChapter.Sequence)
                         {
-                            continue;
+                            chapter.sequence++;
+                            chapter.chapter_name = "Chapter" + chapter.sequence;
+                            lstChapters.Add(chapter);
                         }
-
-                        // Delete Chapter
-                        await AIStoryBuildersChaptersService.DeleteChapterAsync(objChapter.Story.Title, objCurrentChapter);
-
-                        // Add 1 to the sequence
-                        objCurrentChapter.sequence = objCurrentChapter.sequence + 1;
-
-                        // Set new Chapter name
-                        objCurrentChapter.chapter_name = "Chapter" + objCurrentChapter.sequence;
-
-                        // Add Chapter
-                        await AIStoryBuildersChaptersService.AddChapterAsync(objChapter.Story.Title, objCurrentChapter);
+                        else
+                        {
+                            lstChapters.Add(chapter);
+                        }
                     }
                 }
                 else if (RestructureType == RestructureType.Delete)
                 {
-                    for (int i = objChapter.Sequence; i <= CountOfChapters; i++)
+                    // Decrease sequence number for chapters following the current chapter
+                    foreach (var chapter in AllChapters)
                     {
-                        var ChapterName = "Chapter" + (i + 1).ToString();
-
-                        // Get current Chapter
-                        var objCurrentChapter = AllChapters.Where(x => x.chapter_name == ChapterName).FirstOrDefault();
-
-                        if (objCurrentChapter == null)
+                        if (chapter.sequence > objChapter.Sequence)
                         {
-                            continue;
+                            chapter.sequence--;
+                            chapter.chapter_name = "Chapter" + chapter.sequence;
+                            lstChapters.Add(chapter);
                         }
-
-                        // Delete Chapter
-                        await AIStoryBuildersChaptersService.DeleteChapterAsync(objChapter.Story.Title, objCurrentChapter);
-
-                        // Add 1 to the sequence
-                        objCurrentChapter.sequence = objCurrentChapter.sequence;
-
-                        // Set new Chapter name
-                        objCurrentChapter.chapter_name = "Chapter" + objCurrentChapter.sequence;
-
-                        // Add Chapter
-                        await AIStoryBuildersChaptersService.AddChapterAsync(objChapter.Story.Title, objCurrentChapter);
-
+                        else
+                        {
+                            lstChapters.Add(chapter);
+                        }
                     }
                 }
+
+                await AIStoryBuildersChaptersService.SaveDatabaseAsync(objChapter.Story.Title, lstChapters);
             }
             catch (Exception ex)
             {
