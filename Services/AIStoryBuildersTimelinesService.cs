@@ -108,7 +108,7 @@ namespace AIStoryBuilders.Model
             Timelines.name = paramTimeline.TimelineName;
             Timelines.description = paramTimeline.TimelineDescription;
             Timelines.StartDate = OrchestratorMethods.ConvertDateToLongDateString(paramTimeline.StartDate);
-            Timelines.StopDate = OrchestratorMethods.ConvertDateToLongDateString(paramTimeline.StartDate);
+            Timelines.StopDate = OrchestratorMethods.ConvertDateToLongDateString(paramTimeline.StopDate);
 
             return Timelines;
         }
