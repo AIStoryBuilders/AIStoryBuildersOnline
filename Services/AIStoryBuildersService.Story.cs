@@ -427,6 +427,7 @@ namespace AIStoryBuilders.Services
                 foreach (var Chapter in Chapters)
                 {
                     Models.LocalStorage.Chapter NewChapter = new Models.LocalStorage.Chapter();
+
                     NewChapter.chapter_name = Chapter.chapter_name;
                     NewChapter.sequence = Chapter.sequence;
                     NewChapter.chapter_synopsis = Chapter.chapter_synopsis;
@@ -436,18 +437,25 @@ namespace AIStoryBuilders.Services
 
                     foreach (var Paragraph in Chapter.paragraphs)
                     {
-                        // If the Location is the one to update, then set it to new name
+                        Models.LocalStorage.Paragraphs objParagraphs = new Models.LocalStorage.Paragraphs();
+
+                        objParagraphs.sequence = Paragraph.sequence;
+                        objParagraphs.contents = Paragraph.contents;
+                        objParagraphs.embedding = Paragraph.embedding;
+                        objParagraphs.character_names = Paragraph.character_names;
+
+                        // If the Timeline is the one to update, then set it to new name
                         if (Paragraph.timeline_name == paramTimelineNameOriginal)
                         {
-                            Paragraph.timeline_name = objTimeline.TimelineName;
+                            objParagraphs.timeline_name = objTimeline.TimelineName;
                         }
                         else
                         {
                             // Use existing Timeline name
-                            Paragraph.timeline_name = Paragraph.timeline_name;
+                            objParagraphs.timeline_name = Paragraph.timeline_name;
                         }
 
-                        NewChapter.paragraphs.Add(Paragraph);
+                        NewChapter.paragraphs.Add(objParagraphs);
                     }
 
                     NewChapters.Add(NewChapter);
@@ -482,7 +490,7 @@ namespace AIStoryBuilders.Services
                         if (LocationDescription.timeline_name == paramTimelineNameOriginal)
                         {
                             // Use new Timeline name
-                            objDescriptions.timeline_name = paramTimelineNameOriginal;
+                            objDescriptions.timeline_name = objTimeline.TimelineName; 
                         }
                         else
                         {
@@ -529,7 +537,7 @@ namespace AIStoryBuilders.Services
                         if (CharacterDescription.timeline_name == paramTimelineNameOriginal)
                         {
                             // Use new Timeline name
-                            objDescriptions.timeline_name = paramTimelineNameOriginal;
+                            objDescriptions.timeline_name = objTimeline.TimelineName; 
                         }
                         else
                         {
