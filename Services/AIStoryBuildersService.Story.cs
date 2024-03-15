@@ -468,6 +468,10 @@ namespace AIStoryBuilders.Services
                 foreach (var AIStoryBuildersLocation in Locations)
                 {
                     Models.LocalStorage.Locations objLocations = new Models.LocalStorage.Locations();
+
+                    // Set Name
+                    objLocations.name = AIStoryBuildersLocation.name;
+
                     objLocations.descriptions = new List<Models.LocalStorage.Descriptions>();
 
                     foreach (var LocationDescription in AIStoryBuildersLocation.descriptions)
@@ -511,6 +515,10 @@ namespace AIStoryBuilders.Services
                 foreach (var AIStoryBuildersCharacter in Characters)
                 {
                     Models.LocalStorage.Character objCharacter = new Models.LocalStorage.Character();
+
+                    // Set Name
+                    objCharacter.name = AIStoryBuildersCharacter.name;
+
                     objCharacter.descriptions = new List<Models.LocalStorage.Descriptions>();
 
                     foreach (var CharacterDescription in AIStoryBuildersCharacter.descriptions)
@@ -619,6 +627,9 @@ namespace AIStoryBuilders.Services
                 foreach (var AIStoryBuildersLocation in Locations)
                 {
                     Models.LocalStorage.Locations objLocations = new Models.LocalStorage.Locations();
+
+                    objLocations.name = AIStoryBuildersLocation.name;
+
                     objLocations.descriptions = new List<Models.LocalStorage.Descriptions>();
 
                     foreach (var LocationDescription in AIStoryBuildersLocation.descriptions)
@@ -662,6 +673,9 @@ namespace AIStoryBuilders.Services
                 foreach (var AIStoryBuildersCharacter in Characters)
                 {
                     Models.LocalStorage.Character objCharacter = new Models.LocalStorage.Character();
+
+                    objCharacter.name = AIStoryBuildersCharacter.name;
+
                     objCharacter.descriptions = new List<Models.LocalStorage.Descriptions>();
 
                     foreach (var CharacterDescription in AIStoryBuildersCharacter.descriptions)
@@ -900,6 +914,9 @@ namespace AIStoryBuilders.Services
                     foreach (var AIStoryBuildersLocation in Locations)
                     {
                         Models.LocalStorage.Locations objLocations = new Models.LocalStorage.Locations();
+
+                        objLocations.name = AIStoryBuildersLocation.name;
+
                         objLocations.descriptions = new List<Models.LocalStorage.Descriptions>();
 
                         foreach (var LocationDescription in AIStoryBuildersLocation.descriptions)
