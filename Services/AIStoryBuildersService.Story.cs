@@ -1200,6 +1200,7 @@ namespace AIStoryBuilders.Services
                 foreach (var Chapter in Chapters)
                 {
                     Models.LocalStorage.Chapter NewChapter = new Models.LocalStorage.Chapter();
+
                     NewChapter.chapter_name = Chapter.chapter_name;
                     NewChapter.sequence = Chapter.sequence;
                     NewChapter.chapter_synopsis = Chapter.chapter_synopsis;
@@ -1250,15 +1251,17 @@ namespace AIStoryBuilders.Services
                 // Convert the passed Character to Character
                 var ObjConvertedCharacter = AIStoryBuildersCharactersService.ConvertCharacterToCharacter(character);
 
-                // Rename Character 
-                var objRenamedCharacter = ObjConvertedCharacter;
-                objRenamedCharacter.name = character.CharacterName;
+                // Rename Character to old name
+                ObjConvertedCharacter.name = paramOrginalCharcterName;
 
                 // Delete the Character 
                 await AIStoryBuildersCharactersService.DeleteCharacterAsync(character.Story.Title, ObjConvertedCharacter);
 
+                // Rename Character to new name
+                ObjConvertedCharacter.name = character.CharacterName;
+
                 // Add the renamed Character
-                await AIStoryBuildersCharactersService.AddCharacterAsync(character.Story.Title, objRenamedCharacter);
+                await AIStoryBuildersCharactersService.AddCharacterAsync(character.Story.Title, ObjConvertedCharacter);
             }
         }
         #endregion
