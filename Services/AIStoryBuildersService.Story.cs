@@ -971,6 +971,7 @@ namespace AIStoryBuilders.Services
                     foreach (var Chapter in Chapters)
                     {
                         Models.LocalStorage.Chapter NewChapter = new Models.LocalStorage.Chapter();
+
                         NewChapter.chapter_name = Chapter.chapter_name;
                         NewChapter.sequence = Chapter.sequence;
                         NewChapter.chapter_synopsis = Chapter.chapter_synopsis;
@@ -998,6 +999,20 @@ namespace AIStoryBuilders.Services
                     }
 
                     await AIStoryBuildersChaptersService.SaveDatabaseAsync(objLocation.Story.Title, NewChapters);
+
+                    // ** Rename the Location **
+
+                    var ConvertedLocation = AIStoryBuildersLocationsService.ConvertLocationToLocations(objLocation);
+
+                    ConvertedLocation.name = paramOriginalLocationName;
+
+                    // Delete the old Location
+                    await AIStoryBuildersLocationsService.DeleteLocationAsync(objLocation.Story.Title, ConvertedLocation);
+
+                    ConvertedLocation.name = objLocation.LocationName;
+
+                    // Add the new Location
+                    await AIStoryBuildersLocationsService.AddLocationAsync(objLocation.Story.Title, ConvertedLocation);
                 }
             }
             catch (Exception ex)

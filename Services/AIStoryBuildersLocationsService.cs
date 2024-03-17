@@ -116,7 +116,14 @@ namespace AIStoryBuilders.Model
             {
                 Descriptions newDescription = new Descriptions();
                 newDescription.description = description.Description;
-                newDescription.timeline_name = description.Timeline.TimelineName;
+
+                if(description.Timeline != null)
+                {
+                    if (description.Timeline.TimelineName != null)
+                    {
+                        newDescription.timeline_name = description.Timeline.TimelineName;
+                    }
+                }
 
                 newLocations.descriptions.Add(newDescription);
             }
