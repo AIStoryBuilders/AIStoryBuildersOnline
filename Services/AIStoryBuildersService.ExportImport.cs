@@ -79,6 +79,8 @@ namespace AIStoryBuilders.Services
         #region public async Task<byte[]> ExportWordDocument(Story objStory)
         public async Task<byte[]> ExportWordDocument(Story objStory)
         {
+            // Note this uses MEMFS
+            // https://emscripten.org/docs/api_reference/Filesystem-API.html?highlight=memfs
             try
             {
                 string TempPath =
@@ -148,6 +150,8 @@ namespace AIStoryBuilders.Services
         #region public async Task<byte[]> ExportProject(Story objStory)
         public async Task<byte[]> ExportProject(Story objStory)
         {
+            // Note this uses MEMFS
+            // https://emscripten.org/docs/api_reference/Filesystem-API.html?highlight=memfs
             try
             {
                 #region Create Temp Directories
