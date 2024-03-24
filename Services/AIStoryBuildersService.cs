@@ -48,6 +48,28 @@ namespace AIStoryBuilders.Services
 
         // Utility
 
+        #region public string[] ReadCSVFile(string path)
+        public string[] ReadCSVFile(string path)
+        {
+            string[] content;
+
+            // Read the lines from the .csv file
+            using (var file = new System.IO.StreamReader(path))
+            {
+                content = file.ReadToEnd().Split('\n');
+
+                if (content[content.Length - 1].Trim() == "")
+                {
+                    content = content.Take(content.Length - 1).ToArray();
+                }
+            }
+
+            var CleanContent = CleanAIStoryBuildersStoriesCSVFile(content);
+
+            return CleanContent;
+        }
+        #endregion
+
         #region public string[] CleanAIStoryBuildersStoriesCSVFile(string strAIStoryBuildersStories)
         public string[] CleanAIStoryBuildersStoriesCSVFile(string[] strAIStoryBuildersStories)
         {
@@ -84,6 +106,17 @@ namespace AIStoryBuilders.Services
         }
         #endregion
 
+        #region public void CreateDirectory(string path)
+        public void CreateDirectory(string path)
+        {
+            // Create directory if it doesn't exist
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+        }
+        #endregion
+
         #region public string GetOnlyJSON(string json)
         public string GetOnlyJSON(string json)
         {
@@ -108,6 +141,17 @@ namespace AIStoryBuilders.Services
             output = output.Replace("\r", " ");
 
             return output;
+        }
+        #endregion
+
+        #region public void CreateFile(string path, string content)
+        public void CreateFile(string path, string content)
+        {
+            // Create file if it doesn't exist
+            if (!File.Exists(path))
+            {
+                File.WriteAllText(path, content);
+            }
         }
         #endregion
 
@@ -222,10 +266,7 @@ namespace AIStoryBuilders.Services
 
             if (objParagraph.Location != null)
             {
-                if (objParagraph.Location.LocationName != null)
-                {
-                    objParagraphs.location_name = objParagraph.Location.LocationName;
-                }
+                objParagraphs.location_name = objParagraph.Location.LocationName;
             }
 
             if (objParagraph.Timeline != null)
@@ -270,32 +311,29 @@ namespace AIStoryBuilders.Services
 
             if (objParamLocation != null)
             {
-                if (objParamLocation.LocationName != null)
+                objLocations.name = objParamLocation.LocationName.Replace("\n", " ");
+
+                if (objParamLocation.LocationDescription != null)
                 {
-                    objLocations.name = objParamLocation.LocationName.Replace("\n", " ");
+                    objLocations.descriptions = new string[objParamLocation.LocationDescription.Count];
+                }
+                else
+                {
+                    objLocations.descriptions = new string[0];
+                }
 
-                    if (objParamLocation.LocationDescription != null)
+                if (objParamLocation.LocationDescription != null)
+                {
+                    int i = 0;
+                    foreach (var location in objParamLocation.LocationDescription)
                     {
-                        objLocations.descriptions = new string[objParamLocation.LocationDescription.Count];
-                    }
-                    else
-                    {
-                        objLocations.descriptions = new string[0];
-                    }
+                        bool shouldAddDescription = ((objParagraph.Timeline.TimelineName == null || objParagraph.Timeline.TimelineName.Length == 0)
+                                        || location.Timeline.TimelineName == objParagraph.Timeline.TimelineName);
 
-                    if (objParamLocation.LocationDescription != null)
-                    {
-                        int i = 0;
-                        foreach (var location in objParamLocation.LocationDescription)
+                        if (shouldAddDescription)
                         {
-                            bool shouldAddDescription = ((objParagraph.Timeline.TimelineName == null || objParagraph.Timeline.TimelineName.Length == 0)
-                                            || location.Timeline.TimelineName == objParagraph.Timeline.TimelineName);
-
-                            if (shouldAddDescription)
-                            {
-                                objLocations.descriptions[i] = location.Description.Replace("\n", " ");
-                                i++;
-                            }
+                            objLocations.descriptions[i] = location.Description.Replace("\n", " ");
+                            i++;
                         }
                     }
                 }
