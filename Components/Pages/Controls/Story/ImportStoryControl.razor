@@ -6,16 +6,27 @@
 @inject DialogService dialogService
 @inject NotificationService NotificationService
 
-<h5>Select a .stybld file to import</h5>
-<br />
-<InputFile OnChange="ImportStory" />
+@if(IsBusy)
+{
+    <div class="rz-m-10">
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    </div>
+}
+else
+{
+    <div class="form-group">
+        <h4>Select a .stybld file to import</h4>
+        <br />
+        <InputFile OnChange="ImportStory" accept=".stybld" />
+    </div>
+}
 
 @code {
     AIStoryBuildersService AIStoryBuildersService;
     OrchestratorMethods OrchestratorMethods;
     LogService LogService;
     private IBrowserFile ImportFile = null;
-
+    bool IsBusy = false;
     protected override async Task OnInitializedAsync()
     {
         try
@@ -44,6 +55,8 @@
         {
             if (e.File != null)
             {
+                IsBusy = true;
+
                 ImportFile = e.File;
                 byte[] stybldFileBytes = null;
 

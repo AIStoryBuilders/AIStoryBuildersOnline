@@ -117,12 +117,12 @@ namespace AIStoryBuilders.Model
         }
 
         // Delete a story
-        public async Task DeleteStoryAsync(int paramId)
+        public async Task DeleteStoryAsync(string paramStoryTitle)
         {
             await LoadAIStoryBuildersStoriesAsync();
 
             // Find the story in colAIStoryBuildersStory
-            AIStoryBuildersStory story = colAIStoryBuildersStory.Where(x => x.Id == paramId).FirstOrDefault();
+            AIStoryBuildersStory story = colAIStoryBuildersStory.Where(x => x.Title == paramStoryTitle).FirstOrDefault();
 
             if (story != null)
             {

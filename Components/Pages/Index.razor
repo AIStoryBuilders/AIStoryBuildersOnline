@@ -200,7 +200,7 @@
         try
         {
             var EditStoryResult = await dialogService.OpenAsync<ImportStoryControl>($"Import Story", null,
-            new DialogOptions() { Height = "220px", Width = "350px" });
+            new DialogOptions() { Height = "210px", Width = "350px" });
 
             colStorys = await AIStoryBuildersService.GetStorys();
 

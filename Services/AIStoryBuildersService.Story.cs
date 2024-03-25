@@ -1,9 +1,14 @@
 ﻿using AIStoryBuilders.Model;
 using AIStoryBuilders.Models;
 using AIStoryBuilders.Models.JSON;
+using AIStoryBuilders.Models.LocalStorage;
 using System.Linq;
 using static AIStoryBuilders.AI.OrchestratorMethods;
 using Character = AIStoryBuilders.Models.Character;
+using Location = AIStoryBuilders.Models.Location;
+using Story = AIStoryBuilders.Models.Story;
+using Timeline = AIStoryBuilders.Models.Timeline;
+using Chapter = AIStoryBuilders.Models.Chapter;
 
 namespace AIStoryBuilders.Services
 {
@@ -289,9 +294,20 @@ namespace AIStoryBuilders.Services
             AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Where(line => line.Split('|')[1] != StoryTitle).ToArray();
             File.WriteAllLines(AIStoryBuildersStoriesPath, AIStoryBuildersStoriesContent);
 
-            // Delete folder and all its sub folders and files
-            string StoryPath = $"{BasePath}/{StoryTitle}";
-            Directory.Delete(StoryPath, true);
+            try
+            {
+                // Delete folder and all its sub folders and files
+                string StoryPath = $"{BasePath}/{StoryTitle}";
+                Directory.Delete(StoryPath, true);
+            }
+            catch (Exception ex)
+            {
+                // Log error
+                await LogService.WriteToLogAsync("DeleteStory: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
+            }
+
+            // Delete from LocalStorage
+            await AIStoryBuildersStoryService.DeleteStoryAsync(StoryTitle);
 
             // Log
             await LogService.WriteToLogAsync($"Story deleted {StoryTitle}");
