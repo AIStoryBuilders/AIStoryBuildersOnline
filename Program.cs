@@ -86,43 +86,6 @@ namespace AIStoryBuildersOnline
                 }
             }
 
-            // AIStoryBuildersDatabase.json
-            filePath = Path.Combine(folderPath, "AIStoryBuildersDatabase.json");
-
-            if (!File.Exists(filePath))
-            {
-                using (var streamWriter = new StreamWriter(filePath))
-                {
-                    streamWriter.WriteLine(
-                        """
-                        {                         
-                        }
-                        """);
-                }
-            }
-
-            // AIStoryBuildersSettings.config
-            filePath = Path.Combine(folderPath, "AIStoryBuildersSettings.config");
-            if (!File.Exists(filePath))
-            {
-                using (var streamWriter = new StreamWriter(filePath))
-                {
-                    streamWriter.WriteLine(
-                    """
-                        {
-                          "OpenAIServiceOptions": {
-                            "Organization": "",
-                            "ApiKey": ""
-                          },
-                          "ApplicationSettings": {
-                            "AIModel": "gpt-4-turbo-preview"
-                          }
-                        }
-                        """
-                    );
-                }
-            }
-
             await builder.Build().RunAsync();
         }
     }
