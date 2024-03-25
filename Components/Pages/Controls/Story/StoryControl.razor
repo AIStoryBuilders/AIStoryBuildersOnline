@@ -61,12 +61,12 @@
         });
     }
 
-    private void SaveStory()
+    private async Task SaveStory()
     {
         try
         {
             // Update the Story
-            AIStoryBuildersService.UpdateStory(objStory);
+            await AIStoryBuildersService.UpdateStory(objStory);
 
             NotificationService.Notify(new NotificationMessage
                 {

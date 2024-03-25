@@ -68,19 +68,13 @@ namespace AIStoryBuilders.Services
             CreateDirectory(LocationsPath);
 
             // Add Story to file
-            var AIStoryBuildersStoriesPath = $"{BasePath}/AIStoryBuildersStories.csv";
-            string[] AIStoryBuildersStoriesContent = ReadCSVFile(AIStoryBuildersStoriesPath);
-
-            // Remove all empty lines
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Where(line => line.Trim() != "").ToArray();
-
-            // Trim all lines
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Select(line => line.Trim()).ToArray();
-
-            // Add Story to file
-            string newStory = $"{AIStoryBuildersStoriesContent.Count() + 1}|{story.Title}|{story.Style}|{story.Theme}|{story.Synopsis}";
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Append(newStory).ToArray();
-            File.WriteAllLines(AIStoryBuildersStoriesPath, AIStoryBuildersStoriesContent);
+            await AIStoryBuildersStoryService.AddStoryAsync(new AIStoryBuildersStory
+            {
+                Title = story.Title,
+                Style = story.Style,
+                Theme = story.Theme,
+                Synopsis = story.Synopsis
+            });
 
             // Log
             await LogService.WriteToLogAsync($"Story created {story.Title}");
@@ -250,21 +244,8 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public void UpdateStory(Story story)
+        public async Task UpdateStory(Story story)
         {
-            // Get all Stories from file
-            var AIStoryBuildersStoriesPath = $"{BasePath}/AIStoryBuildersStories.csv";
-            string[] AIStoryBuildersStoriesContent = ReadCSVFile(AIStoryBuildersStoriesPath);
-
-            // Remove all empty lines
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Where(line => line.Trim() != "").ToArray();
-
-            // Get all lines except the one to update
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Where(line => line.Split('|')[1] != story.Title).ToArray();
-
-            // Trim all lines
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Select(line => line.Trim()).ToArray();
-
             // Remove any line breaks
             story.Style = RemoveLineBreaks(story.Style);
             story.Theme = RemoveLineBreaks(story.Theme);
@@ -275,25 +256,18 @@ namespace AIStoryBuilders.Services
             story.Theme = story.Theme.Replace("|", "");
             story.Synopsis = story.Synopsis.Replace("|", "");
 
-            // Re-add Story to file
-            string updatedStory = $"{AIStoryBuildersStoriesContent.Count() + 1}|{story.Title}|{story.Style}|{story.Theme}|{story.Synopsis}";
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Append(updatedStory).ToArray();
-            File.WriteAllLines(AIStoryBuildersStoriesPath, AIStoryBuildersStoriesContent);
+            await AIStoryBuildersStoryService.UpdateStoryAsync(new AIStoryBuildersStory
+            {
+                Id = story.Id,
+                Title = story.Title,
+                Style = story.Style,
+                Theme = story.Theme,
+                Synopsis = story.Synopsis
+            });
         }
 
         public async Task DeleteStory(string StoryTitle)
         {
-            // Get Story from file
-            var AIStoryBuildersStoriesPath = $"{BasePath}/AIStoryBuildersStories.csv";
-            string[] AIStoryBuildersStoriesContent = ReadCSVFile(AIStoryBuildersStoriesPath);
-
-            // Remove all empty lines
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Where(line => line.Trim() != "").ToArray();
-
-            // Remove Story from file
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Where(line => line.Split('|')[1] != StoryTitle).ToArray();
-            File.WriteAllLines(AIStoryBuildersStoriesPath, AIStoryBuildersStoriesContent);
-
             try
             {
                 // Delete folder and all its sub folders and files

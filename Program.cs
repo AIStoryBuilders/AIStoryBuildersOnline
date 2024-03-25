@@ -101,17 +101,6 @@ namespace AIStoryBuildersOnline
                 }
             }
 
-            // AIStoryBuildersStories.json
-            filePath = Path.Combine(folderPath, "AIStoryBuildersStories.csv");
-            if (!File.Exists(filePath))
-            {
-                // create file with a blank line
-                using (var streamWriter = new StreamWriter(filePath))
-                {
-                    streamWriter.WriteLine("");
-                }
-            }
-
             // AIStoryBuildersSettings.config
             filePath = Path.Combine(folderPath, "AIStoryBuildersSettings.config");
             if (!File.Exists(filePath))
