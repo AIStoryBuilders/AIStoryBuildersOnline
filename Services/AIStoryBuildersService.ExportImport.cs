@@ -349,6 +349,7 @@ namespace AIStoryBuilders.Services
                 string stybldFileBase64String = Convert.ToBase64String(stybldFile);
 
                 // Add Story to file
+                await AIStoryBuildersStoryService.LoadAIStoryBuildersStoriesAsync();
                 await AIStoryBuildersStoryService.AddStoryAsync(new AIStoryBuildersStory
                 {
                     Title = objJSONManifest.Title,

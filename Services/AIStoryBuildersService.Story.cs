@@ -281,6 +281,7 @@ namespace AIStoryBuilders.Services
             }
 
             // Delete from LocalStorage
+            await AIStoryBuildersStoryService.LoadAIStoryBuildersStoriesAsync();
             await AIStoryBuildersStoryService.DeleteStoryAsync(StoryTitle);
 
             // Log
