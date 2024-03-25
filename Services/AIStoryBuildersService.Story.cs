@@ -80,7 +80,7 @@ namespace AIStoryBuilders.Services
             JSONStory ParsedNewStory = new JSONStory();
 
             // Convert the JSON to a dynamic object
-            ParsedNewStory = ParseJSONNewStory(ParsedStoryJSON.Content.ToString());
+            ParsedNewStory = await ParseJSONNewStory(ParsedStoryJSON.Content.ToString());
 
             // *****************************************************
 
@@ -171,7 +171,7 @@ namespace AIStoryBuilders.Services
             JSONChapters ParsedNewChapters = new JSONChapters();
 
             // Convert the JSON to a dynamic object
-            ParsedNewChapters = ParseJSONNewChapters(GetOnlyJSON(ParsedChaptersJSON.Content.ToString()));
+            ParsedNewChapters = await ParseJSONNewChapters(GetOnlyJSON(ParsedChaptersJSON.Content.ToString()));
 
             // Test to see that something was returned
             if (ParsedNewChapters.chapter.Length == 0)
@@ -180,7 +180,7 @@ namespace AIStoryBuilders.Services
                 ParsedChaptersJSON = await OrchestratorMethods.CleanJSON(GetOnlyJSON(ParsedChaptersJSON.Content.ToString()), GPTModelId);
 
                 // Convert the JSON to a dynamic object
-                ParsedNewChapters = ParseJSONNewChapters(GetOnlyJSON(ParsedChaptersJSON.Content.ToString()));
+                ParsedNewChapters = await ParseJSONNewChapters(GetOnlyJSON(ParsedChaptersJSON.Content.ToString()));
             }
 
             //// **** Create the Files
