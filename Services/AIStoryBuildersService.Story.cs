@@ -12,25 +12,26 @@ namespace AIStoryBuilders.Services
         #region *** Story ***
         public async Task<List<Story>> GetStorys()
         {
-            var AIStoryBuildersStoriesPath = $"{BasePath}/AIStoryBuildersStories.csv";
-            string[] AIStoryBuildersStoriesContent = ReadCSVFile(AIStoryBuildersStoriesPath);
-
-            AIStoryBuildersStoriesContent = AIStoryBuildersStoriesContent.Where(line => line.Trim() != "").ToArray();
+            List<Models.Story> stories = new List<Models.Story>();
 
             try
             {
-                // Return collection of Story
-                return AIStoryBuildersStoriesContent
-                    .Select(story => story.Split('|'))
-                    .Select(story => new Story
-                    {
-                        Id = int.Parse(story[0]),
-                        Title = story[1],
-                        Style = story[2],
-                        Theme = story[3],
-                        Synopsis = story[4],
-                    })
-                    .ToList();
+                await AIStoryBuildersStoryService.LoadAIStoryBuildersStoriesAsync();
+
+                var AIStoryBuildersStoriesContent = AIStoryBuildersStoryService.colAIStoryBuildersStory;
+
+                foreach (var story in AIStoryBuildersStoriesContent.OrderBy(x => x.Title))
+                {
+                    Models.Story objStr = new Models.Story();
+
+                    objStr.Id = story.Id;
+                    objStr.Title = story.Title;
+                    objStr.Style = story.Style;
+                    objStr.Theme = story.Theme;
+                    objStr.Synopsis = story.Synopsis;
+
+                    stories.Add(objStr);
+                }
             }
             catch (Exception ex)
             {
@@ -38,8 +39,10 @@ namespace AIStoryBuilders.Services
                 await LogService.WriteToLogAsync("GetStorys: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
 
                 // File is empty
-                return new List<Story>();
+                return new List<Models.Story>();
             }
+
+            return stories;
         }
 
         public async Task AddStory(Story story, string GPTModelId)

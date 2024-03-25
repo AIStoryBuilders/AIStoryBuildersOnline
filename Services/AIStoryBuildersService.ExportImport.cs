@@ -1,6 +1,7 @@
 ﻿using AIStoryBuilders.Model;
 using AIStoryBuilders.Models;
 using AIStoryBuilders.Models.JSON;
+using AIStoryBuilders.Models.LocalStorage;
 using Newtonsoft.Json;
 using OfficeOpenXml;
 using OpenAI.Files;
@@ -15,8 +16,8 @@ namespace AIStoryBuilders.Services
     {
         // Traing Data
 
-        #region public async Task<List<TrainingData>> CreateTrainingDataAsync(Story objStory)
-        public async Task<List<TrainingData>> CreateTrainingDataAsync(Story objStory)
+        #region public async Task<List<TrainingData>> CreateTrainingDataAsync(Models.Story objStory)
+        public async Task<List<TrainingData>> CreateTrainingDataAsync(Models.Story objStory)
         {
             try
             {
@@ -76,8 +77,8 @@ namespace AIStoryBuilders.Services
 
         // Export/Import
 
-        #region public async Task<byte[]> ExportWordDocument(Story objStory)
-        public async Task<byte[]> ExportWordDocument(Story objStory)
+        #region public async Task<byte[]> ExportWordDocument(Models.Story objStory)
+        public async Task<byte[]> ExportWordDocument(Models.Story objStory)
         {
             // Note this uses MEMFS
             // https://emscripten.org/docs/api_reference/Filesystem-API.html?highlight=memfs
@@ -147,8 +148,8 @@ namespace AIStoryBuilders.Services
         }
         #endregion
 
-        #region public async Task<byte[]> ExportProject(Story objStory)
-        public async Task<byte[]> ExportProject(Story objStory)
+        #region public async Task<byte[]> ExportProject(Models.Story objStory)
+        public async Task<byte[]> ExportProject(Models.Story objStory)
         {
             // Note this uses MEMFS
             // https://emscripten.org/docs/api_reference/Filesystem-API.html?highlight=memfs
@@ -344,13 +345,17 @@ namespace AIStoryBuilders.Services
                 Directory.Delete(TempPath, true);
                 Directory.Delete(TempZipPath, true);
 
+                // Convert stybldFile byte array to Base64 string
+                string stybldFileBase64String = Convert.ToBase64String(stybldFile);
+
                 // Add Story to file
                 await AIStoryBuildersStoryService.AddStoryAsync(new AIStoryBuildersStory
                 {
                     Title = objJSONManifest.Title,
                     Style = objJSONManifest.Style,
                     Theme = objJSONManifest.Theme,
-                    Synopsis = objJSONManifest.Synopsis
+                    Synopsis = objJSONManifest.Synopsis,
+                    ZipFile = stybldFileBase64String
                 });
 
                 // Log

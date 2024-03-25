@@ -12,6 +12,7 @@ namespace AIStoryBuilders.Model
         public string Style { get; set; }
         public string Theme { get; set; }
         public string Synopsis { get; set; }
+        public string ZipFile { get; set; }
     }
 
     public class AIStoryBuildersStories
@@ -109,6 +110,7 @@ namespace AIStoryBuilders.Model
                 story.Style = paramAIStoryBuildersStory.Style;
                 story.Theme = paramAIStoryBuildersStory.Theme;
                 story.Synopsis = paramAIStoryBuildersStory.Synopsis;
+                story.ZipFile = paramAIStoryBuildersStory.ZipFile;
 
                 await SaveDatabaseAsync(colAIStoryBuildersStory);
             }
