@@ -6,30 +6,21 @@
 @inherits OwningComponentBase
 @inject SettingsService SettingsService
 <RadzenStack Gap="0.5rem">
-    @if (InProgress)
-    {
-        <div class="rz-m-10">
-            <h4>Processing...</h4>
-        </div>
-    }
-    else
-    {
-        <RadzenSpeechToTextButton Change="@(args => OnPromptSpeechCaptured(args, false, "TextToSpeech"))" />
-        <RadzenFormField Text="Describe paragraph or provide prompt instructions (optional):" Variant=Variant.Outlined>
-            <RadzenTextArea @bind-Value="@AIPromptText" class="w-100" Style="height:75px" MaxLength="500" />
-        </RadzenFormField>
-        <RadzenFormField Text="Number of words to generate:" Variant=Variant.Outlined>
-            <RadzenDropDown Data=@colNumberOfWords @bind-Value="@SelectedNumberOfWords" />
-        </RadzenFormField>
-        <RadzenFormField Text="AI Model:" Variant=Variant.Outlined>
-            <RadzenDropDown @bind-Value=@AIModel Data=@colAIStoryBuilderModel TextProperty="ModelName" Style="width:300px" />
-        </RadzenFormField>
-        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-            <RadzenStack Orientation="Orientation.Horizontal">
-                <RadzenButton Text="Save" ButtonStyle="ButtonStyle.Success" Click="() => CloseDialog()" Style="width: 80px;" />
-            </RadzenStack>
+    <RadzenSpeechToTextButton Change="@(args => OnPromptSpeechCaptured(args, false, "TextToSpeech"))" />
+    <RadzenFormField Text="Describe paragraph or provide prompt instructions (optional):" Variant=Variant.Outlined>
+        <RadzenTextArea @bind-Value="@AIPromptText" class="w-100" Style="height:75px" MaxLength="500" />
+    </RadzenFormField>
+    <RadzenFormField Text="Number of words to generate:" Variant=Variant.Outlined>
+        <RadzenDropDown Data=@colNumberOfWords @bind-Value="@SelectedNumberOfWords" />
+    </RadzenFormField>
+    <RadzenFormField Text="AI Model:" Variant=Variant.Outlined>
+        <RadzenDropDown @bind-Value=@AIModel Data=@colAIStoryBuilderModel TextProperty="ModelName" Style="width:300px" />
+    </RadzenFormField>
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+        <RadzenStack Orientation="Orientation.Horizontal">
+            <RadzenButton Text="Save" ButtonStyle="ButtonStyle.Success" Click="() => CloseDialog()" Style="width: 80px;" />
         </RadzenStack>
-    }
+    </RadzenStack>
 </RadzenStack>
 @code {
     [Parameter] public string AIPromptText { get; set; }
@@ -37,7 +28,6 @@
     [Parameter] public DialogService DialogReference { get; set; }
 
     OrchestratorMethods OrchestratorMethods;
-    bool InProgress = false;
 
     List<string> colNumberOfWords = new List<string> { "10", "20", "50", "100", "200", "300", "500", "800", "1000" };
 
@@ -70,9 +60,6 @@
 
     private async Task CloseDialog()
     {
-        InProgress = true;
-        StateHasChanged();
-
         // Use Task.run to avoid blocking the UI thread
         await Task.Run(() =>
         {
