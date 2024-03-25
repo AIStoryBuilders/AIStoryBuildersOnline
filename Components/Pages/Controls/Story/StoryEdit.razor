@@ -299,15 +299,9 @@ else // Existing Story
         // Read DocumentContents into a MemoryStream
         var stream = new MemoryStream(DocumentContents);
 
-        await JsRuntime.InvokeVoidAsync("saveAsFile", ExportFileName, stream);
+        using var streamRef = new DotNetStreamReference(stream: stream);
 
-        NotificationService.Notify(new NotificationMessage
-            {
-                Severity = NotificationSeverity.Success,
-                Summary = "Saved",
-                Detail = $"The file was saved successfully.",
-                Duration = 4000
-            });
+        await JsRuntime.InvokeVoidAsync("saveAsFile", ExportFileName, streamRef);
     }
 
     void OnSpeechCaptured(string speechValue, bool updateTextArea, string name)
