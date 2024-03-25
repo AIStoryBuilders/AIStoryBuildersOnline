@@ -8,6 +8,7 @@
 @using AIStoryBuildersOnline.Components.Pages.Controls.Story;
 @using Newtonsoft.Json;
 @using System.Text
+@using System.IO.Compression
 @using Radzen
 @using Radzen.Blazor
 @using static AIStoryBuilders.AI.OrchestratorMethods
@@ -16,6 +17,7 @@
 @inject DialogService dialogService
 @inject NotificationService NotificationService
 @inject SettingsService SettingsService
+@inject AIStoryBuildersStoryService AIStoryBuildersStoryService
 @implements IDisposable
 <PageTitle>AI Story Builders</PageTitle>
 <RadzenMenu>
@@ -233,6 +235,45 @@
                 // Show the Progress bar
                 InProgress = true;
             }
+
+            // Get the Zip file from the database
+            await AIStoryBuildersStoryService.LoadAIStoryBuildersStoriesAsync();
+            var ColStories = AIStoryBuildersStoryService.colAIStoryBuildersStory;
+
+            // Find the Story
+            var objSelectedStory = ColStories.Where(x => x.Title == paramStory.Title).FirstOrDefault();
+
+            // Get the .Zip file
+            var ZipFileContents = objSelectedStory.ZipFile;
+
+            // Extract the Zip file ****************************************************
+            string BasePath = $"AIStoryBuilders/{paramStory.Title}";
+            string extractPath = @"/TempZip";
+
+            // Delete the directories if they exists
+            if (Directory.Exists(BasePath))
+            {
+                Directory.Delete(BasePath, true);
+            }
+
+            if (Directory.Exists(extractPath))
+            {
+                Directory.Delete(extractPath, true);
+            }
+
+            // Create the directories
+            Directory.CreateDirectory(BasePath);
+
+            Directory.CreateDirectory(extractPath);
+
+            // Convert the Base64 string to a byte array
+            byte[] exportFileBytes = Convert.FromBase64String(ZipFileContents);
+
+            // Write the byte array to a file
+            await File.WriteAllBytesAsync($"{extractPath}/ZipFiles.zip", exportFileBytes);
+
+            // Extract the zip file
+            ZipFile.ExtractToDirectory($"{extractPath}/ZipFiles.zip", BasePath);
 
             var parms = new Dictionary<string, object>();
             parms.Add("objStory", paramStory);
