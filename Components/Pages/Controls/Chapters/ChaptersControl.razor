@@ -325,12 +325,11 @@
                 // Create the new chapter
                 var newChapter = new Chapter();
                 newChapter.Id = -1; // So we know it is new
-                newChapter.Sequence = NewChapterNumber;
                 newChapter.Story = objStory;
                 newChapter.ChapterName = strNewChapterName;
                 newChapter.Synopsis = "New Chapter";
 
-                await AIStoryBuildersService.AddChapterAsync(newChapter);
+                await AIStoryBuildersService.InsertChapterAsync(newChapter);
 
                 // Reload the chapters
                 await LoadChapters(objStory, null);
@@ -373,9 +372,8 @@
             if (confirmResult.HasValue && confirmResult.Value)
             {
                 // Delete
-                await AIStoryBuildersService.DeleteChapter(SelectedChapter);
+                AIStoryBuildersService.DeleteChapter(SelectedChapter);
 
-                // Rename the remaining chapters 
                 await AIStoryBuildersService.RestructureChapters(SelectedChapter, RestructureType.Delete);
 
                 // Find the previous chapter

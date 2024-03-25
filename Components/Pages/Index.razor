@@ -117,7 +117,7 @@
             else
             {
                 // Get the Storys from the database
-                colStorys = await AIStoryBuildersService.GetStorysAsync();
+                colStorys = await AIStoryBuildersService.GetStorys();
             }
         }
         catch (Exception ex)
@@ -170,7 +170,7 @@
                     new DialogOptions() { Height = "650px", Width = "950px" });
                 }
 
-                colStorys = await AIStoryBuildersService.GetStorysAsync();
+                colStorys = await AIStoryBuildersService.GetStorys();
 
                 StateHasChanged();
 
@@ -202,7 +202,7 @@
             var EditStoryResult = await dialogService.OpenAsync<ImportStoryControl>($"Import Story", null,
             new DialogOptions() { Height = "220px", Width = "350px" });
 
-            colStorys = await AIStoryBuildersService.GetStorysAsync();
+            colStorys = await AIStoryBuildersService.GetStorys();
 
             StateHasChanged();
         }
@@ -240,7 +240,7 @@
             var EditStoryResult = await dialogService.OpenAsync<StoryControl>($"{paramStory.Title}", parms,
             new DialogOptions() { Height = "720px", Width = "950px" });
 
-            colStorys = await AIStoryBuildersService.GetStorysAsync();
+            colStorys = await AIStoryBuildersService.GetStorys();
 
             StateHasChanged();
 

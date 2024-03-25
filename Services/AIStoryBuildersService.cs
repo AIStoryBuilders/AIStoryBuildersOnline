@@ -16,10 +16,6 @@ namespace AIStoryBuilders.Services
         private LogService LogService { get; set; }
         private OrchestratorMethods OrchestratorMethods { get; set; }
         private AIStoryBuildersStoryService AIStoryBuildersStoryService { get; set; }
-        private AIStoryBuildersCharactersService AIStoryBuildersCharactersService { get; set; }
-        private AIStoryBuildersLocationsService AIStoryBuildersLocationsService { get; set; }
-        private AIStoryBuildersChaptersService AIStoryBuildersChaptersService { get; set; }
-        private AIStoryBuildersTimelinesService AIStoryBuildersTimelinesService { get; set; }
         private AIStoryBuildersManifestService AIStoryBuildersManifestService { get; set; }
 
         public string BasePath = $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders";
@@ -28,10 +24,6 @@ namespace AIStoryBuilders.Services
             LogService _LogService,
             OrchestratorMethods _OrchestratorMethods,
             AIStoryBuildersStoryService _AIStoryBuildersStoryService,
-            AIStoryBuildersCharactersService _AIStoryBuildersCharactersService,
-            AIStoryBuildersLocationsService _AIStoryBuildersLocationsService,
-            AIStoryBuildersChaptersService _AIStoryBuildersChaptersService,
-            AIStoryBuildersTimelinesService _AIStoryBuildersTimelinesService,
             AIStoryBuildersManifestService _AIStoryBuildersManifestService
             )
         {
@@ -39,10 +31,6 @@ namespace AIStoryBuilders.Services
             LogService = _LogService;
             OrchestratorMethods = _OrchestratorMethods;
             AIStoryBuildersStoryService = _AIStoryBuildersStoryService;
-            AIStoryBuildersCharactersService = _AIStoryBuildersCharactersService;
-            AIStoryBuildersLocationsService = _AIStoryBuildersLocationsService;
-            AIStoryBuildersChaptersService = _AIStoryBuildersChaptersService;
-            AIStoryBuildersTimelinesService = _AIStoryBuildersTimelinesService;
             AIStoryBuildersManifestService = _AIStoryBuildersManifestService;
         }
 

@@ -212,7 +212,7 @@ else // Existing Story
             if (objStory.Id == -1) // New Story - Do Special Validation
             {
                 // Check for duplicate Story Title
-                var ExistingStories = await AIStoryBuildersService.GetStorysAsync();
+                var ExistingStories = await AIStoryBuildersService.GetStorys();
 
                 if (ExistingStories.Where(x => x.Title.ToLower() == objStory.Title.ToLower()).Count() > 0)
                 {

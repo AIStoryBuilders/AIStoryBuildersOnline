@@ -128,7 +128,7 @@
         ApiKey = SettingsService.ApiKey;
 
         // Get the Storys from the database
-        colStorys = await AIStoryBuildersService.GetStorysAsync();
+        colStorys = await AIStoryBuildersService.GetStorys();
 
         colAIStoryBuilderModel = await OrchestratorMethods.ListFineTunedModelsAsync();
     }

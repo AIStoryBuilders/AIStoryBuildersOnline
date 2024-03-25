@@ -128,22 +128,6 @@ namespace AIStoryBuilders.Model
                 colAIStoryBuildersStory.Remove(story);
                 await SaveDatabaseAsync(colAIStoryBuildersStory);
 
-                // Delete the story's characters
-                AIStoryBuildersCharactersService AIStoryBuildersCharactersService = new AIStoryBuildersCharactersService(localStorage);
-                await AIStoryBuildersCharactersService.DeleteAllCharactersAsync(story.Title);
-
-                // Delete the story's chapters
-                AIStoryBuildersChaptersService AIStoryBuildersChaptersService = new AIStoryBuildersChaptersService(localStorage);
-                await AIStoryBuildersChaptersService.DeleteAllChaptersAsync(story.Title);
-
-                // Delete the story's locations
-                AIStoryBuildersLocationsService AIStoryBuildersLocationsService = new AIStoryBuildersLocationsService(localStorage);
-                await AIStoryBuildersLocationsService.DeleteAllLocationsAsync(story.Title);
-
-                // Delete the story's timelines
-                AIStoryBuildersTimelinesService AIStoryBuildersTimelinesService = new AIStoryBuildersTimelinesService(localStorage);
-                await AIStoryBuildersTimelinesService.DeleteAllTimelinesAsync(story.Title);
-
                 // Delete the story's manifest
                 AIStoryBuildersManifestService AIStoryBuildersManifestService = new AIStoryBuildersManifestService(localStorage);
                 await AIStoryBuildersManifestService.DeleteManifestAsync(story.Title);

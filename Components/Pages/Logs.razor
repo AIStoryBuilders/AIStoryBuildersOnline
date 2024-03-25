@@ -1,8 +1,6 @@
 ﻿@using System.Text
-@using AIStoryBuilders.Model
 @inject NotificationService NotificationService
 @inject DialogService DialogService
-@inject LogService logService
 @inject IJSRuntime JsRuntime
 <h3>Logs</h3>
 <div class="row">
@@ -11,7 +9,7 @@
                       Click="ExportLogAsync"
                       Style="margin-bottom: 10px; width: 150px" />&nbsp;&nbsp;
         <RadzenButton Text="Clear Log" ButtonStyle="ButtonStyle.Danger"
-                      Click="ClearLogAsync"
+                      Click="ClearLog"
                       Style="margin-bottom: 10px; width: 150px" />&nbsp;&nbsp;
     </div>
 </div>
@@ -31,25 +29,43 @@
 
 
 @code {
-    public List<string> AIStoryBuildersLog;
+    string AIStoryBuildersLogPath = "";
+    string[] AIStoryBuildersLog;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        await logService.LoadLogAsync();
-        AIStoryBuildersLog = logService.Logs.colLogs;
+        AIStoryBuildersLogPath =
+        $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders/AIStoryBuildersLog.csv";
+
+        // Read the lines from the .csv file
+        using (var file = new System.IO.StreamReader(AIStoryBuildersLogPath))
+        {
+            AIStoryBuildersLog = file.ReadToEnd().Split('\n');
+            if (AIStoryBuildersLog[AIStoryBuildersLog.Length - 1].Trim() == "")
+            {
+                AIStoryBuildersLog = AIStoryBuildersLog.Take(AIStoryBuildersLog.Length - 1).ToArray();
+            }
+        }
     }
 
-    private async Task ClearLogAsync()
+    private void ClearLog()
     {
         try
         {
-            await logService.ClearLogAsync();
+            using (var streamWriter = new StreamWriter(AIStoryBuildersLogPath))
+            {
+                streamWriter.WriteLine(string.Join("\n", "Log cleared on " + DateTime.Now));
+            }
 
-            await logService.WriteToLogAsync("Log cleared on " + DateTime.Now);
-
-            await logService.LoadLogAsync();
-
-            AIStoryBuildersLog = logService.Logs.colLogs;
+            // Read the lines from the .csv file
+            using (var file = new System.IO.StreamReader(AIStoryBuildersLogPath))
+            {
+                AIStoryBuildersLog = file.ReadToEnd().Split('\n');
+                if (AIStoryBuildersLog[AIStoryBuildersLog.Length - 1].Trim() == "")
+                {
+                    AIStoryBuildersLog = AIStoryBuildersLog.Take(AIStoryBuildersLog.Length - 1).ToArray();
+                }
+            }
 
             NotificationService.Notify(new NotificationMessage
                 {
