@@ -101,7 +101,7 @@ namespace AIStoryBuilders.Model
             await LoadAIStoryBuildersStoriesAsync();
 
             // Find the story in colAIStoryBuildersStory
-            AIStoryBuildersStory story = colAIStoryBuildersStory.Where(x => x.Id == paramAIStoryBuildersStory.Id).FirstOrDefault();
+            AIStoryBuildersStory story = colAIStoryBuildersStory.Where(x => x.Title == paramAIStoryBuildersStory.Title).FirstOrDefault();
 
             if (story != null)
             {
@@ -129,10 +129,6 @@ namespace AIStoryBuilders.Model
                 // Remove the story from colAIStoryBuildersStory
                 colAIStoryBuildersStory.Remove(story);
                 await SaveDatabaseAsync(colAIStoryBuildersStory);
-
-                // Delete the story's manifest
-                AIStoryBuildersManifestService AIStoryBuildersManifestService = new AIStoryBuildersManifestService(localStorage);
-                await AIStoryBuildersManifestService.DeleteManifestAsync(story.Title);
             }
         }
     }

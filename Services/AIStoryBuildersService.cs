@@ -16,22 +16,19 @@ namespace AIStoryBuilders.Services
         private LogService LogService { get; set; }
         private OrchestratorMethods OrchestratorMethods { get; set; }
         private AIStoryBuildersStoryService AIStoryBuildersStoryService { get; set; }
-        private AIStoryBuildersManifestService AIStoryBuildersManifestService { get; set; }
 
         public string BasePath = $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders";
         public AIStoryBuildersService(
             AppMetadata appMetadata,
             LogService _LogService,
             OrchestratorMethods _OrchestratorMethods,
-            AIStoryBuildersStoryService _AIStoryBuildersStoryService,
-            AIStoryBuildersManifestService _AIStoryBuildersManifestService
+            AIStoryBuildersStoryService _AIStoryBuildersStoryService
             )
         {
             _appMetadata = appMetadata;
             LogService = _LogService;
             OrchestratorMethods = _OrchestratorMethods;
             AIStoryBuildersStoryService = _AIStoryBuildersStoryService;
-            AIStoryBuildersManifestService = _AIStoryBuildersManifestService;
         }
 
         // Utility

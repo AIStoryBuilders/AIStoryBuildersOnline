@@ -9,6 +9,7 @@ using Location = AIStoryBuilders.Models.Location;
 using Story = AIStoryBuilders.Models.Story;
 using Timeline = AIStoryBuilders.Models.Timeline;
 using Chapter = AIStoryBuilders.Models.Chapter;
+using System.IO.Compression;
 
 namespace AIStoryBuilders.Services
 {
@@ -66,18 +67,6 @@ namespace AIStoryBuilders.Services
             CreateDirectory(CharactersPath);
             CreateDirectory(ChaptersPath);
             CreateDirectory(LocationsPath);
-
-            // Add Story to file
-            await AIStoryBuildersStoryService.AddStoryAsync(new AIStoryBuildersStory
-            {
-                Title = story.Title,
-                Style = story.Style,
-                Theme = story.Theme,
-                Synopsis = story.Synopsis
-            });
-
-            // Log
-            await LogService.WriteToLogAsync($"Story created {story.Title}");
 
             JSONStory ParsedNewStory = new JSONStory();
 
@@ -242,6 +231,23 @@ namespace AIStoryBuilders.Services
 
                 ChapterNumber++;
             }
+
+            // Add Story to file *****************************************************
+
+            string ZipFileBase64String = CreateZipFile($"{BasePath}/{story.Title}");
+
+            await AIStoryBuildersStoryService.LoadAIStoryBuildersStoriesAsync();
+            await AIStoryBuildersStoryService.AddStoryAsync(new AIStoryBuildersStory
+            {
+                Title = story.Title,
+                Style = story.Style,
+                Theme = story.Theme,
+                Synopsis = story.Synopsis,
+                ZipFile = ZipFileBase64String
+            });
+
+            // Log
+            await LogService.WriteToLogAsync($"Story created {story.Title}");
         }
 
         public async Task UpdateStory(Story story)
@@ -256,14 +262,54 @@ namespace AIStoryBuilders.Services
             story.Theme = story.Theme.Replace("|", "");
             story.Synopsis = story.Synopsis.Replace("|", "");
 
+            string ZipFileBase64String = CreateZipFile($"{BasePath}/{story.Title}");
+
             await AIStoryBuildersStoryService.UpdateStoryAsync(new AIStoryBuildersStory
             {
                 Id = story.Id,
                 Title = story.Title,
                 Style = story.Style,
                 Theme = story.Theme,
-                Synopsis = story.Synopsis
+                Synopsis = story.Synopsis,
+                ZipFile = ZipFileBase64String
             });
+        }
+
+        public string CreateZipFile(string storyPath)
+        {
+            string strZipFile = "";
+
+            // Create _TempZip
+            string tempZipPath = $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders/_TempZip";
+
+            if (!Directory.Exists(tempZipPath))
+            {
+                Directory.CreateDirectory(tempZipPath);
+            }
+            else
+            {
+                // Delete the temp directory
+                Directory.Delete(tempZipPath, true);
+
+                // Create the directory if it doesn't exist
+                if (!Directory.Exists(tempZipPath))
+                {
+                    Directory.CreateDirectory(tempZipPath);
+                }
+            }
+
+            string zipFilePath = $"{tempZipPath}/ZipFile.zip";
+
+            // Create a zip file from the directory
+            ZipFile.CreateFromDirectory(storyPath, zipFilePath);
+
+            // Read the Zip file into a byte array
+            byte[] zipFileContents = File.ReadAllBytes(zipFilePath);
+
+            // Convert ZipFile byte array to Base64 string
+            strZipFile = Convert.ToBase64String(zipFileContents);
+
+            return strZipFile;
         }
 
         public async Task DeleteStory(string StoryTitle)
