@@ -246,6 +246,24 @@
             // Get the .Zip file
             var ZipFileContents = objSelectedStory.ZipFile;
 
+            if(ZipFileContents == null)
+            {
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = "The Story is corrupted. Deleting Story",
+                    Duration = 4000
+                });
+
+                InProgress = false;
+
+                // Delete the Story from the database
+                await AIStoryBuildersService.DeleteStory(paramStory.Title);
+
+                return;
+            }
+
             // Extract the Zip file ****************************************************
             string BasePath = $"AIStoryBuilders/{paramStory.Title}";
             string extractPath = @"/TempZip";
