@@ -234,7 +234,8 @@ namespace AIStoryBuilders.Services
 
             // Add Story to file *****************************************************
 
-            string ZipFileBase64String = CreateZipFile($"{BasePath}/{story.Title}");
+            TextEvent?.Invoke(this, new TextEventArgs($"Update Database", 5));
+            string ZipFileBase64String = await CreateZipFile($"{BasePath}/{story.Title}");
 
             await AIStoryBuildersStoryService.LoadAIStoryBuildersStoriesAsync();
             await AIStoryBuildersStoryService.AddStoryAsync(new AIStoryBuildersStory
@@ -262,7 +263,8 @@ namespace AIStoryBuilders.Services
             story.Theme = story.Theme.Replace("|", "");
             story.Synopsis = story.Synopsis.Replace("|", "");
 
-            string ZipFileBase64String = CreateZipFile($"{BasePath}/{story.Title}");
+            TextEvent?.Invoke(this, new TextEventArgs($"Update Database", 5));
+            string ZipFileBase64String = await CreateZipFile($"{BasePath}/{story.Title}");
 
             await AIStoryBuildersStoryService.UpdateStoryAsync(new AIStoryBuildersStory
             {
@@ -275,7 +277,7 @@ namespace AIStoryBuilders.Services
             });
         }
 
-        public string CreateZipFile(string storyPath)
+        public async Task<string> CreateZipFile(string storyPath)
         {
             string strZipFile = "";
 
@@ -300,8 +302,11 @@ namespace AIStoryBuilders.Services
 
             string zipFilePath = $"{tempZipPath}/ZipFile.zip";
 
-            // Create a zip file from the directory
-            ZipFile.CreateFromDirectory(storyPath, zipFilePath);
+            await Task.Run(() =>
+            {
+                // Create a zip file from the directory
+                ZipFile.CreateFromDirectory(storyPath, zipFilePath);
+            });
 
             // Read the Zip file into a byte array
             byte[] zipFileContents = File.ReadAllBytes(zipFilePath);
