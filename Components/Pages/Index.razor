@@ -246,15 +246,15 @@
             // Get the .Zip file
             var ZipFileContents = objSelectedStory.ZipFile;
 
-            if(ZipFileContents == null)
+            if (ZipFileContents == null)
             {
                 NotificationService.Notify(new NotificationMessage
-                {
-                    Severity = NotificationSeverity.Error,
-                    Summary = "Error",
-                    Detail = "The Story is corrupted. Deleting Story",
-                    Duration = 4000
-                });
+                    {
+                        Severity = NotificationSeverity.Error,
+                        Summary = "Error",
+                        Detail = "The Story is corrupted. Deleting Story",
+                        Duration = 4000
+                    });
 
                 InProgress = false;
 
@@ -298,6 +298,34 @@
 
             var EditStoryResult = await dialogService.OpenAsync<StoryControl>($"{paramStory.Title}", parms,
             new DialogOptions() { Height = "720px", Width = "950px" });
+
+            if (paramStory != null)
+            {
+                try
+                {
+                    // Zip up any files and store in LocalStorage
+                    string ZipFileBase64String = CreateZipFile($"{BasePath}");
+
+                    await AIStoryBuildersStoryService.LoadAIStoryBuildersStoriesAsync();
+
+                    // Get the Story from the database
+                    var objStory = AIStoryBuildersStoryService.colAIStoryBuildersStory.Where(x => x.Title == paramStory.Title).FirstOrDefault();
+
+                    await AIStoryBuildersStoryService.UpdateStoryAsync(new AIStoryBuildersStory
+                        {
+                            Id = objStory.Id,
+                            Title = objStory.Title,
+                            Style = objStory.Style,
+                            Theme = objStory.Theme,
+                            Synopsis = objStory.Synopsis,
+                            ZipFile = ZipFileBase64String
+                        });
+                }
+                catch
+                {
+                    // Story could have been deleted
+                }
+            }
 
             colStorys = await AIStoryBuildersService.GetStorys();
 
@@ -395,6 +423,45 @@
             UtilityVisible = false;
             LogsVisible = false;
         }
+    }
+
+    // Utility
+
+    public string CreateZipFile(string storyPath)
+    {
+        string strZipFile = "";
+
+        // Create _TempZip
+        string tempZipPath = $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders/_TempZip";
+
+        if (!Directory.Exists(tempZipPath))
+        {
+            Directory.CreateDirectory(tempZipPath);
+        }
+        else
+        {
+            // Delete the temp directory
+            Directory.Delete(tempZipPath, true);
+
+            // Create the directory if it doesn't exist
+            if (!Directory.Exists(tempZipPath))
+            {
+                Directory.CreateDirectory(tempZipPath);
+            }
+        }
+
+        string zipFilePath = $"{tempZipPath}/ZipFile.zip";
+
+        // Create a zip file from the directory
+        ZipFile.CreateFromDirectory(storyPath, zipFilePath);
+
+        // Read the Zip file into a byte array
+        byte[] zipFileContents = File.ReadAllBytes(zipFilePath);
+
+        // Convert ZipFile byte array to Base64 string
+        strZipFile = Convert.ToBase64String(zipFileContents);
+
+        return strZipFile;
     }
 
     public void Dispose()
