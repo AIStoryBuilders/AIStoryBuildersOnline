@@ -43,6 +43,13 @@
             URL.revokeObjectURL(url);
         }
     </script>
+    <script>
+        window.setupBeforeUnload = function (callback) {
+            window.addEventListener("beforeunload", function (event) {
+                callback.invokeMethodAsync("HandleBeforeUnload");
+            });
+        };
+    </script>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
     <script>navigator.serviceWorker.register('service-worker.js');</script>

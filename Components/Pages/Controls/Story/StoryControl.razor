@@ -9,10 +9,14 @@
 @using AIStoryBuildersOnline.Components.Pages.Controls.Story
 @using AIStoryBuildersOnline.Components.Pages.Controls.Timelines;
 @using AIStoryBuilders.Services;
+@using System.IO.Compression;
 @using static AIStoryBuilders.AI.OrchestratorMethods
 @inherits OwningComponentBase
+@inject NavigationManager Navigation
+@inject IJSRuntime JsRuntime
 @inject DialogService dialogService
 @inject NotificationService NotificationService
+@inject AIStoryBuildersStoryService AIStoryBuildersStoryService
 @implements IDisposable
 <PageTitle>@objStory.Title</PageTitle>
 
@@ -38,6 +42,7 @@
 @code {
     [Parameter] public Story objStory { get; set; }
 
+    private IDisposable registration;
     StoryEdit ctrlStoryEdit;
     CharactersEdit CtrlCharactersEdit;
     TimelinesControl timelinesControl;
@@ -50,8 +55,13 @@
 
     List<Character> colCharacters = new List<Character>();
 
+    private DotNetObjectReference<StoryControl> objRef;
+
     protected override async Task OnInitializedAsync()
     {
+        objRef = DotNetObjectReference.Create(this);
+        await JsRuntime.InvokeVoidAsync("setupBeforeUnload", objRef);
+
         await Task.Run(() =>
         {
             AIStoryBuildersService = (AIStoryBuildersService)ScopedServices.GetService(typeof(AIStoryBuildersService));
@@ -59,6 +69,59 @@
 
             OrchestratorMethods.ReadTextEvent += OrchestratorMethods_ReadTextEvent;
         });
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            registration =
+                Navigation.RegisterLocationChangingHandler(OnLocationChanging);
+        }
+    }
+
+    private ValueTask OnLocationChanging(LocationChangingContext context)
+    {
+        // Get the base URL
+        string baseUrl = Navigation.BaseUri;
+
+        // Detect that user is going to counter page
+        if (context.TargetLocation != baseUrl)
+        {
+            // Zip up any files and store in LocalStorage
+            string BasePath = $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders";
+            string ZipFileBase64String = CreateZipFile($"{BasePath}/{objStory.Title}");
+
+            Task.Run(async () => await AIStoryBuildersStoryService.UpdateStoryAsync(new AIStoryBuildersStory
+                {
+                    Id = objStory.Id,
+                    Title = objStory.Title,
+                    Style = objStory.Style,
+                    Theme = objStory.Theme,
+                    Synopsis = objStory.Synopsis,
+                    ZipFile = ZipFileBase64String
+                }));
+        }
+
+        return ValueTask.CompletedTask;
+    }
+
+    [JSInvokable]
+    public async Task HandleBeforeUnload()
+    {
+        // Zip up any files and store in LocalStorage
+        string BasePath = $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders";
+        string ZipFileBase64String = CreateZipFile($"{BasePath}/{objStory.Title}");
+
+        await AIStoryBuildersStoryService.UpdateStoryAsync(new AIStoryBuildersStory
+            {
+                Id = objStory.Id,
+                Title = objStory.Title,
+                Style = objStory.Style,
+                Theme = objStory.Theme,
+                Synopsis = objStory.Synopsis,
+                ZipFile = ZipFileBase64String
+            });
     }
 
     private async Task SaveStory()
@@ -155,8 +218,48 @@
             });
     }
 
+    // Utility
+
+    public string CreateZipFile(string storyPath)
+    {
+        string strZipFile = "";
+
+        // Create _TempZip
+        string tempZipPath = $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders/_TempZip";
+
+        if (!Directory.Exists(tempZipPath))
+        {
+            Directory.CreateDirectory(tempZipPath);
+        }
+        else
+        {
+            // Delete the temp directory
+            Directory.Delete(tempZipPath, true);
+
+            // Create the directory if it doesn't exist
+            if (!Directory.Exists(tempZipPath))
+            {
+                Directory.CreateDirectory(tempZipPath);
+            }
+        }
+
+        string zipFilePath = $"{tempZipPath}/ZipFile.zip";
+
+        // Create a zip file from the directory
+        ZipFile.CreateFromDirectory(storyPath, zipFilePath);
+
+        // Read the Zip file into a byte array
+        byte[] zipFileContents = File.ReadAllBytes(zipFilePath);
+
+        // Convert ZipFile byte array to Base64 string
+        strZipFile = Convert.ToBase64String(zipFileContents);
+
+        return strZipFile;
+    }
+
     public void Dispose()
     {
+        objRef?.Dispose();
         OrchestratorMethods.ReadTextEvent -= OrchestratorMethods_ReadTextEvent;
     }
 }
