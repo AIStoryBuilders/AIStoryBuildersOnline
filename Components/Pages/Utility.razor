@@ -12,6 +12,7 @@
 @using OpenAI.FineTuning;
 @using OpenAI.Models;
 @using System.Net.Http
+@using System.IO.Compression;
 @using Microsoft.AspNetCore.Components.Forms;
 @inherits OwningComponentBase
 @inject HttpClient Http
@@ -19,6 +20,7 @@
 @inject DialogService DialogService
 @inject SettingsService SettingsService
 @inject OrchestratorMethods OrchestratorMethods
+@inject AIStoryBuildersStoryService AIStoryBuildersStoryService
 @inject IJSRuntime JsRuntime
 
 <h2>Utility</h2>
@@ -176,9 +178,53 @@
     async Task OnStoryChange()
     {
         InProgress = true;
-        TrainingLoaded = false;
-        colTrainingData = await AIStoryBuildersService.CreateTrainingDataAsync(objStory);
-        TrainingLoaded = true;
+
+        // Get the Zip file from the database
+        await AIStoryBuildersStoryService.LoadAIStoryBuildersStoriesAsync();
+        var ColStories = AIStoryBuildersStoryService.colAIStoryBuildersStory;
+
+        // Find the Story
+        var objSelectedStory = ColStories.Where(x => x.Title == objStory.Title).FirstOrDefault();
+
+        // Get the .Zip file
+        var ZipFileContents = objSelectedStory.ZipFile;
+
+        if (ZipFileContents != null)
+        {
+            // Extract the Zip file ****************************************************
+            string BasePath = $"AIStoryBuilders/{objStory.Title}";
+            string extractPath = @"/TempZip";
+
+            // Delete the directories if they exists
+            if (Directory.Exists(BasePath))
+            {
+                Directory.Delete(BasePath, true);
+            }
+
+            if (Directory.Exists(extractPath))
+            {
+                Directory.Delete(extractPath, true);
+            }
+
+            // Create the directories
+            Directory.CreateDirectory(BasePath);
+
+            Directory.CreateDirectory(extractPath);
+
+            // Convert the Base64 string to a byte array
+            byte[] exportFileBytes = Convert.FromBase64String(ZipFileContents);
+
+            // Write the byte array to a file
+            await File.WriteAllBytesAsync($"{extractPath}/ZipFiles.zip", exportFileBytes);
+
+            // Extract the zip file
+            ZipFile.ExtractToDirectory($"{extractPath}/ZipFiles.zip", BasePath);
+
+            TrainingLoaded = false;
+            colTrainingData = await AIStoryBuildersService.CreateTrainingDataAsync(objStory);
+            TrainingLoaded = true;
+        }
+
         InProgress = false;
     }
 
