@@ -45,6 +45,11 @@ namespace AIStoryBuilders.AI
             string Organization = SettingsService.Organization;
             string ApiKey = SettingsService.ApiKey;
 
+            if(HttpClient == null)
+            {
+                HttpClient = new HttpClient();
+            }
+
             var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
 
             // Get the model details
