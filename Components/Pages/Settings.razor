@@ -103,7 +103,7 @@
             }
 
             // Update Settings
-            await SettingsService.SaveSettingsAsync("", ApiKey, AIModel);
+            await SettingsService.SaveSettingsAsync("", ApiKey, AIModel, "", "");
 
             // Test API Key
             var result = await OrchestratorMethods.TestAccess(AIModel);

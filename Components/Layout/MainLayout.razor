@@ -6,13 +6,21 @@
 @using Radzen.Blazor
 @inject AppMetadata _AppMetadata
 @inject LogService LogService
+@inject HttpClient Http
 <RadzenDialog />
 <RadzenNotification />
 <RadzenTooltip />
 <RadzenContextMenu />
 <main>
     <div class="top-row px-4">
-        <a href="https://AIStoryBuilders.com/" target="_blank">AIStoryBuilders.com</a>
+        @if (UpdateAvailable)
+        {
+            <a href="https://documentation.aistorybuilders.com/" target="_blank">* Update Available *</a>
+        }
+        else
+        {
+            <a href="https://AIStoryBuilders.com/" target="_blank">AIStoryBuilders.com</a>
+        }
     </div>
 
     <article class="content px-4">
@@ -27,7 +35,9 @@
     </div>
 </RadzenFooter>
 @code {
+    bool UpdateAvailable = false;
     private string versionLocal = "";
+    private string versionPublished = "";
     private string year = DateTime.Now.Year.ToString();
 
     protected override async Task OnInitializedAsync()
@@ -40,10 +50,37 @@
             var Organization = SettingsService.Organization;
             var ApiKey = SettingsService.ApiKey;
             var AIModel = SettingsService.AIModel;
+            var GUID = SettingsService.GUID;
 
             versionLocal = _AppMetadata.Version;
 
             await LogService.WriteToLogAsync("Application started at " + DateTime.Now);
+
+            try
+            {
+                // Call the API at https://aistorybuilders.com/api/version/GetVersion
+                // to get the version
+
+                if (GUID==null || GUID=="")
+                {
+                    GUID = "{missing}";
+                }
+
+                var response = await Http.GetAsync($"https://aistorybuilders.com/api/VersionOnline/getversiononline?paramGUID={GUID}&paramCurrentVersion={versionLocal}");
+                response.EnsureSuccessStatusCode();
+                var result = await response.Content.ReadAsStringAsync();
+                versionPublished = result;
+
+                // Use the version number from the API if it is greater than the local version
+                if (ConvertToInteger(versionPublished) > ConvertToInteger(versionLocal))
+                {
+                    UpdateAvailable = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
         }
         catch (Exception ex)
         {

@@ -10,6 +10,9 @@ namespace AIStoryBuilders.Model
         public string Organization { get; set; }
         public string ApiKey { get; set; }
         public string AIModel { get; set; }
+        public string GUID { get; set; }
+        public string AIType { get; set; }
+        public string DeploymentName { get; set; }
     }
 
     public class SettingsService
@@ -19,6 +22,9 @@ namespace AIStoryBuilders.Model
         public string Organization { get; set; }
         public string ApiKey { get; set; }
         public string AIModel { get; set; }
+        public string GUID { get; set; }
+        public string AIType { get; set; }
+        public string DeploymentName { get; set; }
 
         private ILocalStorageService localStorage;
 
@@ -40,6 +46,9 @@ namespace AIStoryBuilders.Model
                 AIStoryBuildersSettings.Organization = "";
                 AIStoryBuildersSettings.ApiKey = "";
                 AIStoryBuildersSettings.AIModel = "gpt-4-turbo-preview";
+                AIStoryBuildersSettings.GUID = new Guid().ToString();
+                AIStoryBuildersSettings.AIType = "";
+                AIStoryBuildersSettings.DeploymentName = "";
 
                 await localStorage.SetItemAsync("AIStoryBuildersSettings", AIStoryBuildersSettings);
             }
@@ -47,15 +56,20 @@ namespace AIStoryBuilders.Model
             Organization = AIStoryBuildersSettings.Organization;
             ApiKey = AIStoryBuildersSettings.ApiKey;
             AIModel = AIStoryBuildersSettings.AIModel;
+            GUID = AIStoryBuildersSettings.GUID;
+            AIType = AIStoryBuildersSettings.AIType;
+            DeploymentName = AIStoryBuildersSettings.DeploymentName;
         }
 
-        public async Task SaveSettingsAsync(string paramOrganization, string paramApiKey, string paramAIModel)
+        public async Task SaveSettingsAsync(string paramOrganization, string paramApiKey, string paramAIModel, string paramAIType, string paramDeploymentName)
         {
             var AIStoryBuildersSettings = new Settings();
 
             AIStoryBuildersSettings.Organization = paramOrganization;
             AIStoryBuildersSettings.ApiKey = paramApiKey;
             AIStoryBuildersSettings.AIModel = paramAIModel;
+            AIStoryBuildersSettings.AIType = paramAIType;
+            AIStoryBuildersSettings.DeploymentName = paramDeploymentName;
 
             await localStorage.SetItemAsync("AIStoryBuildersSettings", AIStoryBuildersSettings);
 
@@ -63,6 +77,8 @@ namespace AIStoryBuilders.Model
             Organization = paramOrganization;
             ApiKey = paramApiKey;
             AIModel = paramAIModel;
+            AIType = paramAIType;
+            DeploymentName = paramDeploymentName;
         }
     }
 }

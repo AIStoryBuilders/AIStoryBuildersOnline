@@ -139,7 +139,7 @@ else
 
         if (!EnabledToolbar)
         {
-            var confirmResult = await dialogService.Alert("Editing Initialized. Please try again.", "Editing", new AlertOptions() { Height = "25px", Width = "350px", ShowTitle = false, OkButtonText = "Ok" });
+            var confirmResult = await dialogService.Alert("Editing Now Initialized. Try again.", "Editing", new AlertOptions() { Height = "25px", Width = "350px", ShowTitle = false, OkButtonText = "Ok" });
 
             EnabledToolbar = true;
             await SetToolbarEnabledToTrue();
