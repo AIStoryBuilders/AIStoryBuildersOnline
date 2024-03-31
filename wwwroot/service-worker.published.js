@@ -24,8 +24,33 @@ async function onInstall(event) {
         .filter(asset => offlineAssetsInclude.some(pattern => pattern.test(asset.url)))
         .filter(asset => !offlineAssetsExclude.some(pattern => pattern.test(asset.url)))
         .map(asset => new Request(asset.url, { integrity: asset.hash, cache: 'no-cache' }));
-    await caches.open(cacheName).then(cache => cache.addAll(assetsRequests));
+
+    // Open the cache and add assets
+    await caches.open(cacheName).then(async (cache) => {
+        await cache.addAll(assetsRequests);
+
+        // Activate the new service worker immediately
+        self.skipWaiting();
+
+        // Prompt the user to reload the page
+        if (self.clients && self.clients.claim) {
+            self.clients.claim();
+            self.clients.matchAll().then((clients) => {
+                clients.forEach((client) => {
+                    client.postMessage({ type: 'new-version-available' });
+                });
+            });
+        }
+    });
 }
+
+// Listen for messages from the client
+self.addEventListener('message', (event) => {
+    if (event.data.type === 'reload-page') {
+        // Reload the page when requested by the client
+        window.location.reload();
+    }
+});
 
 async function onActivate(event) {
     console.info('Service worker: Activate');
