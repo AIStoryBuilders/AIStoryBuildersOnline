@@ -46,7 +46,7 @@ namespace AIStoryBuilders.Model
                 AIStoryBuildersSettings.Organization = "";
                 AIStoryBuildersSettings.ApiKey = "";
                 AIStoryBuildersSettings.AIModel = "gpt-4-turbo-preview";
-                AIStoryBuildersSettings.GUID = new Guid().ToString();
+                AIStoryBuildersSettings.GUID = Guid.NewGuid().ToString();
                 AIStoryBuildersSettings.AIType = "";
                 AIStoryBuildersSettings.DeploymentName = "";
 
