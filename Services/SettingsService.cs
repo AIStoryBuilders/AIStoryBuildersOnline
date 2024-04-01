@@ -61,15 +61,17 @@ namespace AIStoryBuilders.Model
             DeploymentName = AIStoryBuildersSettings.DeploymentName;
         }
 
-        public async Task SaveSettingsAsync(string paramOrganization, string paramApiKey, string paramAIModel, string paramAIType, string paramDeploymentName)
+        public async Task SaveSettingsAsync(string paramOrganization, string paramApiKey, string paramAIModel, string paramAIType, string paramGUID, string paramDeploymentName)
         {
             var AIStoryBuildersSettings = new Settings();
 
             AIStoryBuildersSettings.Organization = paramOrganization;
             AIStoryBuildersSettings.ApiKey = paramApiKey;
             AIStoryBuildersSettings.AIModel = paramAIModel;
+            AIStoryBuildersSettings.GUID = paramGUID;
             AIStoryBuildersSettings.AIType = paramAIType;
             AIStoryBuildersSettings.DeploymentName = paramDeploymentName;
+
 
             await localStorage.SetItemAsync("AIStoryBuildersSettings", AIStoryBuildersSettings);
 
@@ -78,6 +80,7 @@ namespace AIStoryBuilders.Model
             ApiKey = paramApiKey;
             AIModel = paramAIModel;
             AIType = paramAIType;
+            GUID = paramGUID;
             DeploymentName = paramDeploymentName;
         }
     }
