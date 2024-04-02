@@ -8,42 +8,6 @@ namespace AIStoryBuilders.Model
         // Properties
         public string[] AIStoryBuildersLog { get; set; }
 
-        // Constructor
-        public LogService()
-        {
-            var AIStoryBuildersLogPath =
-            $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders/AIStoryBuildersLog.csv";
-
-            // Read the lines from the .csv file
-            using (var file = new System.IO.StreamReader(AIStoryBuildersLogPath))
-            {
-                AIStoryBuildersLog = file.ReadToEnd().Split('\n');
-                if (AIStoryBuildersLog[AIStoryBuildersLog.Length - 1].Trim() == "")
-                {
-                    AIStoryBuildersLog = AIStoryBuildersLog.Take(AIStoryBuildersLog.Length - 1).ToArray();
-                }
-            }
-        }
-
-        public async Task loadLogAsync()
-        {
-            await Task.Run(() =>
-            {
-                var AIStoryBuildersLogPath =
-            $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders/AIStoryBuildersLog.csv";
-
-            // Read the lines from the .csv file
-            using (var file = new System.IO.StreamReader(AIStoryBuildersLogPath))
-            {
-                AIStoryBuildersLog = file.ReadToEnd().Split('\n');
-                if (AIStoryBuildersLog[AIStoryBuildersLog.Length - 1].Trim() == "")
-                {
-                    AIStoryBuildersLog = AIStoryBuildersLog.Take(AIStoryBuildersLog.Length - 1).ToArray();
-                }
-            }
-            });
-        }
-
         public async Task WriteToLogAsync(string LogText)
         {
             await Task.Run(() =>

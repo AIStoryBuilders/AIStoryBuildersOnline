@@ -41,9 +41,10 @@
         using (var file = new System.IO.StreamReader(AIStoryBuildersLogPath))
         {
             AIStoryBuildersLog = file.ReadToEnd().Split('\n');
+
             if (AIStoryBuildersLog[AIStoryBuildersLog.Length - 1].Trim() == "")
             {
-                AIStoryBuildersLog = AIStoryBuildersLog.Take(AIStoryBuildersLog.Length - 1).ToArray();
+                AIStoryBuildersLog = AIStoryBuildersLog.Distinct().Take(AIStoryBuildersLog.Length - 1).ToArray();
             }
         }
     }
