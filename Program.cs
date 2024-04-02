@@ -58,7 +58,7 @@ namespace AIStoryBuildersOnline
             {
                 using (var streamWriter = new StreamWriter(filePath))
                 {
-                    streamWriter.WriteLine("Application started at " + DateTime.Now);
+                    streamWriter.WriteLine("Application started at " + DateTime.Now + " [" + DateTime.Now.Ticks.ToString() + "]");
                 }
             }
             else
