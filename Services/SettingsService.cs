@@ -52,6 +52,15 @@ namespace AIStoryBuilders.Model
 
                 await localStorage.SetItemAsync("AIStoryBuildersSettings", AIStoryBuildersSettings);
             }
+            else
+            {
+                // Create GUID if it is blank
+                if (string.IsNullOrEmpty(AIStoryBuildersSettings.GUID))
+                {
+                    AIStoryBuildersSettings.GUID = Guid.NewGuid().ToString();
+                    await localStorage.SetItemAsync("AIStoryBuildersSettings", AIStoryBuildersSettings);
+                }
+            }
 
             Organization = AIStoryBuildersSettings.Organization;
             ApiKey = AIStoryBuildersSettings.ApiKey;
