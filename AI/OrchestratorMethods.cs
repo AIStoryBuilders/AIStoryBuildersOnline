@@ -34,30 +34,122 @@ namespace AIStoryBuilders.AI
             HttpClient = _HttpClient;
         }
 
+        // OpenAI Service
+
+        #region public async Task<OpenAIClient> CreateOpenAIClient()
+        public async Task<OpenAIClient> CreateOpenAIClient()
+        {
+            await SettingsService.LoadSettingsAsync();
+
+            string Organization = SettingsService.Organization;
+            string ApiKey = SettingsService.ApiKey;
+            string Endpoint = SettingsService.Endpoint;
+            string ApiVersion = SettingsService.ApiVersion;
+            string AIEmbeddingModel = SettingsService.AIEmbeddingModel;
+            string AIModel = SettingsService.AIModel;
+
+            if (HttpClient == null)
+            {
+                HttpClient = new HttpClient();
+            }
+
+            // Create a new OpenAIClient object
+            try
+            {
+                HttpClient.Timeout = TimeSpan.FromSeconds(520);
+            }
+            catch
+            {
+                // Do nothing
+            }
+
+            OpenAIClient api;
+
+            if (SettingsService.AIType == "OpenAI")
+            {
+                api = new OpenAIClient(new OpenAIAuthentication(ApiKey, Organization), null, HttpClient);
+            }
+            else
+            {
+                var auth = new OpenAIAuthentication(ApiKey);
+                var settings = new OpenAIClientSettings(resourceName: Endpoint, deploymentId: AIModel, apiVersion: ApiVersion);
+                api = new OpenAIClient(auth, settings, HttpClient);
+            }
+
+            return api;
+        }
+        #endregion
+
+        #region public async Task<OpenAIClient> CreateEmbeddingOpenAIClient()
+        public async Task<OpenAIClient> CreateEmbeddingOpenAIClient()
+        {
+            await SettingsService.LoadSettingsAsync();
+
+            string Organization = SettingsService.Organization;
+            string ApiKey = SettingsService.ApiKey;
+            string Endpoint = SettingsService.Endpoint;
+            string ApiVersion = SettingsService.ApiVersion;
+            string AIEmbeddingModel = SettingsService.AIEmbeddingModel;
+            string AIModel = SettingsService.AIModel;
+
+            if (HttpClient == null)
+            {
+                HttpClient = new HttpClient();
+            }
+
+            // Create a new OpenAIClient object
+            try
+            {
+                HttpClient.Timeout = TimeSpan.FromSeconds(520);
+            }
+            catch
+            {
+                // Do nothing
+            }
+
+            OpenAIClient api;
+
+            if (SettingsService.AIType == "OpenAI")
+            {
+                api = new OpenAIClient(new OpenAIAuthentication(ApiKey, Organization), null, HttpClient);
+            }
+            else
+            {
+                var auth = new OpenAIAuthentication(ApiKey);
+                var settings = new OpenAIClientSettings(resourceName: Endpoint, deploymentId: AIEmbeddingModel, apiVersion: ApiVersion);
+                api = new OpenAIClient(auth, settings, HttpClient);
+            }
+
+            return api;
+        }
+        #endregion
+
         // Memory and Vectors
 
         #region public async Task<string> GetVectorEmbedding(string EmbeddingContent, bool Combine)
         public async Task<string> GetVectorEmbedding(string EmbeddingContent, bool Combine)
         {
             // **** Call OpenAI and get embeddings for the memory text
+            // Create an instance of the OpenAI client
+            OpenAIClient api = await CreateEmbeddingOpenAIClient();
 
             await SettingsService.LoadSettingsAsync();
-            string Organization = SettingsService.Organization;
-            string ApiKey = SettingsService.ApiKey;
-
-            if(HttpClient == null)
-            {
-                HttpClient = new HttpClient();
-            }
-
-            var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
 
             // Get the model details
-            var model = await api.ModelsEndpoint.GetModelDetailsAsync("text-embedding-ada-002");
+            OpenAI.Models.Model model = new OpenAI.Models.Model("text-embedding-ada-002");
+
+            if (SettingsService.AIType != "OpenAI")
+            {
+                // Azure OpenAI - use the embedding model from the settings
+                model = new OpenAI.Models.Model(SettingsService.AIEmbeddingModel);
+            }
+
             // Get embeddings for the text
             var embeddings = await api.EmbeddingsEndpoint.CreateEmbeddingAsync(EmbeddingContent, model);
+
             // Get embeddings as an array of floats
             var EmbeddingVectors = embeddings.Data[0].Embedding.Select(d => (float)d).ToArray();
+
             // Loop through the embeddings
             List<VectorData> AllVectors = new List<VectorData>();
             for (int i = 0; i < EmbeddingVectors.Length; i++)
@@ -68,6 +160,7 @@ namespace AIStoryBuilders.AI
                 };
                 AllVectors.Add(embeddingVector);
             }
+
             // Convert the floats to a single string
             var VectorsToSave = "[" + string.Join(",", AllVectors.Select(x => x.VectorValue)) + "]";
 
@@ -87,11 +180,22 @@ namespace AIStoryBuilders.AI
         {
             // **** Call OpenAI and get embeddings for the memory text
             // Create an instance of the OpenAI client
-            var api = new OpenAIClient(new OpenAIAuthentication(SettingsService.ApiKey), client: HttpClient);
+            OpenAIClient api = await CreateEmbeddingOpenAIClient();
+
+            await SettingsService.LoadSettingsAsync();
+
             // Get the model details
-            var model = await api.ModelsEndpoint.GetModelDetailsAsync("text-embedding-ada-002");
+            OpenAI.Models.Model model = new OpenAI.Models.Model("text-embedding-ada-002");
+
+            if (SettingsService.AIType != "OpenAI")
+            {
+                // Azure OpenAI - use the embedding model from the settings
+                model = new OpenAI.Models.Model(SettingsService.AIEmbeddingModel);
+            }
+
             // Get embeddings for the text
             var embeddings = await api.EmbeddingsEndpoint.CreateEmbeddingAsync(EmbeddingContent, model);
+
             // Get embeddings as an array of floats
             var EmbeddingVectors = embeddings.Data[0].Embedding.Select(d => (float)d).ToArray();
 

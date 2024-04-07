@@ -12,7 +12,9 @@ namespace AIStoryBuilders.Model
         public string AIModel { get; set; }
         public string GUID { get; set; }
         public string AIType { get; set; }
-        public string DeploymentName { get; set; }
+        public string Endpoint { get; set; }
+        public string AIEmbeddingModel { get; set; }
+        public string ApiVersion { get; set; }
     }
 
     public class SettingsService
@@ -24,7 +26,9 @@ namespace AIStoryBuilders.Model
         public string AIModel { get; set; }
         public string GUID { get; set; }
         public string AIType { get; set; }
-        public string DeploymentName { get; set; }
+        public string Endpoint { get; set; }
+        public string AIEmbeddingModel { get; set; }
+        public string ApiVersion { get; set; }
 
         private ILocalStorageService localStorage;
 
@@ -48,7 +52,9 @@ namespace AIStoryBuilders.Model
                 AIStoryBuildersSettings.AIModel = "gpt-4-turbo-preview";
                 AIStoryBuildersSettings.GUID = Guid.NewGuid().ToString();
                 AIStoryBuildersSettings.AIType = "";
-                AIStoryBuildersSettings.DeploymentName = "";
+                AIStoryBuildersSettings.Endpoint = "";
+                AIStoryBuildersSettings.ApiVersion = "";
+                AIStoryBuildersSettings.AIEmbeddingModel = "";                
 
                 await localStorage.SetItemAsync("AIStoryBuildersSettings", AIStoryBuildersSettings);
             }
@@ -60,6 +66,13 @@ namespace AIStoryBuilders.Model
                     AIStoryBuildersSettings.GUID = Guid.NewGuid().ToString();
                     await localStorage.SetItemAsync("AIStoryBuildersSettings", AIStoryBuildersSettings);
                 }
+
+                // Set if AIType is blank
+                if (AIStoryBuildersSettings.AIType == null || AIStoryBuildersSettings.AIType == "")
+                {
+                    AIStoryBuildersSettings.AIType = "OpenAI";
+                    await localStorage.SetItemAsync("AIStoryBuildersSettings", AIStoryBuildersSettings);
+                }
             }
 
             Organization = AIStoryBuildersSettings.Organization;
@@ -67,10 +80,12 @@ namespace AIStoryBuilders.Model
             AIModel = AIStoryBuildersSettings.AIModel;
             GUID = AIStoryBuildersSettings.GUID;
             AIType = AIStoryBuildersSettings.AIType;
-            DeploymentName = AIStoryBuildersSettings.DeploymentName;
+            Endpoint = AIStoryBuildersSettings.Endpoint;
+            ApiVersion = AIStoryBuildersSettings.ApiVersion;
+            AIEmbeddingModel = AIStoryBuildersSettings.AIEmbeddingModel;
         }
 
-        public async Task SaveSettingsAsync(string paramOrganization, string paramApiKey, string paramAIModel, string paramAIType, string paramGUID, string paramDeploymentName)
+        public async Task SaveSettingsAsync(string paramOrganization, string paramApiKey, string paramAIModel, string paramAIType, string paramGUID, string paramEndpoint, string paramApiVersion, string paramAIEmbeddingModel)
         {
             var AIStoryBuildersSettings = new Settings();
 
@@ -79,7 +94,9 @@ namespace AIStoryBuilders.Model
             AIStoryBuildersSettings.AIModel = paramAIModel;
             AIStoryBuildersSettings.GUID = paramGUID;
             AIStoryBuildersSettings.AIType = paramAIType;
-            AIStoryBuildersSettings.DeploymentName = paramDeploymentName;
+            AIStoryBuildersSettings.Endpoint = paramEndpoint;
+            AIStoryBuildersSettings.ApiVersion = paramApiVersion;
+            AIStoryBuildersSettings.AIEmbeddingModel = paramAIEmbeddingModel;
 
 
             await localStorage.SetItemAsync("AIStoryBuildersSettings", AIStoryBuildersSettings);
@@ -90,7 +107,9 @@ namespace AIStoryBuilders.Model
             AIModel = paramAIModel;
             AIType = paramAIType;
             GUID = paramGUID;
-            DeploymentName = paramDeploymentName;
+            Endpoint = paramEndpoint;
+            ApiVersion = paramApiVersion;
+            AIEmbeddingModel = paramAIEmbeddingModel;
         }
     }
 }

@@ -15,23 +15,11 @@ namespace AIStoryBuilders.AI
         #region public async Task<bool> TestAccess(string GPTModel)
         public async Task<bool> TestAccess(string GPTModel)
         {
-            await SettingsService.LoadSettingsAsync();
-            string Organization = SettingsService.Organization;
-            string ApiKey = SettingsService.ApiKey;
             string SystemMessage = "";
 
             await LogService.WriteToLogAsync($"TestAccess using {GPTModel} - Start");
 
-            try
-            {
-                HttpClient.Timeout = TimeSpan.FromSeconds(520);
-            }
-            catch
-            {
-                // Do nothing
-            }
-
-            var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
+            OpenAIClient api = await CreateOpenAIClient();
 
             // Create a colection of chatPrompts
             ChatResponse ChatResponseResult = new ChatResponse();
@@ -67,6 +55,21 @@ namespace AIStoryBuilders.AI
             // *****************************************************
 
             await LogService.WriteToLogAsync($"TotalTokens: {ChatResponseResult.Usage.TotalTokens} - ChatResponseResult - {ChatResponseResult.FirstChoice.Message.Content}");
+
+            if (SettingsService.AIType != "OpenAI")
+            {
+                try
+                {
+                    // Azure OpenAI - Test the embedding model
+                    string VectorEmbedding = await GetVectorEmbedding("This is a test for embedding", false);
+                }
+                catch (Exception ex)
+                {
+                    await LogService.WriteToLogAsync($"Azure OpenAI - Test the embedding model - Error: {ex.Message}");
+
+                    throw new Exception("Error: You must set a proper Azure OpenAI embedding model");
+                }
+            }
 
             return true;
         }
