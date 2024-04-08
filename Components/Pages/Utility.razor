@@ -398,9 +398,8 @@
                 conversations.Select(conversation => conversation.ToString()));
 
             // Upload to OpenAI
+            var api = await OrchestratorMethods.CreateOpenAIClient();
 
-            // Upload the file to OpenAI API
-            var api = new OpenAIClient(new OpenAIAuthentication(ApiKey, Organization));
             var fileData = await api.FilesEndpoint.UploadFileAsync(TempTrainingDataFile, "fine-tune");
 
             NotificationService.Notify(new NotificationMessage
@@ -489,7 +488,8 @@
 
     private async Task CreateFineTuneJob(FileResponse paramaFile)
     {
-        var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: Http);
+        var api = await OrchestratorMethods.CreateOpenAIClient();
+
         var request = new CreateFineTuneJobRequest("gpt-3.5-turbo", paramaFile);
 
         // Create a fine-tuning job using the OpenAI API
