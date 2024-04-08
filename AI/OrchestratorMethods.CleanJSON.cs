@@ -26,7 +26,7 @@ namespace AIStoryBuilders.AI
 
             // Create a new OpenAIClient object
             // with the provided API key and organization
-            var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
+            OpenAIClient api = await CreateOpenAIClient();
 
             // Create a colection of chatPrompts
             ChatResponse ChatResponseResult = new ChatResponse();
@@ -58,17 +58,20 @@ namespace AIStoryBuilders.AI
                 presencePenalty: 0);
 
             // Check Moderation
-            var ModerationResult = await api.ModerationsEndpoint.GetModerationAsync(SystemMessage);
-
-            if (ModerationResult)
+            if (SettingsService.AIType == "OpenAI")
             {
-                ModerationsResponse moderationsResponse = await api.ModerationsEndpoint.CreateModerationAsync(new ModerationsRequest(SystemMessage));
+                var ModerationResult = await api.ModerationsEndpoint.GetModerationAsync(SystemMessage);
 
-                // Serailize the ModerationsResponse
-                string ModerationsResponseString = JsonConvert.SerializeObject(moderationsResponse.Results.FirstOrDefault().Categories);
+                if (ModerationResult)
+                {
+                    ModerationsResponse moderationsResponse = await api.ModerationsEndpoint.CreateModerationAsync(new ModerationsRequest(SystemMessage));
 
-                await LogService.WriteToLogAsync($"OpenAI Moderation flagged the content: [{SystemMessage}] as violating its policies: {ModerationsResponseString}");
-                ReadTextEvent?.Invoke(this, new ReadTextEventArgs($"WARNING! OpenAI Moderation flagged the content as violating its policies. See the logs for more details.", 30));
+                    // Serailize the ModerationsResponse
+                    string ModerationsResponseString = JsonConvert.SerializeObject(moderationsResponse.Results.FirstOrDefault().Categories);
+
+                    await LogService.WriteToLogAsync($"OpenAI Moderation flagged the content: [{SystemMessage}] as violating its policies: {ModerationsResponseString}");
+                    ReadTextEvent?.Invoke(this, new ReadTextEventArgs($"WARNING! OpenAI Moderation flagged the content as violating its policies. See the logs for more details.", 30));
+                }
             }
 
             ChatResponseResult = await api.ChatEndpoint.GetCompletionAsync(FinalChatRequest);

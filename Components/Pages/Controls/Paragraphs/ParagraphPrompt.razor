@@ -41,7 +41,23 @@
 
     protected override async Task OnInitializedAsync()
     {
-        colAIStoryBuilderModel = await OrchestratorMethods.ListAllModelsAsync();
+        await SettingsService.LoadSettingsAsync();
+
+        if (SettingsService.AIType == "OpenAI")
+        {
+            colAIStoryBuilderModel = await OrchestratorMethods.ListAllModelsAsync();
+        }
+        else
+        {
+            AIStoryBuilderModel objAIStoryBuilderModel = new AIStoryBuilderModel();
+            objAIStoryBuilderModel.ModelId = SettingsService.AIModel;
+            objAIStoryBuilderModel.ModelName = SettingsService.AIModel;
+
+            colAIStoryBuilderModel = new List<AIStoryBuilderModel>()
+                {
+                    objAIStoryBuilderModel
+                };
+        }
 
         // Set the default AI Model
         await SettingsService.LoadSettingsAsync();

@@ -20,11 +20,9 @@ namespace AIStoryBuilders.AI
         public async Task<List<AIStoryBuilderModel>> ListFineTunedModelsAsync()
         {
             await SettingsService.LoadSettingsAsync();
-            string Organization = SettingsService.Organization;
-            string ApiKey = SettingsService.ApiKey;
 
             // Create a new OpenAIClient object
-            var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
+            OpenAIClient api = await CreateOpenAIClient();
 
             // Fetch the list of models using the OpenAI API
             var models =
@@ -139,21 +137,7 @@ namespace AIStoryBuilders.AI
         #region public async Task DeleteFineTuneModelAsync(AIStoryBuilderModel paramaModel)
         public async Task DeleteFineTuneModelAsync(AIStoryBuilderModel paramaModel)
         {
-            await SettingsService.LoadSettingsAsync();
-            string Organization = SettingsService.Organization;
-            string ApiKey = SettingsService.ApiKey;
-
-            // Create a new OpenAIClient object
-            try
-            {
-                HttpClient.Timeout = TimeSpan.FromSeconds(520);
-            }
-            catch
-            {
-                // Do nothing
-            }
-
-            var api = new OpenAIClient(new OpenAIAuthentication(ApiKey), client: HttpClient);
+            OpenAIClient api = await CreateOpenAIClient();
 
             await api.ModelsEndpoint.DeleteFineTuneModelAsync(paramaModel.ModelId);
 

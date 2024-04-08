@@ -98,7 +98,6 @@ namespace AIStoryBuilders.Model
             AIStoryBuildersSettings.ApiVersion = paramApiVersion;
             AIStoryBuildersSettings.AIEmbeddingModel = paramAIEmbeddingModel;
 
-
             await localStorage.SetItemAsync("AIStoryBuildersSettings", AIStoryBuildersSettings);
 
             // Update the properties
