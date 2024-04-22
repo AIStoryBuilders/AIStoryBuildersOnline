@@ -352,160 +352,119 @@ else
             // ********************************
             // **** Use AutoAttributeDetection?
             // ********************************
-            if (item != null)
+            if (item != null && item.Value == "Autodetect")
             {
-                if (item.Value == "Autodetect")
+                try
                 {
-                    // Make a collection of all Characters and Attributes
+                    // Initialize a collection for all Characters and Attributes
                     List<SimpleCharacterSelector> colAllCharactersAndAttributes = new List<SimpleCharacterSelector>();
 
-                    //Calling ChatGPT to detect Attributes...
+                    // Notify starting of attribute detection
                     NotificationService.Notify(new NotificationMessage
-                            {
-                                Severity = NotificationSeverity.Success,
-                                Summary = "Info",
-                                Detail = "Calling ChatGPT to detect Attributes...",
-                                Duration = 2000
-                            });
+                                        {
+                                            Severity = NotificationSeverity.Success,
+                                            Summary = "Info",
+                                            Detail = "Calling ChatGPT to detect Attributes...",
+                                            Duration = 2000
+                                        });
 
-                    // Get all Characters in the Paragraph
-                    List<Character> colAllCharactersInParagraph = await OrchestratorMethods.DetectCharacters(objParagraph);
+                    // Detect all Characters in the Paragraph and ensure no null returns
+                    List<Character> colAllCharactersInParagraph = await OrchestratorMethods.DetectCharacters(objParagraph) ?? new List<Character>();
 
-                    // Get all Characters in the Paragraph that are not in the Characters collection
-                    List<Character> colNewCharactersInParagraph = colAllCharactersInParagraph.Where(x => !colCharacters.Any(y => y.CharacterName == x.CharacterName)).ToList();
+                    // Filter new Characters not in the existing collection and ensure colCharacters is not null
+                    List<Character> colNewCharactersInParagraph = colCharacters != null ?
+        colAllCharactersInParagraph.Where(x => !colCharacters.Any(y => y.CharacterName == x.CharacterName)).ToList() : colAllCharactersInParagraph;
 
-                    if (colNewCharactersInParagraph != null)
+                    if (colNewCharactersInParagraph.Any())
                     {
-                        if (colNewCharactersInParagraph.Count > 0)
+                        NotificationService.Notify(new NotificationMessage
+                                            {
+                                                Severity = NotificationSeverity.Success,
+                                                Summary = "Info",
+                                                Detail = "Detecting attributes on new characters…",
+                                                Duration = 2000
+                                            });
+
+                        // Detect attributes for new Characters and handle nulls
+                        List<SimpleCharacterSelector> colnewCharactersAndAttributes = await OrchestratorMethods.DetectCharacterAttributes(objParagraph, colNewCharactersInParagraph, "New Character") ?? new List<SimpleCharacterSelector>();
+
+                        if (colnewCharactersAndAttributes.Any())
                         {
-                            NotificationService.Notify(new NotificationMessage
-                                    {
-                                        Severity = NotificationSeverity.Success,
-                                        Summary = "Info",
-                                        Detail = "Detecting attributes on new characters…",
-                                        Duration = 2000
-                                    });
-
-                            // Pass all new Characters and detect attributes
-                            List<SimpleCharacterSelector> colnewCharactersAndAttributes = await OrchestratorMethods.DetectCharacterAttributes(objParagraph, colNewCharactersInParagraph, "New Character");
-
-                            if (colnewCharactersAndAttributes != null)
-                            {
-                                if (colnewCharactersAndAttributes.Count > 0)
-                                {
-                                    // Add new Characters and Attributes to colAllCharactersAndAttributes
-                                    colAllCharactersAndAttributes.AddRange(colnewCharactersAndAttributes);
-                                }
-                            }
+                            colAllCharactersAndAttributes.AddRange(colnewCharactersAndAttributes);
                         }
                     }
 
-                    // Get all existing Characters in the Paragraph that are in the Characters collection
-                    List<Character> colExistingCharactersInParagraph = colCharacters.Where(x => colAllCharactersInParagraph.Any(y => y.CharacterName == x.CharacterName)).ToList();
+                    // Filter existing Characters in the Paragraph that are in the Characters collection
+                    List<Character> colExistingCharactersInParagraph = colCharacters != null ?
+        colCharacters.Where(x => colAllCharactersInParagraph.Any(y => y.CharacterName == x.CharacterName)).ToList() : new List<Character>();
 
-                    if (colExistingCharactersInParagraph != null)
+                    if (colExistingCharactersInParagraph.Any())
                     {
-                        if (colExistingCharactersInParagraph.Count > 0)
-                        {
-                            NotificationService.Notify(new NotificationMessage
-                                    {
-                                        Severity = NotificationSeverity.Success,
-                                        Summary = "Info",
-                                        Detail = "Detecting attributes on existing characters…",
-                                        Duration = 2000
-                                    });
+                        NotificationService.Notify(new NotificationMessage
+                                            {
+                                                Severity = NotificationSeverity.Success,
+                                                Summary = "Info",
+                                                Detail = "Detecting attributes on existing characters…",
+                                                Duration = 2000
+                                            });
 
-                            // Simplify Characters to only CharacterName and CharacterType and value
-                            // Pass Paragraph so we only get CharacterBackground in the selected or null Timelines
-                            var colCharactersInTimeline = AIStoryBuildersService.SimplifyCharacter(colExistingCharactersInParagraph, objParagraph);
+                        // Detect attributes for existing Characters
+                        List<SimpleCharacterSelector> colCharacterOutput = await OrchestratorMethods.DetectCharacterAttributes(objParagraph, colExistingCharactersInParagraph, "Existing Character") ?? new List<SimpleCharacterSelector>();
 
-                            // Pass in all existing Characters and detect new ones and/or attributes
-                            List<SimpleCharacterSelector> colCharacterOutput = await OrchestratorMethods.DetectCharacterAttributes(objParagraph, colCharactersInTimeline, "Existing Character");
-
-                            // Add existing Characters and Attributes to colAllCharactersAndAttributes
-                            colAllCharactersAndAttributes.AddRange(colCharacterOutput);
-                        }
+                        colAllCharactersAndAttributes.AddRange(colCharacterOutput);
                     }
 
-                    // ********************************
-                    // **** DIALOG - Add any new Characters and Attributes
-                    // ********************************
-                    if (colAllCharactersAndAttributes.Count > 0)
+                    // Handle dialog interaction with user
+                    if (colAllCharactersAndAttributes.Any())
                     {
-                        // Open CharacterAttributes dialog -- passing colAllCharactersAndAttributes
                         var EditStoryResult = await dialogService.OpenAsync("Select Character Attributes", ds =>
     @<CharacterAttributes colCharacters=@colAllCharactersAndAttributes DialogReference="ds">
     </CharacterAttributes>, new DialogOptions() { Height = "360px", Width = "500px" });
 
                         if (EditStoryResult != null)
                         {
-                            // (1) First add any new Characters
                             foreach (SimpleCharacterSelector result in EditStoryResult)
                             {
-                                var objCharacter = result.CharacterValue.ToString().Split("|");
+                                var objCharacter = result.CharacterValue.ToString().Split('|');
 
-                                var CharacterName = objCharacter[0];
+                                var CharacterName = objCharacter[0].Replace("|", "").Replace("[", "").Replace("]", "");
                                 var Action = objCharacter[1];
                                 var description_type = objCharacter[2];
                                 var description_text = objCharacter[3];
 
-                                // Always remove any pipe (|) and [ and ] characters
-                                CharacterName = CharacterName.Replace("|", "");
-                                CharacterName = CharacterName.Replace("[", "");
-                                CharacterName = CharacterName.Replace("]", "");
-
-                                if ((Action == "New Character") && (description_type == ""))
+                                // Handle new Characters
+                                if (Action == "New Character" && string.IsNullOrEmpty(description_type))
                                 {
-                                    // Ensure this character doesn't already exist
-                                    var ExistingCharacter = colCharacters.Where(x => x.CharacterName == CharacterName).FirstOrDefault();
+                                    var ExistingCharacter = colCharacters.FirstOrDefault(x => x.CharacterName == CharacterName);
 
                                     if (ExistingCharacter == null)
                                     {
-                                        // Add Character to the Paragraph
-                                        objParagraph.Characters.Add(new Character() { CharacterName = CharacterName });
-
-                                        // Add a new Character to the collection
-                                        Character objNewCharacter = new Character();
-                                        objNewCharacter.CharacterName = CharacterName;
-                                        objNewCharacter.CharacterBackground = new List<CharacterBackground>();
-
-                                        // Add Character to the collection
+                                        Character objNewCharacter = new Character
+                                                {
+                                                    CharacterName = CharacterName,
+                                                    CharacterBackground = new List<CharacterBackground>()
+                                                };
                                         colCharacters.Add(objNewCharacter);
+                                        objParagraph.Characters.Add(objNewCharacter);
                                     }
                                 }
-                            }
 
-                            // (2) First add any new Attributes to Characters
-                            foreach (SimpleCharacterSelector result in EditStoryResult)
-                            {
-                                var objCharacter = result.CharacterValue.ToString().Split("|");
-
-                                var CharacterName = objCharacter[0];
-                                var Action = objCharacter[1];
-                                var description_type = objCharacter[2];
-                                var description_text = objCharacter[3];
-
-                                if (description_type != "")
+                                // Handle new Attributes
+                                if (!string.IsNullOrEmpty(description_type))
                                 {
-                                    // Note: The Character must already exist in the Characters collection
-                                    // If they don't then any attributes will be ignored
-                                    var ExistingCharacter = colCharacters.Where(x => x.CharacterName == CharacterName).FirstOrDefault();
+                                    var ExistingCharacter = colCharacters.FirstOrDefault(x => x.CharacterName == CharacterName);
 
                                     if (ExistingCharacter != null)
                                     {
-                                        // Add Attribute to the Character
-                                        ExistingCharacter.CharacterBackground.Add(new CharacterBackground() { Type = description_type, Description = description_text, Character = ExistingCharacter });
+                                        ExistingCharacter.CharacterBackground.Add(new CharacterBackground { Type = description_type, Description = description_text, Character = ExistingCharacter });
                                     }
                                 }
                             }
 
-                            // (3) Save all the Characters
-                            // This will add any new Characters and update any existing ones
+                            // Save all the Characters
                             foreach (Character objCharacter in colCharacters)
                             {
-                                // Is this Character in the Paragraph?
-                                var CharacterInParagraph = objParagraph.Characters.Where(x => x.CharacterName == objCharacter.CharacterName).FirstOrDefault();
-
+                                var CharacterInParagraph = objParagraph.Characters.FirstOrDefault(x => x.CharacterName == objCharacter.CharacterName);
                                 if (CharacterInParagraph != null)
                                 {
                                     objCharacter.Story = objChapter.Story;
@@ -514,31 +473,16 @@ else
                             }
                         }
                     }
-
-                    // **** Add any existing Characters that are mentioned in the Paragraph but not on the Character list
-                    // Loop through all colCharacters that are not already in the objParagraph.Characters collection
-                    var colCharactersNotInParagraph = colCharacters.Where(x => !objParagraph.Characters.Any(y => y.CharacterName == x.CharacterName)).ToList();
-
-                    // Loop through all colCharactersNotInParagraph
-                    foreach (Character objCharacter in colCharactersNotInParagraph)
-                    {
-                        // Search through the Paragraph contents to see if the Character is mentioned
-                        var CharacterInParagraph = objParagraph.ParagraphContent.Contains(objCharacter.CharacterName);
-
-                        if (CharacterInParagraph)
-                        {
-                            // Add Character to the Paragraph
-                            objParagraph.Characters.Add(objCharacter);
-
-                            NotificationService.Notify(new NotificationMessage
-                                    {
-                                        Severity = NotificationSeverity.Success,
-                                        Summary = "Info",
-                                        Detail = $"Adding {objCharacter.CharacterName}",
-                                        Duration = 2000
-                                    });
-                        }
-                    }
+                }
+                catch (Exception ex)
+                {
+                    NotificationService.Notify(new NotificationMessage
+                            {
+                                Severity = NotificationSeverity.Error,
+                                Summary = "Error",
+                                Detail = "An error occurred: " + ex.Message,
+                                Duration = 4000
+                            });
                 }
             }
 
