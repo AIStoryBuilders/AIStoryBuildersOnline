@@ -49,7 +49,7 @@ namespace AIStoryBuilders.Model
 
                 AIStoryBuildersSettings.Organization = "";
                 AIStoryBuildersSettings.ApiKey = "";
-                AIStoryBuildersSettings.AIModel = "gpt-4-turbo-preview";
+                AIStoryBuildersSettings.AIModel = "gpt-4o";
                 AIStoryBuildersSettings.GUID = Guid.NewGuid().ToString();
                 AIStoryBuildersSettings.AIType = "";
                 AIStoryBuildersSettings.Endpoint = "";
