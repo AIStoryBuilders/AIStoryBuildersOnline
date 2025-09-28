@@ -72,7 +72,7 @@ namespace AIStoryBuilders.AI
             else
             {
                 var auth = new OpenAIAuthentication(ApiKey);
-                var settings = new OpenAIClientSettings(resourceName: Endpoint, deploymentId: AIModel, apiVersion: ApiVersion);
+                var settings = new OpenAISettings(resourceName: Endpoint, deploymentId: AIModel, apiVersion: ApiVersion);
                 api = new OpenAIClient(auth, settings, HttpClient);
             }
 
@@ -116,7 +116,7 @@ namespace AIStoryBuilders.AI
             else
             {
                 var auth = new OpenAIAuthentication(ApiKey);
-                var settings = new OpenAIClientSettings(resourceName: Endpoint, deploymentId: AIEmbeddingModel, apiVersion: ApiVersion);
+                var settings = new OpenAISettings(resourceName: Endpoint, deploymentId: AIEmbeddingModel, apiVersion: ApiVersion);
                 api = new OpenAIClient(auth, settings, HttpClient);
             }
 
