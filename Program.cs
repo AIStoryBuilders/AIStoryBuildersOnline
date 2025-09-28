@@ -20,7 +20,7 @@ namespace AIStoryBuildersOnline
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
             // Add services to the container.
-            AppMetadata appMetadata = new AppMetadata() { Version = "01.02.50" };
+            AppMetadata appMetadata = new AppMetadata() { Version = "02.00.00" };
             builder.Services.AddSingleton(appMetadata);
 
             builder.Services.AddScoped<LogService>();

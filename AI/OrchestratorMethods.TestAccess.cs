@@ -45,7 +45,6 @@ namespace AIStoryBuilders.AI
             var FinalChatRequest = new ChatRequest(
                 chatPrompts,
                 model: GPTModel,
-                temperature: 0.0,
                 topP: 1,
                 frequencyPenalty: 0,
                 presencePenalty: 0);

@@ -490,7 +490,7 @@
     {
         var api = await OrchestratorMethods.CreateOpenAIClient();
 
-        var request = new CreateFineTuneJobRequest("gpt-3.5-turbo", paramaFile);
+        var request = new CreateFineTuneJobRequest("gpt-5-mini", paramaFile);
 
         // Create a fine-tuning job using the OpenAI API
         await api.FineTuningEndpoint.CreateJobAsync(request);

@@ -20,7 +20,7 @@
 		<PackageReference Include="OpenAI-DotNet" Version="7.7.7" />
 		<PackageReference Include="Markdig" Version="0.37.0" />
 		<PackageReference Include="System.Formats.Asn1" Version="8.0.1" />
-		<PackageReference Include="System.Text.Json" Version="8.0.4" />
+		<PackageReference Include="System.Text.Json" Version="9.0.9" />
 	</ItemGroup>
 
 	<ItemGroup>

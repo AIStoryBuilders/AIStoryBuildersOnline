@@ -49,30 +49,12 @@ namespace AIStoryBuilders.AI
                 )
             );
 
-            // Check Moderation
-            if (SettingsService.AIType == "OpenAI")
-            {
-                var ModerationResult = await api.ModerationsEndpoint.GetModerationAsync(SystemMessage);
-
-                if (ModerationResult)
-                {
-                    ModerationsResponse moderationsResponse = await api.ModerationsEndpoint.CreateModerationAsync(new ModerationsRequest(SystemMessage));
-
-                    // Serailize the ModerationsResponse
-                    string ModerationsResponseString = JsonConvert.SerializeObject(moderationsResponse.Results.FirstOrDefault().Categories);
-
-                    await LogService.WriteToLogAsync($"OpenAI Moderation flagged the content: [{SystemMessage}] as violating its policies: {ModerationsResponseString}");
-                    ReadTextEvent?.Invoke(this, new ReadTextEventArgs($"WARNING! OpenAI Moderation flagged the content as violating its policies. See the logs for more details.", 30));
-                }
-            }
-
             ReadTextEvent?.Invoke(this, new ReadTextEventArgs($"Calling ChatGPT to Parse new Story...", 30));
 
             // Get a response from ChatGPT 
             var FinalChatRequest = new ChatRequest(                
                 chatPrompts,
                 model: GPTModel,
-                temperature: 0.0,
                 topP: 1,
                 frequencyPenalty: 0,
                 presencePenalty: 0,

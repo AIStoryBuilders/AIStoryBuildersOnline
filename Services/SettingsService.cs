@@ -49,7 +49,7 @@ namespace AIStoryBuilders.Model
 
                 AIStoryBuildersSettings.Organization = "";
                 AIStoryBuildersSettings.ApiKey = "";
-                AIStoryBuildersSettings.AIModel = "gpt-4o";
+                AIStoryBuildersSettings.AIModel = "gpt-5-mini";
                 AIStoryBuildersSettings.GUID = Guid.NewGuid().ToString();
                 AIStoryBuildersSettings.AIType = "";
                 AIStoryBuildersSettings.Endpoint = "";
