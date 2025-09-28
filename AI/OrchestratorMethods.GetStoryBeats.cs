@@ -55,7 +55,7 @@ namespace AIStoryBuilders.AI
                 topP: 1,
                 frequencyPenalty: 0,
                 presencePenalty: 0,
-                responseFormat: ChatResponseFormat.Text);
+                responseFormat: TextResponseFormat.JsonSchema);
 
             ChatResponseResult = await api.ChatEndpoint.GetCompletionAsync(FinalChatRequest);
 
