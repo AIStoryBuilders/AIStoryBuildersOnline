@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <WarningsNotAsErrors />
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <MicrosoftNETCoreAppRuntimePackageVersion>9.0.0</MicrosoftNETCoreAppRuntimePackageVersion>
+    <MicrosoftAspNetCoreAppRuntimePackageVersion>9.0.0</MicrosoftAspNetCoreAppRuntimePackageVersion>
+    <MicrosoftNETCoreAppRefPackageVersion>9.0.0</MicrosoftNETCoreAppRefPackageVersion>
+    <MicrosoftAspNetCoreAppRefPackageVersion>9.0.0</MicrosoftAspNetCoreAppRefPackageVersion>
+    <RuntimeFrameworkVersion>9.0.0</RuntimeFrameworkVersion>
+  </PropertyGroup>
+</Project>
