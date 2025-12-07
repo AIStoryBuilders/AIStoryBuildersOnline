@@ -1,33 +1,42 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
 	<PropertyGroup>
-		<TargetFramework>net9.0</TargetFramework>
+		<TargetFramework>net10.0</TargetFramework>
 		<Nullable>disable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
 		<BlazorEnableTimeZoneSupport>false</BlazorEnableTimeZoneSupport>
 		<InvariantGlobalization>true</InvariantGlobalization>
+		<WasmStripILAfterAOT>true</WasmStripILAfterAOT>
+		<RunAOTCompilation>false</RunAOTCompilation>
+		<!-- Disable SRI for static web assets to prevent integrity check failures -->
+		<BlazorWebAssemblyEnableSubresourceIntegrity>false</BlazorWebAssemblyEnableSubresourceIntegrity>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
-		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.0" />
-		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.0" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.0" PrivateAssets="all" />
 		<PackageReference Include="DocX" Version="5.0.0" />
-		<PackageReference Include="EPPlus" Version="7.3.2" />
-		<PackageReference Include="ExcelDataReader" Version="3.7.0" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
+		<PackageReference Include="EPPlus" Version="8.3.1" />
+		<PackageReference Include="ExcelDataReader" Version="3.8.0" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-		<PackageReference Include="Radzen.Blazor" Version="7.4.2" />
-		<PackageReference Include="OpenAI-DotNet" Version="8.8.1" />
-		<PackageReference Include="Markdig" Version="0.42.0" />
-		<PackageReference Include="System.Formats.Asn1" Version="9.0.0" />
-		<PackageReference Include="System.Linq.Dynamic.Core" Version="1.6.8" />
-		<PackageReference Include="System.Text.Json" Version="9.0.0" />
+		<PackageReference Include="Radzen.Blazor" Version="8.3.8" />
+		<PackageReference Include="OpenAI-DotNet" Version="8.8.7" />
+		<PackageReference Include="Markdig" Version="0.44.0" />
+		<PackageReference Include="System.Linq.Dynamic.Core" Version="1.7.1" />
+		<PackageReference Include="System.Text.Json" Version="10.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Update="web.config">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
 	</ItemGroup>
 
 </Project>

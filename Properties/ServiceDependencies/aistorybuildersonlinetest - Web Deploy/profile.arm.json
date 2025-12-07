@@ -21,7 +21,7 @@
     },
     "resourceName": {
       "type": "string",
-      "defaultValue": "release-candidate",
+      "defaultValue": "aistorybuildersonlinetest",
       "metadata": {
         "description": "Name of the main resource to be created by this template."
       }

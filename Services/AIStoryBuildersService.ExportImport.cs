@@ -393,7 +393,7 @@ namespace AIStoryBuilders.Services
                 string ExcelFileName = $"TrainingData.xlsx";
                 string ExcelFilePath = $"{TempPath}/{ExcelFileName}";
 
-                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                ExcelPackage.License.SetNonCommercialOrganization("AIStoryBuilders");
 
                 int i = 2;
                 using (var package = new ExcelPackage(ExcelFilePath))

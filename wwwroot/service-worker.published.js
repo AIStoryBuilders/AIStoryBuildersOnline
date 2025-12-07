@@ -25,23 +25,43 @@ async function onInstall(event) {
         .filter(asset => !offlineAssetsExclude.some(pattern => pattern.test(asset.url)))
         .map(asset => new Request(asset.url, { integrity: asset.hash, cache: 'no-cache' }));
 
-    // Open the cache and add assets
-    await caches.open(cacheName).then(async (cache) => {
-        await cache.addAll(assetsRequests);
-
-        // Activate the new service worker immediately
-        self.skipWaiting();
-
-        // Prompt the user to reload the page
-        if (self.clients && self.clients.claim) {
-            self.clients.claim();
-            self.clients.matchAll().then((clients) => {
-                clients.forEach((client) => {
-                    client.postMessage({ type: 'new-version-available' });
-                });
-            });
+    // Open the cache and add assets with fallback for SRI failures
+    const cache = await caches.open(cacheName);
+    const failedRequests = [];
+    
+    for (const request of assetsRequests) {
+        try {
+            await cache.add(request);
+        } catch (error) {
+            console.warn(`Failed to cache ${request.url} with integrity check:`, error);
+            // Try without integrity check for failed requests
+            try {
+                const requestWithoutIntegrity = new Request(request.url, { cache: 'no-cache' });
+                await cache.add(requestWithoutIntegrity);
+                console.info(`Successfully cached ${request.url} without integrity check`);
+            } catch (fallbackError) {
+                console.error(`Failed to cache ${request.url} even without integrity:`, fallbackError);
+                failedRequests.push(request.url);
+            }
         }
-    });
+    }
+    
+    if (failedRequests.length > 0) {
+        console.warn('Failed to cache the following assets:', failedRequests);
+    }
+
+    // Activate the new service worker immediately
+    self.skipWaiting();
+
+    // Prompt the user to reload the page
+    if (self.clients && self.clients.claim) {
+        self.clients.claim();
+        self.clients.matchAll().then((clients) => {
+            clients.forEach((client) => {
+                client.postMessage({ type: 'new-version-available' });
+            });
+        });
+    }
 }
 
 // Listen for messages from the client

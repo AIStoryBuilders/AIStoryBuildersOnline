@@ -4,10 +4,21 @@
     <WarningsAsErrors />
     <WarningsNotAsErrors />
     <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    
+    <!-- Pin all .NET 9.0 runtime versions to 9.0.0 -->
     <MicrosoftNETCoreAppRuntimePackageVersion>9.0.0</MicrosoftNETCoreAppRuntimePackageVersion>
     <MicrosoftAspNetCoreAppRuntimePackageVersion>9.0.0</MicrosoftAspNetCoreAppRuntimePackageVersion>
     <MicrosoftNETCoreAppRefPackageVersion>9.0.0</MicrosoftNETCoreAppRefPackageVersion>
     <MicrosoftAspNetCoreAppRefPackageVersion>9.0.0</MicrosoftAspNetCoreAppRefPackageVersion>
     <RuntimeFrameworkVersion>9.0.0</RuntimeFrameworkVersion>
+    
+    <!-- WebAssembly specific runtime versions -->
+    <MicrosoftNETCoreAppRuntimeMonoBrowserWasmPackageVersion>9.0.0</MicrosoftNETCoreAppRuntimeMonoBrowserWasmPackageVersion>
+    <MicrosoftNETCoreAppRuntimeMonoWinX64PackageVersion Condition="'$(OS)' == 'Windows_NT'">9.0.0</MicrosoftNETCoreAppRuntimeMonoWinX64PackageVersion>
+    <MicrosoftNETSdkWebAssemblyPackVersion>9.0.0</MicrosoftNETSdkWebAssemblyPackVersion>
+    
+    <!-- Prevent automatic updates to newer versions -->
+    <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
+    <DisableImplicitFrameworkReferences>false</DisableImplicitFrameworkReferences>
   </PropertyGroup>
 </Project>
