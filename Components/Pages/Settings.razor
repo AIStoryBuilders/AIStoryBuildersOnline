@@ -13,7 +13,7 @@
 <RadzenRow AlignItems="AlignItems.Start" Wrap="FlexWrap.Wrap" Gap="1rem" Class="rz-p-sm-12">
     <RadzenColumn Size="8" SizeSM="4">
         <RadzenStack>
-            <RadzenFormField Text="OpenAI Service Type:" Variant="@variant">
+            <RadzenFormField Text="AI Service Type:" Variant="@variant">
                 <RadzenDropDown Data=@colAITypes @bind-Value="@AIType" Style="width:300px" Change="@(args => ChangeAIType(args))" />
             </RadzenFormField>
             <RadzenFormField Text="ApiKey:" Variant="@variant">
@@ -30,14 +30,23 @@
                 <RadzenFormField Text="Azure OpenAI Model Deployment Name:" Variant="@variant">
                     <RadzenTextBox @bind-Value="@AIModel" style="width:450px;" />
                 </RadzenFormField>
-                <RadzenFormField Text="Azure OpenAI Embedding Model Deployment Name:" Variant="@variant">
-                    <RadzenTextBox @bind-Value="@AIEmbeddingModel" style="width:450px;" />
-                </RadzenFormField>
                 <RadzenFormField Text="Azure OpenAI Endpoint:" Variant="@variant">
                     <RadzenTextBox @bind-Value="@Endpoint" style="width:450px;" />
                 </RadzenFormField>
                 <RadzenFormField Text="Azure OpenAI Api Version:" Variant="@variant">
                     <RadzenTextBox @bind-Value="@ApiVersion" style="width:450px;" />
+                </RadzenFormField>
+            }
+            else if (AIType == "Anthropic")
+            {
+                <RadzenFormField Text="Default AI Model:" Variant="@variant">
+                    <RadzenDropDown Data=@colAnthropicModels @bind-Value="@AIModel" Style="width:300px" />
+                </RadzenFormField>
+            }
+            else if (AIType == "Google AI")
+            {
+                <RadzenFormField Text="Default AI Model:" Variant="@variant">
+                    <RadzenDropDown Data=@colGoogleModels @bind-Value="@AIModel" Style="width:300px" />
                 </RadzenFormField>
             }
             @if (!IsSettingsEntered)
@@ -52,6 +61,18 @@
                 {
                     <RadzenButton Text="An Azure OpenAI API Key is required (Click here to get one)" ButtonStyle="ButtonStyle.Secondary"
                                   Click="GetAzureAPIKey"
+                                  Style="margin-bottom: 10px; width: 500px" />
+                }
+                else if (AIType == "Anthropic")
+                {
+                    <RadzenButton Text="An Anthropic API Key is required (Click here to get one)" ButtonStyle="ButtonStyle.Secondary"
+                                  Click="GetAnthropicAPIKey"
+                                  Style="margin-bottom: 10px; width: 500px" />
+                }
+                else if (AIType == "Google AI")
+                {
+                    <RadzenButton Text="A Google AI API Key is required (Click here to get one)" ButtonStyle="ButtonStyle.Secondary"
+                                  Click="GetGoogleAPIKey"
                                   Style="margin-bottom: 10px; width: 500px" />
                 }
             }
@@ -80,12 +101,22 @@
 
     List<string> colAITypes = new List<string>()
                 {
-                   "OpenAI","Azure OpenAI"
+                   "OpenAI","Azure OpenAI","Anthropic","Google AI"
                 };
 
     List<string> colModels = new List<string>()
                 {
-                   "gpt-4o","gpt-5", "gpt-5-mini"
+                   "gpt-4o","gpt-4o-mini","gpt-4.1","gpt-4.1-mini","gpt-4.1-nano","gpt-5","gpt-5-mini","o3","o3-mini","o4-mini"
+                };
+
+    List<string> colAnthropicModels = new List<string>()
+                {
+                   "claude-sonnet-4-20250514","claude-opus-4-20250514","claude-3-7-sonnet-20250219","claude-3-5-sonnet-20241022","claude-3-5-haiku-20241022","claude-3-opus-20240229","claude-3-haiku-20240307"
+                };
+
+    List<string> colGoogleModels = new List<string>()
+                {
+                   "gemini-2.5-pro","gemini-2.5-flash","gemini-2.0-flash","gemini-2.0-flash-lite","gemini-1.5-pro","gemini-1.5-flash"
                 };
 
     bool IsSettingsEntered = false;
@@ -117,14 +148,22 @@
 
     private async Task GetAPIKey()
     {
-        // Open a new window to the OpenAI API Key page
         await JSRuntime.InvokeVoidAsync("open", "https://platform.openai.com/account/api-keys");
     }
 
     private async Task GetAzureAPIKey()
     {
-        // Open a new window to the Azure OpenAI API Key page
         await JSRuntime.InvokeVoidAsync("open", "https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=web-portal");
+    }
+
+    private async Task GetAnthropicAPIKey()
+    {
+        await JSRuntime.InvokeVoidAsync("open", "https://console.anthropic.com/settings/keys");
+    }
+
+    private async Task GetGoogleAPIKey()
+    {
+        await JSRuntime.InvokeVoidAsync("open", "https://aistudio.google.com/app/apikey");
     }
 
     private void APIKeyDetection(KeyboardEventArgs args)
@@ -183,7 +222,19 @@
         // Set the default model based on the AI Type
         if (paramAIType == "OpenAI")
         {
-            AIModel = DefaultAIModel;
+            AIModel = "gpt-5-mini";
+        }
+        else if (paramAIType == "Anthropic")
+        {
+            AIModel = "claude-sonnet-4-20250514";
+        }
+        else if (paramAIType == "Google AI")
+        {
+            AIModel = "gemini-2.5-flash";
+        }
+        else if (paramAIType == "Azure OpenAI")
+        {
+            AIModel = "";
         }
     }
 }

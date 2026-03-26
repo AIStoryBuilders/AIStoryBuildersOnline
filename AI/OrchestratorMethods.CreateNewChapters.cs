@@ -1,101 +1,41 @@
 ﻿using AIStoryBuilders.Model;
 using AIStoryBuilders.Models.JSON;
-using OpenAI.Chat;
-using OpenAI;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
-using OpenAI.Moderations;
+using Microsoft.Extensions.AI;
 
 namespace AIStoryBuilders.AI
 {
     public partial class OrchestratorMethods
     {
-        #region public async Task<Message> CreateNewChapters(string JSONNewStory, string ChapterCount, string GPTModel)
-        public async Task<Message> CreateNewChapters(string JSONNewStory, string ChapterCount, string GPTModel)
+        #region public async Task<string> CreateNewChapters(string JSONNewStory, string ChapterCount, string GPTModel)
+        public async Task<string> CreateNewChapters(string JSONNewStory, string ChapterCount, string GPTModel)
         {
-            await SettingsService.LoadSettingsAsync();
-            string Organization = SettingsService.Organization;
-            string ApiKey = SettingsService.ApiKey;
-            string SystemMessage = "";
+            await EnsureSettingsLoaded();
 
             await LogService.WriteToLogAsync($"CreateNewChapters using {GPTModel} - Start");
 
-            OpenAIClient api = await CreateOpenAIClient();
+            var values = new Dictionary<string, string>
+            {
+                { "JSONNewStory", JSONNewStory },
+                { "ChapterCount", ChapterCount }
+            };
 
-            // Create a colection of chatPrompts
-            ChatResponse ChatResponseResult = new ChatResponse();
-            List<Message> chatPrompts = new List<Message>();
+            var messages = _promptService.BuildMessages(
+                PromptTemplateService.CreateNewChapters_System,
+                PromptTemplateService.CreateNewChapters_User,
+                values);
 
-            // Update System Message
-            SystemMessage = CreateSystemMessageCreateNewChapters(JSONNewStory, ChapterCount);
+            await LogService.WriteToLogAsync($"Prompt: {messages[0].Text}");
 
-            await LogService.WriteToLogAsync($"Prompt: {SystemMessage}");
+            ReadTextEvent?.Invoke(this, new ReadTextEventArgs($"Calling AI...", 70));
 
-            chatPrompts = new List<Message>();
+            IChatClient client = CreateChatClient();
+            var options = ChatOptionsFactory.CreateJsonOptions(SettingsService.AIType, GPTModel);
 
-            chatPrompts.Insert(0,
-            new Message(
-                Role.System,
-                SystemMessage
-                )
-            );
+            string result = await _llmCallHelper.CallLlmWithRetry<string>(
+                client, messages, options,
+                jObj => jObj.ToString());
 
-            ReadTextEvent?.Invoke(this, new ReadTextEventArgs($"Calling ChatGPT...", 70));
-
-            // Get a response from ChatGPT 
-            var FinalChatRequest = new ChatRequest(
-                chatPrompts,
-                model: GPTModel,
-                topP: 1,
-                frequencyPenalty: 0,
-                presencePenalty: 0,
-                responseFormat: TextResponseFormat.JsonSchema);
-
-            ChatResponseResult = await api.ChatEndpoint.GetCompletionAsync(FinalChatRequest);
-
-            // *****************************************************
-
-            await LogService.WriteToLogAsync($"TotalTokens: {ChatResponseResult.Usage.TotalTokens} - ChatResponseResult - {ChatResponseResult.FirstChoice.Message.Content}");
-
-            return ChatResponseResult.FirstChoice.Message;
-        }
-        #endregion
-
-        // Methods
-
-        #region private string CreateSystemMessageCreateNewChapters(string paramJSONNewStory, string paramChapterCount)
-        private string CreateSystemMessageCreateNewChapters(string paramJSONNewStory, string paramChapterCount)
-        {
-            return "Given a story with the following structure: \n" +
-                    "[ \n" +
-                    $"{paramJSONNewStory} \n" +
-                    "] \n" +
-                    "Using only this information please: \n" +
-                    $"#1 Create {paramChapterCount} chapters in a format like this: Chapter1, Chapter2, Chapter3. \n" +
-                    "#2 A short chapter_synopsis description. Format this in story beats in a format like this: #Beat 1 - Something happens. #Beat 2 - The next things happens. #Beat 3 - Another thing happens. \n" +
-                    "#3 A short 200 word first paragraph on the first #Beat for each chapter. \n" +
-                    "#4 A single timeline_name for each paragraph. \n" +
-                    "#5 The list of character names that appear in each paragraph. \n" +
-                    "Output JSON nothing else. \n" +
-                    "Provide the results in the following JSON format: \n" +
-                    "{ \n" +
-                    "\"chapter\": [\n" +
-                    "{ \n" +
-                    "\"chapter_name\": chapter_name, \n" +
-                    "\"chapter_synopsis\": chapter_synopsis, \n" +
-                    "\"paragraphs\": [\n" +
-                    "{ \n" +
-                    "\"contents\": contents, \n" +
-                    "\"location_name\": location_name, \n" +
-                    "\"timeline_name\": timeline_name, \n" +
-                    "\"character_names\": [character_names] \n" +
-                    "} \n" +
-                    "] \n" +
-                    "} \n";
+            return result ?? "";
         }
         #endregion
     }

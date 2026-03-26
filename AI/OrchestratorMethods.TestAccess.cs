@@ -1,12 +1,5 @@
 ﻿using AIStoryBuilders.Model;
-using AIStoryBuilders.Models.JSON;
-using OpenAI.Chat;
-using OpenAI;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.AI;
 
 namespace AIStoryBuilders.AI
 {
@@ -15,57 +8,42 @@ namespace AIStoryBuilders.AI
         #region public async Task<bool> TestAccess(string GPTModel)
         public async Task<bool> TestAccess(string GPTModel)
         {
-            string SystemMessage = "";
+            await EnsureSettingsLoaded();
 
             await LogService.WriteToLogAsync($"TestAccess using {GPTModel} - Start");
 
-            OpenAIClient api = await CreateOpenAIClient();
+            var messages = new List<ChatMessage>
+            {
+                new ChatMessage(ChatRole.System,
+                    "Please return the following as json: \"This is successful\" in this format { \"message\": message }")
+            };
 
-            // Create a colection of chatPrompts
-            ChatResponse ChatResponseResult = new ChatResponse();
-            List<Message> chatPrompts = new List<Message>();
+            ReadTextEvent?.Invoke(this, new ReadTextEventArgs($"Calling AI to test access...", 5));
 
-            // Update System Message
-            SystemMessage = "Please return the following as json: \"This is successful\" in this format {\r\n  'message': message\r\n}";
+            IChatClient client = CreateChatClient();
+            var options = new ChatOptions
+            {
+                ModelId = GPTModel,
+                TopP = 1.0f,
+                FrequencyPenalty = 0.0f,
+                PresencePenalty = 0.0f,
+            };
 
-            await LogService.WriteToLogAsync($"Prompt: {SystemMessage}");
+            var response = await client.GetResponseAsync(messages, options);
 
-            chatPrompts = new List<Message>();
+            await LogService.WriteToLogAsync(
+                $"TotalTokens: {response.Usage?.TotalTokenCount} - ChatResponseResult - {response.Text}");
 
-            chatPrompts.Insert(0,
-            new Message(
-                Role.System,
-                SystemMessage
-                )
-            );
-
-            ReadTextEvent?.Invoke(this, new ReadTextEventArgs($"Calling ChatGPT to test access...", 5));
-
-            // Get a response from ChatGPT 
-            var FinalChatRequest = new ChatRequest(
-                chatPrompts,
-                model: GPTModel,
-                topP: 1,
-                frequencyPenalty: 0,
-                presencePenalty: 0);
-
-            ChatResponseResult = await api.ChatEndpoint.GetCompletionAsync(FinalChatRequest);
-
-            // *****************************************************
-
-            await LogService.WriteToLogAsync($"TotalTokens: {ChatResponseResult.Usage.TotalTokens} - ChatResponseResult - {ChatResponseResult.FirstChoice.Message.Content}");
-
-            if (SettingsService.AIType != "OpenAI")
+            // Test embeddings for Azure OpenAI only
+            if (SettingsService.AIType == "Azure OpenAI")
             {
                 try
                 {
-                    // Azure OpenAI - Test the embedding model
                     string VectorEmbedding = await GetVectorEmbedding("This is a test for embedding", false);
                 }
                 catch (Exception ex)
                 {
                     await LogService.WriteToLogAsync($"Azure OpenAI - Test the embedding model - Error: {ex.Message}");
-
                     throw new Exception("Error: You must set a proper Azure OpenAI embedding model");
                 }
             }

@@ -1,12 +1,9 @@
 using AIStoryBuilders.Model;
 using AIStoryBuilders.Models;
 using AIStoryBuilders.Services;
+using Microsoft.Extensions.AI;
 using Newtonsoft.Json;
-using OpenAI;
-using OpenAI.Chat;
-using OpenAI.Files;
-using OpenAI.FineTuning;
-using OpenAI.Models;
+using System.ClientModel;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -25,6 +22,10 @@ namespace AIStoryBuilders.AI
         public Dictionary<string, string> AIStoryBuildersMemory = new Dictionary<string, string>();
         public HttpClient HttpClient { get; set; }
 
+        private PromptTemplateService _promptService;
+        private LlmCallHelper _llmCallHelper;
+        private bool _settingsLoaded = false;
+
         // Constructor
         public OrchestratorMethods(SettingsService _SettingsService, LogService _LogService, DatabaseService _DatabaseService, HttpClient _HttpClient)
         {
@@ -32,95 +33,74 @@ namespace AIStoryBuilders.AI
             LogService = _LogService;
             DatabaseService = _DatabaseService;
             HttpClient = _HttpClient;
+            _promptService = new PromptTemplateService();
+            _llmCallHelper = new LlmCallHelper(_LogService);
         }
 
-        // OpenAI Service
+        // Settings Loading
 
-        #region public async Task<OpenAIClient> CreateOpenAIClient()
-        public async Task<OpenAIClient> CreateOpenAIClient()
+        #region private async Task EnsureSettingsLoaded()
+        private async Task EnsureSettingsLoaded()
         {
-            await SettingsService.LoadSettingsAsync();
-
-            string Organization = SettingsService.Organization;
-            string ApiKey = SettingsService.ApiKey;
-            string Endpoint = SettingsService.Endpoint;
-            string ApiVersion = SettingsService.ApiVersion;
-            string AIEmbeddingModel = SettingsService.AIEmbeddingModel;
-            string AIModel = SettingsService.AIModel;
-
-            if (HttpClient == null)
+            if (!_settingsLoaded)
             {
-                HttpClient = new HttpClient();
+                await SettingsService.LoadSettingsAsync();
+                _settingsLoaded = true;
             }
-
-            // Create a new OpenAIClient object
-            try
-            {
-                HttpClient.Timeout = TimeSpan.FromSeconds(520);
-            }
-            catch
-            {
-                // Do nothing
-            }
-
-            OpenAIClient api;
-
-            if (SettingsService.AIType == "OpenAI")
-            {
-                api = new OpenAIClient(new OpenAIAuthentication(ApiKey, Organization), null, HttpClient);
-            }
-            else
-            {
-                var auth = new OpenAIAuthentication(ApiKey);
-                var settings = new OpenAISettings(resourceName: Endpoint, deploymentId: AIModel, apiVersion: ApiVersion);
-                api = new OpenAIClient(auth, settings, HttpClient);
-            }
-
-            return api;
         }
         #endregion
 
-        #region public async Task<OpenAIClient> CreateEmbeddingOpenAIClient()
-        public async Task<OpenAIClient> CreateEmbeddingOpenAIClient()
-        {
-            await SettingsService.LoadSettingsAsync();
+        // AI Client Factory
 
-            string Organization = SettingsService.Organization;
+        #region public IChatClient CreateChatClient()
+        public IChatClient CreateChatClient()
+        {
             string ApiKey = SettingsService.ApiKey;
+            string AIModel = SettingsService.AIModel;
             string Endpoint = SettingsService.Endpoint;
             string ApiVersion = SettingsService.ApiVersion;
+
+            switch (SettingsService.AIType)
+            {
+                case "OpenAI":
+                    var openAiClient = new OpenAI.OpenAIClient(ApiKey);
+                    return openAiClient.GetChatClient(AIModel).AsIChatClient();
+
+                case "Azure OpenAI":
+                    var azureEndpoint = new Uri($"https://{Endpoint}.openai.azure.com/");
+                    var azureCredential = new ApiKeyCredential(ApiKey);
+                    var azureClient = new Azure.AI.OpenAI.AzureOpenAIClient(azureEndpoint, azureCredential);
+                    return azureClient.GetChatClient(AIModel).AsIChatClient();
+
+                case "Anthropic":
+                    return new AnthropicChatClient(ApiKey, AIModel);
+
+                case "Google AI":
+                    return new GoogleAIChatClient(ApiKey, AIModel);
+
+                default:
+                    throw new InvalidOperationException($"Unsupported AI type: {SettingsService.AIType}");
+            }
+        }
+        #endregion
+
+        #region private OpenAI.OpenAIClient CreateEmbeddingClient()
+        private OpenAI.OpenAIClient CreateEmbeddingClient()
+        {
+            string ApiKey = SettingsService.ApiKey;
+            string Endpoint = SettingsService.Endpoint;
             string AIEmbeddingModel = SettingsService.AIEmbeddingModel;
-            string AIModel = SettingsService.AIModel;
 
-            if (HttpClient == null)
+            if (SettingsService.AIType == "Azure OpenAI")
             {
-                HttpClient = new HttpClient();
-            }
-
-            // Create a new OpenAIClient object
-            try
-            {
-                HttpClient.Timeout = TimeSpan.FromSeconds(520);
-            }
-            catch
-            {
-                // Do nothing
-            }
-
-            OpenAIClient api;
-
-            if (SettingsService.AIType == "OpenAI")
-            {
-                api = new OpenAIClient(new OpenAIAuthentication(ApiKey, Organization), null, HttpClient);
+                var azureEndpoint = new Uri($"https://{Endpoint}.openai.azure.com/");
+                var azureCredential = new ApiKeyCredential(ApiKey);
+                return new Azure.AI.OpenAI.AzureOpenAIClient(azureEndpoint, azureCredential);
             }
             else
             {
-                var auth = new OpenAIAuthentication(ApiKey);
-                var settings = new OpenAISettings(resourceName: Endpoint, deploymentId: AIEmbeddingModel, apiVersion: ApiVersion);
-                api = new OpenAIClient(auth, settings, HttpClient);
+                return new OpenAI.OpenAIClient(ApiKey);
             }
-
-            return api;
         }
         #endregion
 
@@ -129,26 +109,20 @@ namespace AIStoryBuilders.AI
         #region public async Task<string> GetVectorEmbedding(string EmbeddingContent, bool Combine)
         public async Task<string> GetVectorEmbedding(string EmbeddingContent, bool Combine)
         {
-            // **** Call OpenAI and get embeddings for the memory text
-            // Create an instance of the OpenAI client
-            OpenAIClient api = await CreateEmbeddingOpenAIClient();
+            await EnsureSettingsLoaded();
 
-            await SettingsService.LoadSettingsAsync();
+            var client = CreateEmbeddingClient();
 
-            // Get the model details
-            OpenAI.Models.Model model = new OpenAI.Models.Model("text-embedding-ada-002");
-
-            if (SettingsService.AIType != "OpenAI")
+            string embeddingModel = "text-embedding-ada-002";
+            if (SettingsService.AIType == "Azure OpenAI" && !string.IsNullOrEmpty(SettingsService.AIEmbeddingModel))
             {
-                // Azure OpenAI - use the embedding model from the settings
-                model = new OpenAI.Models.Model(SettingsService.AIEmbeddingModel);
+                embeddingModel = SettingsService.AIEmbeddingModel;
             }
 
-            // Get embeddings for the text
-            var embeddings = await api.EmbeddingsEndpoint.CreateEmbeddingAsync(EmbeddingContent, model);
+            var embeddingClient = client.GetEmbeddingClient(embeddingModel);
+            var result = await embeddingClient.GenerateEmbeddingAsync(EmbeddingContent);
 
-            // Get embeddings as an array of floats
-            var EmbeddingVectors = embeddings.Data[0].Embedding.Select(d => (float)d).ToArray();
+            var EmbeddingVectors = result.Value.ToFloats().ToArray();
 
             // Loop through the embeddings
             List<VectorData> AllVectors = new List<VectorData>();
@@ -175,31 +149,23 @@ namespace AIStoryBuilders.AI
         }
         #endregion
 
-        #region public async Task<string> GetVectorEmbeddingAsFloats(string EmbeddingContent)
+        #region public async Task<float[]> GetVectorEmbeddingAsFloats(string EmbeddingContent)
         public async Task<float[]> GetVectorEmbeddingAsFloats(string EmbeddingContent)
         {
-            // **** Call OpenAI and get embeddings for the memory text
-            // Create an instance of the OpenAI client
-            OpenAIClient api = await CreateEmbeddingOpenAIClient();
+            await EnsureSettingsLoaded();
 
-            await SettingsService.LoadSettingsAsync();
+            var client = CreateEmbeddingClient();
 
-            // Get the model details
-            OpenAI.Models.Model model = new OpenAI.Models.Model("text-embedding-ada-002");
-
-            if (SettingsService.AIType != "OpenAI")
+            string embeddingModel = "text-embedding-ada-002";
+            if (SettingsService.AIType == "Azure OpenAI" && !string.IsNullOrEmpty(SettingsService.AIEmbeddingModel))
             {
-                // Azure OpenAI - use the embedding model from the settings
-                model = new OpenAI.Models.Model(SettingsService.AIEmbeddingModel);
+                embeddingModel = SettingsService.AIEmbeddingModel;
             }
 
-            // Get embeddings for the text
-            var embeddings = await api.EmbeddingsEndpoint.CreateEmbeddingAsync(EmbeddingContent, model);
+            var embeddingClient = client.GetEmbeddingClient(embeddingModel);
+            var result = await embeddingClient.GenerateEmbeddingAsync(EmbeddingContent);
 
-            // Get embeddings as an array of floats
-            var EmbeddingVectors = embeddings.Data[0].Embedding.Select(d => (float)d).ToArray();
-
-            return EmbeddingVectors;
+            return result.Value.ToFloats().ToArray();
         }
         #endregion
 

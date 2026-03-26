@@ -1,17 +1,5 @@
 ﻿using AIStoryBuilders.Model;
-using AIStoryBuilders.Models.JSON;
-using OpenAI.Chat;
-using OpenAI;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using AIStoryBuilders.Models;
-using System.Text.Json;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
-using OpenAI.Moderations;
+using Microsoft.Extensions.AI;
 
 namespace AIStoryBuilders.AI
 {
@@ -20,63 +8,30 @@ namespace AIStoryBuilders.AI
         #region public async Task<string> GetStoryBeats(string paramParagraph)
         public async Task<string> GetStoryBeats(string paramParagraph)
         {
-            await SettingsService.LoadSettingsAsync();
-            string Organization = SettingsService.Organization;
-            string ApiKey = SettingsService.ApiKey;
-            string SystemMessage = "";
+            await EnsureSettingsLoaded();
             string GPTModel = SettingsService.AIModel;
 
             await LogService.WriteToLogAsync($"GetStoryBeats using {GPTModel} - Start");
 
-            OpenAIClient api = await CreateOpenAIClient();
+            var values = new Dictionary<string, string>
+            {
+                { "ParagraphContent", paramParagraph }
+            };
 
-            // Create a colection of chatPrompts
-            ChatResponse ChatResponseResult = new ChatResponse();
-            List<Message> chatPrompts = new List<Message>();
+            var messages = _promptService.BuildMessages(
+                PromptTemplateService.GetStoryBeats_System,
+                PromptTemplateService.GetStoryBeats_User,
+                values);
 
-            // Update System Message
-            SystemMessage = CreateStoryBeats(paramParagraph);
+            await LogService.WriteToLogAsync($"Prompt: {messages[0].Text}");
 
-            await LogService.WriteToLogAsync($"Prompt: {SystemMessage}");
+            IChatClient client = CreateChatClient();
+            // Use text options (no JSON mode) — this returns plain text
+            var options = ChatOptionsFactory.CreateTextOptions(SettingsService.AIType, GPTModel);
 
-            chatPrompts = new List<Message>();
+            string result = await _llmCallHelper.CallLlmForText(client, messages, options);
 
-            chatPrompts.Insert(0,
-            new Message(
-                Role.System,
-                SystemMessage
-                )
-            );
-
-            // Get a response from ChatGPT 
-            var FinalChatRequest = new ChatRequest(
-                chatPrompts,
-                model: GPTModel,
-                topP: 1,
-                frequencyPenalty: 0,
-                presencePenalty: 0,
-                responseFormat: TextResponseFormat.JsonSchema);
-
-            ChatResponseResult = await api.ChatEndpoint.GetCompletionAsync(FinalChatRequest);
-
-            // *****************************************************
-
-            await LogService.WriteToLogAsync($"TotalTokens: {ChatResponseResult.Usage.TotalTokens} - ChatResponseResult - {ChatResponseResult.FirstChoice.Message.Content}");
-
-            return ChatResponseResult;
-        }
-        #endregion
-
-        // Methods
-
-        #region private string CreateStoryBeats(string paramParagraphContent)
-        private string CreateStoryBeats(string paramParagraphContent)
-        {
-            return "You are a function that will produce only simple text. \n" +
-            "Please analyze a paragraph of text (given as #paramParagraphContent). \n" +
-            "#1 Create story beats for the paragraph. \n" +
-            "#2 Output only the story beats, nothing else. \n" +
-            $"### This is the content of #paramParagraphContent: {paramParagraphContent} \n";
+            return result ?? "";
         }
         #endregion
     }

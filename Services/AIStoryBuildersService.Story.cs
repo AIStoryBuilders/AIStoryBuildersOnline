@@ -61,7 +61,7 @@ namespace AIStoryBuilders.Services
             string LocationsPath = $"{StoryPath}/Locations";
 
             //  ********** Call the LLM to Parse the Story to create the files **********
-            OpenAI.Chat.Message ParsedStoryJSON = await OrchestratorMethods.ParseNewStory(story.Title, story.Synopsis, GPTModelId);
+            string ParsedStoryJSON = await OrchestratorMethods.ParseNewStory(story.Title, story.Synopsis, GPTModelId);
 
             CreateDirectory(StoryPath);
             CreateDirectory(CharactersPath);
@@ -71,7 +71,7 @@ namespace AIStoryBuilders.Services
             JSONStory ParsedNewStory = new JSONStory();
 
             // Convert the JSON to a dynamic object
-            ParsedNewStory = await ParseJSONNewStory(ParsedStoryJSON.Content.ToString());
+            ParsedNewStory = await ParseJSONNewStory(ParsedStoryJSON);
 
             // *****************************************************
 
@@ -157,21 +157,17 @@ namespace AIStoryBuilders.Services
             //// **** Create the First Paragraph and the Chapters
 
             // Call ChatGPT
-            OpenAI.Chat.Message ParsedChaptersJSON = await OrchestratorMethods.CreateNewChapters(ParsedStoryJSON, story.ChapterCount, GPTModelId);
+            string ParsedChaptersJSON = await OrchestratorMethods.CreateNewChapters(ParsedStoryJSON, story.ChapterCount, GPTModelId);
 
             JSONChapters ParsedNewChapters = new JSONChapters();
 
             // Convert the JSON to a dynamic object
-            ParsedNewChapters = await ParseJSONNewChapters(GetOnlyJSON(ParsedChaptersJSON.Content.ToString()));
+            ParsedNewChapters = await ParseJSONNewChapters(GetOnlyJSON(ParsedChaptersJSON));
 
             // Test to see that something was returned
             if (ParsedNewChapters.chapter.Length == 0)
             {
-                // Clean the JSON
-                ParsedChaptersJSON = await OrchestratorMethods.CleanJSON(GetOnlyJSON(ParsedChaptersJSON.Content.ToString()), GPTModelId);
-
-                // Convert the JSON to a dynamic object
-                ParsedNewChapters = await ParseJSONNewChapters(GetOnlyJSON(ParsedChaptersJSON.Content.ToString()));
+                throw new Exception("Failed to parse chapters from AI response.");
             }
 
             //// **** Create the Files

@@ -1,69 +1,12 @@
 ﻿using AIStoryBuilders.Model;
 using AIStoryBuilders.Models;
 using AIStoryBuilders.Models.JSON;
-using OpenAI;
-using OpenAI.Chat;
-using OpenAI.Files;
-using OpenAI.FineTuning;
-using OpenAI.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.AI;
 
 namespace AIStoryBuilders.AI
 {
     public partial class OrchestratorMethods
     {
-        #region public async Task<List<AIStoryBuilderModel>> ListFineTunedModelsAsync()
-        public async Task<List<AIStoryBuilderModel>> ListFineTunedModelsAsync()
-        {
-            await SettingsService.LoadSettingsAsync();
-
-            // Create a new OpenAIClient object
-            OpenAIClient api = await CreateOpenAIClient();
-
-            // Fetch the list of models using the OpenAI API
-            var models =
-            await api.ModelsEndpoint.GetModelsAsync();
-
-            List<AIStoryBuilderModel> colAIStoryBuilderModel = new List<AIStoryBuilderModel>();
-
-            // Get the Model alias names from the database
-            await DatabaseService.LoadDatabaseAsync();
-            var colDatabase = DatabaseService.colAIStoryBuildersDatabase;
-
-            // Iterate through the fetched models
-            foreach (var model in models)
-            {
-                // Filter out models owned by "openai" or "system"
-                if (!model.OwnedBy.Contains("openai")
-                && !model.OwnedBy.Contains("system"))
-                {
-                    AIStoryBuilderModel objAIStoryBuilderModel = new AIStoryBuilderModel();
-
-                    objAIStoryBuilderModel.ModelId = model.Id;
-
-                    var ModelName = colDatabase.Where(x => x.Key == model.Id).FirstOrDefault().Value;
-
-                    if (ModelName != null)
-                    {
-                        objAIStoryBuilderModel.ModelName = ModelName;
-                    }
-                    else
-                    {
-                        objAIStoryBuilderModel.ModelName = model.Id;
-                    }
-
-                    colAIStoryBuilderModel.Add(objAIStoryBuilderModel);
-                }
-            }
-
-            return colAIStoryBuilderModel;
-        }
-        #endregion
-
         #region public async Task<List<AIStoryBuilderModel>> ListAllModelsAsync()
         public async Task<List<AIStoryBuilderModel>> ListAllModelsAsync()
         {
@@ -72,34 +15,22 @@ namespace AIStoryBuilders.AI
             AIStoryBuilderModel objAIStoryBuilderModelGPT5Mini = new AIStoryBuilderModel();
             objAIStoryBuilderModelGPT5Mini.ModelId = "gpt-5-mini";
             objAIStoryBuilderModelGPT5Mini.ModelName = "gpt-5-mini";
-
             colAIStoryBuilderModel.Add(objAIStoryBuilderModelGPT5Mini);
 
             AIStoryBuilderModel objAIStoryBuilderModelGPT5 = new AIStoryBuilderModel();
             objAIStoryBuilderModelGPT5.ModelId = "gpt-5";
             objAIStoryBuilderModelGPT5.ModelName = "gpt-5";
-
             colAIStoryBuilderModel.Add(objAIStoryBuilderModelGPT5);
 
             AIStoryBuilderModel objAIStoryBuilderModelGPT4 = new AIStoryBuilderModel();
             objAIStoryBuilderModelGPT4.ModelId = "gpt-4o";
             objAIStoryBuilderModelGPT4.ModelName = "gpt-4o";
-
             colAIStoryBuilderModel.Add(objAIStoryBuilderModelGPT4);
 
             AIStoryBuilderModel objAIStoryBuilderModelGPT3 = new AIStoryBuilderModel();
             objAIStoryBuilderModelGPT3.ModelId = "gpt-3.5-turbo";
             objAIStoryBuilderModelGPT3.ModelName = "GPT-3.5";
-
             colAIStoryBuilderModel.Add(objAIStoryBuilderModelGPT3);
-
-            // Fetch the list of the FineTune models
-            var models = await ListFineTunedModelsAsync();
-
-            if (models.Count > 0)
-            {
-                colAIStoryBuilderModel.AddRange(models);
-            }
 
             return colAIStoryBuilderModel;
         }
@@ -120,59 +51,22 @@ namespace AIStoryBuilders.AI
             // Iterate through the existing database
             foreach (var item in colDatabase)
             {
-                // If the model ID matches the provided model ID
                 if (item.Key == paramaModel.ModelId)
                 {
-                    // Update the model name
                     colUpdatedDatabase.Add(paramaModel.ModelId, paramaModel.ModelName);
                     ModelExists = true;
                 }
                 else
                 {
-                    // Add the existing model name to the collection
                     colUpdatedDatabase.Add(item.Key, item.Value);
                 }
             }
 
             if (!ModelExists)
             {
-                // Add the new model name to the collection
                 colUpdatedDatabase.Add(paramaModel.ModelId, paramaModel.ModelName);
             }
 
-            // Save the updated collection to the database
-            await DatabaseService.SaveDatabaseAsync(colUpdatedDatabase);
-        }
-        #endregion
-
-        #region public async Task DeleteFineTuneModelAsync(AIStoryBuilderModel paramaModel)
-        public async Task DeleteFineTuneModelAsync(AIStoryBuilderModel paramaModel)
-        {
-            OpenAIClient api = await CreateOpenAIClient();
-
-            await api.ModelsEndpoint.DeleteFineTuneModelAsync(paramaModel.ModelId);
-
-            // Remove any alias in the database
-
-            // Get the Model alias names from the database
-            await DatabaseService.LoadDatabaseAsync();
-            var colDatabase = DatabaseService.colAIStoryBuildersDatabase;
-
-            // Create a new collection to store the updated model names
-            Dictionary<string, string> colUpdatedDatabase = new Dictionary<string, string>();
-
-            // Iterate through the existing database
-            foreach (var item in colDatabase)
-            {
-                // Add all but the deleted one to the updated collection
-                if (item.Key != paramaModel.ModelId)
-                {
-                    // Update the model name
-                    colUpdatedDatabase.Add(item.Key, item.Value);
-                }
-            }
-
-            // Save the updated collection to the database
             await DatabaseService.SaveDatabaseAsync(colUpdatedDatabase);
         }
         #endregion
