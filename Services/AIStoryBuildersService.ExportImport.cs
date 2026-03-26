@@ -4,7 +4,6 @@ using AIStoryBuilders.Models.JSON;
 using AIStoryBuilders.Models.LocalStorage;
 using Newtonsoft.Json;
 using OfficeOpenXml;
-using OpenAI.Files;
 using System.IO.Compression;
 using System.Text.Json;
 using Xceed.Document.NET;

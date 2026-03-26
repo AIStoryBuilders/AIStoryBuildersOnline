@@ -1,7 +1,5 @@
 using Blazored.LocalStorage;
 using Newtonsoft.Json;
-using OpenAI.Files;
-using OpenAI.Models;
 
 namespace AIStoryBuilders.Model
 {

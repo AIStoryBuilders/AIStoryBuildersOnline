@@ -1,5 +1,4 @@
 using Newtonsoft.Json;
-using OpenAI.Files;
 
 namespace AIStoryBuilders.Model
 {

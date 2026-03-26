@@ -1,17 +1,10 @@
 ﻿using AIStoryBuilders.Model;
 using AIStoryBuilders.Models.JSON;
-using OpenAI.Chat;
-using OpenAI;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using AIStoryBuilders.Models;
+using AIStoryBuilders.Services;
+using Microsoft.Extensions.AI;
 using System.Text.Json;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
-using OpenAI.Moderations;
 
 namespace AIStoryBuilders.AI
 {
@@ -20,231 +13,160 @@ namespace AIStoryBuilders.AI
         #region public async Task<string> WriteParagraph(JSONMasterStory objJSONMasterStory, AIPrompt paramAIPrompt, string GPTModel)
         public async Task<string> WriteParagraph(JSONMasterStory objJSONMasterStory, AIPrompt paramAIPrompt, string GPTModel)
         {
-            await SettingsService.LoadSettingsAsync();
-            string Organization = SettingsService.Organization;
-            string ApiKey = SettingsService.ApiKey;
-            string SystemMessage = "";
+            await EnsureSettingsLoaded();
 
             await LogService.WriteToLogAsync($"WriteParagraph using {GPTModel} - Start");
 
-            OpenAIClient api = await CreateOpenAIClient();
+            // Apply token budget trimming
+            objJSONMasterStory = MasterStoryBuilder.TrimToFit(
+                objJSONMasterStory,
+                PromptTemplateService.WriteParagraph_System,
+                PromptTemplateService.WriteParagraph_User,
+                GPTModel);
 
-            // Create a colection of chatPrompts
-            ChatResponse ChatResponseResult = new ChatResponse();
-            List<Message> chatPrompts = new List<Message>();
+            // Build prompt template values
+            var values = BuildWriteParagraphValues(objJSONMasterStory, paramAIPrompt);
 
-            // Update System Message
-            SystemMessage = CreateWriteParagraph(objJSONMasterStory, paramAIPrompt);
+            var messages = _promptService.BuildMessages(
+                PromptTemplateService.WriteParagraph_System,
+                PromptTemplateService.WriteParagraph_User,
+                values);
 
-            await LogService.WriteToLogAsync($"Prompt: {SystemMessage}");
+            await LogService.WriteToLogAsync($"Prompt: {messages[0].Text}");
 
-            chatPrompts = new List<Message>();
+            IChatClient client = CreateChatClient();
+            var options = ChatOptionsFactory.CreateJsonOptions(SettingsService.AIType, GPTModel);
 
-            chatPrompts.Insert(0,
-            new Message(
-                Role.System,
-                SystemMessage
-                )
-            );
+            string strParagraphOutput = await _llmCallHelper.CallLlmWithRetry<string>(
+                client, messages, options,
+                jObj => jObj["paragraph_content"]?.ToString() ?? "");
 
-            // Get a response from ChatGPT 
-            var FinalChatRequest = new ChatRequest(
-                chatPrompts,
-                model: GPTModel,
-                topP: 1,
-                frequencyPenalty: 0,
-                presencePenalty: 0,
-                responseFormat: TextResponseFormat.JsonSchema);
-
-            await LogService.WriteToLogAsync($"WriteParagraph: Check Moderation");
-
-            ChatResponseResult = await api.ChatEndpoint.GetCompletionAsync(FinalChatRequest);
-
-            // *****************************************************
-
-            await LogService.WriteToLogAsync($"TotalTokens: {ChatResponseResult.Usage.TotalTokens} - ChatResponseResult - {ChatResponseResult.FirstChoice.Message.Content}");
-
-            string strParagraphOutput = "";
-
-            try
-            {
-                // Convert the JSON to a list of SimpleCharacters
-
-                var JSONResult = ChatResponseResult.FirstChoice.Message.Content.ToString();
-
-                dynamic data = JObject.Parse(JSONResult);
-
-                strParagraphOutput = data.paragraph_content.ToString();
-            }
-            catch (Exception ex)
-            {
-                await LogService.WriteToLogAsync($"Error - WriteParagraph: {ex.Message} {ex.StackTrace ?? ""}");
-            }
-
-            return strParagraphOutput;
+            return strParagraphOutput ?? "";
         }
         #endregion
 
         // Methods
 
-        #region private string CreateWriteParagraph(JSONMasterStory paramJSONMasterStory, AIPrompt paramAIPrompt)
-        private string CreateWriteParagraph(JSONMasterStory paramJSONMasterStory, AIPrompt paramAIPrompt)
+        #region private Dictionary<string, string> BuildWriteParagraphValues(JSONMasterStory paramJSONMasterStory, AIPrompt paramAIPrompt)
+        private Dictionary<string, string> BuildWriteParagraphValues(JSONMasterStory paramJSONMasterStory, AIPrompt paramAIPrompt)
         {
-            string strPrompt = "You are a function that will produce JSON that contains the contents of a single paragraph for a novel. \n";
+            var values = new Dictionary<string, string>();
 
-            // System Message if provided
-            if (paramJSONMasterStory.SystemMessage != "")
-            {
-                strPrompt = strPrompt +
-                    $"#### Please follow all these directions when creating the paragraph: {paramJSONMasterStory.SystemMessage.Trim()}. \n";
-            }
+            // SystemMessage
+            values["SystemMessage"] = !string.IsNullOrEmpty(paramJSONMasterStory.SystemMessage)
+                ? $"#### Please follow all these directions when creating the paragraph: {paramJSONMasterStory.SystemMessage.Trim()}. \n"
+                : "";
 
-            // Add StoryTitle if provided
-            if (paramJSONMasterStory.StoryTitle != "")
-            {
-                strPrompt = strPrompt +
-                    $"#### The story title is {paramJSONMasterStory.StoryTitle.Trim()}. \n";
-            }
+            // StoryTitle
+            values["StoryTitle"] = !string.IsNullOrEmpty(paramJSONMasterStory.StoryTitle)
+                ? $"#### The story title is {paramJSONMasterStory.StoryTitle.Trim()}. \n"
+                : "";
 
-            // Add StoryStyle if provided
-            if (paramJSONMasterStory.StoryStyle != "")
-            {
-                strPrompt = strPrompt +
-                    $"#### The story style is {paramJSONMasterStory.StoryStyle.Trim()}. \n";
-            }
+            // StoryStyle
+            values["StoryStyle"] = !string.IsNullOrEmpty(paramJSONMasterStory.StoryStyle)
+                ? $"#### The story style is {paramJSONMasterStory.StoryStyle.Trim()}. \n"
+                : "";
 
-            // Add StorySynopsis if provided
-            if (paramJSONMasterStory.StorySynopsis != "")
-            {
-                strPrompt = strPrompt +
-                    $"#### The story synopsis is {paramJSONMasterStory.StorySynopsis.Trim()}. \n";
-            }
+            // StorySynopsis
+            values["StorySynopsis"] = !string.IsNullOrEmpty(paramJSONMasterStory.StorySynopsis)
+                ? $"#### The story synopsis is {paramJSONMasterStory.StorySynopsis.Trim()}. \n"
+                : "";
 
-            // Add CurrentChapter if provided
+            // CurrentChapter
+            string currentChapterBlock = "";
             if (paramJSONMasterStory.CurrentChapter != null)
             {
-                string ChapterSequence = paramJSONMasterStory.CurrentChapter.chapter_name.Split(' ')[1];
-
-                strPrompt = strPrompt +
-                    $"#### This is chapter number {ChapterSequence} in the story. \n";
-
-                strPrompt = strPrompt +
-                    $"#### This is the synopsis of chapter {ChapterSequence}: {paramJSONMasterStory.CurrentChapter.chapter_synopsis}. \n";
-
-                if (paramJSONMasterStory.PreviousParagraphs != null)
-                {
-                    var JSONStringOfPreviousParagraphs = System.Text.Json.JsonSerializer.Serialize(paramJSONMasterStory.PreviousParagraphs);
-
-                    strPrompt = strPrompt +
-                        $"#### This is the JSON representation of the previous paragraphs in chapter {ChapterSequence}: {JSONStringOfPreviousParagraphs}. \n";
-                }
+                string ChapterSequence = paramJSONMasterStory.CurrentChapter.chapter_name?.Split(' ').LastOrDefault() ?? "1";
+                currentChapterBlock += $"#### This is chapter number {ChapterSequence} in the story. \n";
+                currentChapterBlock += $"#### This is the synopsis of chapter {ChapterSequence}: {paramJSONMasterStory.CurrentChapter.chapter_synopsis}. \n";
             }
+            values["CurrentChapter"] = currentChapterBlock;
 
-            // Add existing paragraph contents if provided
-            if (paramJSONMasterStory.CurrentParagraph.contents != "")
+            // PreviousParagraphs
+            string prevParagraphs = "";
+            if (paramJSONMasterStory.PreviousParagraphs != null && paramJSONMasterStory.CurrentChapter != null)
             {
-                strPrompt = strPrompt +
-                    "#### This is the current contents of the next paragraph in the chapter: \n" +
+                string ChapterSequence = paramJSONMasterStory.CurrentChapter.chapter_name?.Split(' ').LastOrDefault() ?? "1";
+                var jsonPrev = JsonSerializer.Serialize(paramJSONMasterStory.PreviousParagraphs);
+                prevParagraphs = $"#### This is the JSON representation of the previous paragraphs in chapter {ChapterSequence}: {jsonPrev}. \n";
+            }
+            values["PreviousParagraphs"] = prevParagraphs;
+
+            // CurrentParagraph, CurrentLocation, CharacterList, RelatedParagraphs, PromptInstruction
+            string currentParagraphBlock = "";
+            if (paramJSONMasterStory.CurrentParagraph != null && !string.IsNullOrEmpty(paramJSONMasterStory.CurrentParagraph.contents))
+            {
+                currentParagraphBlock += "#### This is the current contents of the next paragraph in the chapter: \n" +
                     paramJSONMasterStory.CurrentParagraph.contents + "\n";
 
-                // Add CurrentLocation if provided
                 if (paramJSONMasterStory.CurrentLocation != null)
                 {
-                    var JSONStringOfCurrentLocation = System.Text.Json.JsonSerializer.Serialize(paramJSONMasterStory.CurrentLocation);
-
-                    strPrompt = strPrompt +
-                        $"#### This is the JSON representation of the location description of the paragraph: {JSONStringOfCurrentLocation}. \n";
+                    var jsonLoc = JsonSerializer.Serialize(paramJSONMasterStory.CurrentLocation);
+                    currentParagraphBlock += $"#### This is the JSON representation of the location description of the paragraph: {jsonLoc}. \n";
                 }
 
-                // Add CharacterList if provided
                 if (paramJSONMasterStory.CharacterList != null)
                 {
-                    var JSONStringOfCharacterList = System.Text.Json.JsonSerializer.Serialize(paramJSONMasterStory.CharacterList);
-
-                    strPrompt = strPrompt +
-                        $"#### This is the JSON representation of the characters in the paragraph and their descriptions: {JSONStringOfCharacterList}. \n";
+                    var jsonChars = JsonSerializer.Serialize(paramJSONMasterStory.CharacterList);
+                    currentParagraphBlock += $"#### This is the JSON representation of the characters in the paragraph and their descriptions: {jsonChars}. \n";
                 }
 
-                // Add RelatedParagraphs if provided
                 if (paramJSONMasterStory.RelatedParagraphs != null)
                 {
-                    var JSONStringOfRelatedParagraphs = System.Text.Json.JsonSerializer.Serialize(paramJSONMasterStory.RelatedParagraphs);
-
-                    strPrompt = strPrompt +
-                        $"#### This is the JSON representation of related paragraphs that occur in previous chapters: {JSONStringOfRelatedParagraphs}. \n";
+                    var jsonRelated = JsonSerializer.Serialize(paramJSONMasterStory.RelatedParagraphs);
+                    currentParagraphBlock += $"#### This is the JSON representation of related paragraphs that occur in previous chapters: {jsonRelated}. \n";
                 }
 
-                // Add prompt instruction if provided
-                if (paramAIPrompt.AIPromptText.Trim() != "")
+                if (!string.IsNullOrWhiteSpace(paramAIPrompt.AIPromptText))
                 {
-                    strPrompt = strPrompt +
-                        "#### Use the following instructions in re-writing the paragraph: \n" +
+                    currentParagraphBlock += "#### Use the following instructions in re-writing the paragraph: \n" +
                         paramAIPrompt.AIPromptText.Trim() + "\n";
                 }
                 else
                 {
-                    strPrompt = strPrompt +
-                        "#### Use the following instructions in writing the next paragraph in the chapter: \n" +
+                    currentParagraphBlock += "#### Use the following instructions in writing the next paragraph in the chapter: \n" +
                         "Continue from the last paragraph. \n";
                 }
             }
-            else // No current Paragraph
+            else
             {
-                // Add CurrentLocation if provided
                 if (paramJSONMasterStory.CurrentLocation != null)
                 {
-                    var JSONStringOfCurrentLocation = System.Text.Json.JsonSerializer.Serialize(paramJSONMasterStory.CurrentLocation);
-
-                    strPrompt = strPrompt +
-                        $"#### This is the JSON representation of the location description of the paragraph: {JSONStringOfCurrentLocation}. \n";
+                    var jsonLoc = JsonSerializer.Serialize(paramJSONMasterStory.CurrentLocation);
+                    currentParagraphBlock += $"#### This is the JSON representation of the location description of the paragraph: {jsonLoc}. \n";
                 }
 
-                // Add CharacterList if provided
                 if (paramJSONMasterStory.CharacterList != null)
                 {
-                    var JSONStringOfCharacterList = System.Text.Json.JsonSerializer.Serialize(paramJSONMasterStory.CharacterList);
-
-                    strPrompt = strPrompt +
-                        $"#### This is the JSON representation of the characters in the paragraph and their descriptions: {JSONStringOfCharacterList}. \n";
+                    var jsonChars = JsonSerializer.Serialize(paramJSONMasterStory.CharacterList);
+                    currentParagraphBlock += $"#### This is the JSON representation of the characters in the paragraph and their descriptions: {jsonChars}. \n";
                 }
 
-                // Add RelatedParagraphs if provided
                 if (paramJSONMasterStory.RelatedParagraphs != null)
                 {
-                    var JSONStringOfRelatedParagraphs = System.Text.Json.JsonSerializer.Serialize(paramJSONMasterStory.RelatedParagraphs);
-
-                    strPrompt = strPrompt +
-                        $"#### This is the JSON representation of related paragraphs that occur in previous chapters: {JSONStringOfRelatedParagraphs}. \n";
+                    var jsonRelated = JsonSerializer.Serialize(paramJSONMasterStory.RelatedParagraphs);
+                    currentParagraphBlock += $"#### This is the JSON representation of related paragraphs that occur in previous chapters: {jsonRelated}. \n";
                 }
 
-                // Add prompt instruction if provided
-                if (paramAIPrompt.AIPromptText.Trim() != "")
+                if (!string.IsNullOrWhiteSpace(paramAIPrompt.AIPromptText))
                 {
-                    strPrompt = strPrompt +
-                        "#### Use the following instructions in writing the next paragraph in the chapter: \n" +
+                    currentParagraphBlock += "#### Use the following instructions in writing the next paragraph in the chapter: \n" +
                         paramAIPrompt.AIPromptText.Trim() + "\n";
                 }
                 else
                 {
-                    strPrompt = strPrompt +
-                        "#### Use the following instructions in writing the next paragraph in the chapter: \n" +
+                    currentParagraphBlock += "#### Use the following instructions in writing the next paragraph in the chapter: \n" +
                         "Write the next paragraph in the chapter. \n";
                 }
             }
+            values["CurrentParagraph"] = currentParagraphBlock;
+            values["CurrentLocation"] = "";
+            values["CharacterList"] = "";
+            values["RelatedParagraphs"] = "";
+            values["PromptInstruction"] = "";
+            values["NumberOfWords"] = paramAIPrompt.NumberOfWords.ToString();
 
-            strPrompt = strPrompt +
-                "#### Only use information provided. Do not use any information not provided.\n" +
-                "#### Write in the writing style of the provided content.\n" +
-                "#### Insert a line break before a dialogue quote by a character the when they speak for the first time.\n" +
-                $"#### Produce a single paragraph that is {paramAIPrompt.NumberOfWords} words maximum. \n";
-
-            // Instruction on how to provide the results
-            strPrompt = strPrompt + "#### Provide the results in the following JSON format: \n" +
-                "{\n" +
-                "\"paragraph_content\": \"[paragraph_content]\" \n" +
-                "}";
-
-            return strPrompt;
+            return values;
         }
         #endregion
     }

@@ -122,10 +122,22 @@ namespace AIStoryBuilders.Services
                         {
                             var ConvertEmbeddingToFloats = JsonConvert.DeserializeObject<List<float>>(embedding.Value);
 
+                            // Check for dimension mismatch (stale vectors from old cloud embeddings)
+                            float[] vectorArray;
+                            if (ConvertEmbeddingToFloats.Count != AI.BrowserEmbeddingGenerator.VectorDimension)
+                            {
+                                // Re-embed with local model
+                                vectorArray = await OrchestratorMethods.GetVectorEmbeddingAsFloats(embedding.Key);
+                            }
+                            else
+                            {
+                                vectorArray = ConvertEmbeddingToFloats.ToArray();
+                            }
+
                             var similarity =
                             OrchestratorMethods.CosineSimilarity(
                                 ParagraphContentEmbeddingVectors,
-                            ConvertEmbeddingToFloats.ToArray());
+                            vectorArray);
 
                             similarities.Add((embedding.Key, similarity));
                         }
@@ -145,10 +157,22 @@ namespace AIStoryBuilders.Services
                         {
                             var ConvertEmbeddingToFloats = JsonConvert.DeserializeObject<List<float>>(embedding.Value);
 
+                            // Check for dimension mismatch (stale vectors from old cloud embeddings)
+                            float[] vectorArray;
+                            if (ConvertEmbeddingToFloats.Count != AI.BrowserEmbeddingGenerator.VectorDimension)
+                            {
+                                // Re-embed with local model
+                                vectorArray = await OrchestratorMethods.GetVectorEmbeddingAsFloats(embedding.Key);
+                            }
+                            else
+                            {
+                                vectorArray = ConvertEmbeddingToFloats.ToArray();
+                            }
+
                             var similarity =
                             OrchestratorMethods.CosineSimilarity(
                                 AIPromptResultEmbeddingVectors,
-                            ConvertEmbeddingToFloats.ToArray());
+                            vectorArray);
 
                             similarities.Add((embedding.Key, similarity));
                         }

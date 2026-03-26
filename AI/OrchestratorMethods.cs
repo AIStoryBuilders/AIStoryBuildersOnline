@@ -1,12 +1,9 @@
 using AIStoryBuilders.Model;
 using AIStoryBuilders.Models;
 using AIStoryBuilders.Services;
+using Microsoft.Extensions.AI;
 using Newtonsoft.Json;
-using OpenAI;
-using OpenAI.Chat;
-using OpenAI.Files;
-using OpenAI.FineTuning;
-using OpenAI.Models;
+using System.ClientModel;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -25,102 +22,68 @@ namespace AIStoryBuilders.AI
         public Dictionary<string, string> AIStoryBuildersMemory = new Dictionary<string, string>();
         public HttpClient HttpClient { get; set; }
 
+        private PromptTemplateService _promptService;
+        private LlmCallHelper _llmCallHelper;
+        private bool _settingsLoaded = false;
+
+        public BrowserEmbeddingGenerator EmbeddingGenerator { get; set; }
+
         // Constructor
-        public OrchestratorMethods(SettingsService _SettingsService, LogService _LogService, DatabaseService _DatabaseService, HttpClient _HttpClient)
+        public OrchestratorMethods(SettingsService _SettingsService, LogService _LogService, DatabaseService _DatabaseService, HttpClient _HttpClient, BrowserEmbeddingGenerator _EmbeddingGenerator)
         {
             SettingsService = _SettingsService;
             LogService = _LogService;
             DatabaseService = _DatabaseService;
             HttpClient = _HttpClient;
+            EmbeddingGenerator = _EmbeddingGenerator;
+            _promptService = new PromptTemplateService();
+            _llmCallHelper = new LlmCallHelper(_LogService);
         }
 
-        // OpenAI Service
+        // Settings Loading
 
-        #region public async Task<OpenAIClient> CreateOpenAIClient()
-        public async Task<OpenAIClient> CreateOpenAIClient()
+        #region private async Task EnsureSettingsLoaded()
+        private async Task EnsureSettingsLoaded()
         {
-            await SettingsService.LoadSettingsAsync();
-
-            string Organization = SettingsService.Organization;
-            string ApiKey = SettingsService.ApiKey;
-            string Endpoint = SettingsService.Endpoint;
-            string ApiVersion = SettingsService.ApiVersion;
-            string AIEmbeddingModel = SettingsService.AIEmbeddingModel;
-            string AIModel = SettingsService.AIModel;
-
-            if (HttpClient == null)
+            if (!_settingsLoaded)
             {
-                HttpClient = new HttpClient();
+                await SettingsService.LoadSettingsAsync();
+                _settingsLoaded = true;
             }
-
-            // Create a new OpenAIClient object
-            try
-            {
-                HttpClient.Timeout = TimeSpan.FromSeconds(520);
-            }
-            catch
-            {
-                // Do nothing
-            }
-
-            OpenAIClient api;
-
-            if (SettingsService.AIType == "OpenAI")
-            {
-                api = new OpenAIClient(new OpenAIAuthentication(ApiKey, Organization), null, HttpClient);
-            }
-            else
-            {
-                var auth = new OpenAIAuthentication(ApiKey);
-                var settings = new OpenAISettings(resourceName: Endpoint, deploymentId: AIModel, apiVersion: ApiVersion);
-                api = new OpenAIClient(auth, settings, HttpClient);
-            }
-
-            return api;
         }
         #endregion
 
-        #region public async Task<OpenAIClient> CreateEmbeddingOpenAIClient()
-        public async Task<OpenAIClient> CreateEmbeddingOpenAIClient()
-        {
-            await SettingsService.LoadSettingsAsync();
+        // AI Client Factory
 
-            string Organization = SettingsService.Organization;
+        #region public IChatClient CreateChatClient()
+        public IChatClient CreateChatClient()
+        {
             string ApiKey = SettingsService.ApiKey;
+            string AIModel = SettingsService.AIModel;
             string Endpoint = SettingsService.Endpoint;
             string ApiVersion = SettingsService.ApiVersion;
-            string AIEmbeddingModel = SettingsService.AIEmbeddingModel;
-            string AIModel = SettingsService.AIModel;
 
-            if (HttpClient == null)
+            switch (SettingsService.AIType)
             {
-                HttpClient = new HttpClient();
-            }
+                case "OpenAI":
+                    var openAiClient = new OpenAI.OpenAIClient(ApiKey);
+                    return openAiClient.GetChatClient(AIModel).AsIChatClient();
 
-            // Create a new OpenAIClient object
-            try
-            {
-                HttpClient.Timeout = TimeSpan.FromSeconds(520);
-            }
-            catch
-            {
-                // Do nothing
-            }
+                case "Azure OpenAI":
+                    var azureEndpoint = new Uri($"https://{Endpoint}.openai.azure.com/");
+                    var azureCredential = new ApiKeyCredential(ApiKey);
+                    var azureClient = new Azure.AI.OpenAI.AzureOpenAIClient(azureEndpoint, azureCredential);
+                    return azureClient.GetChatClient(AIModel).AsIChatClient();
 
-            OpenAIClient api;
+                case "Anthropic":
+                    return new AnthropicChatClient(ApiKey, AIModel);
 
-            if (SettingsService.AIType == "OpenAI")
-            {
-                api = new OpenAIClient(new OpenAIAuthentication(ApiKey, Organization), null, HttpClient);
-            }
-            else
-            {
-                var auth = new OpenAIAuthentication(ApiKey);
-                var settings = new OpenAISettings(resourceName: Endpoint, deploymentId: AIEmbeddingModel, apiVersion: ApiVersion);
-                api = new OpenAIClient(auth, settings, HttpClient);
-            }
+                case "Google AI":
+                    return new GoogleAIChatClient(ApiKey, AIModel);
 
-            return api;
+                default:
+                    throw new InvalidOperationException($"Unsupported AI type: {SettingsService.AIType}");
+            }
         }
         #endregion
 
@@ -129,40 +92,14 @@ namespace AIStoryBuilders.AI
         #region public async Task<string> GetVectorEmbedding(string EmbeddingContent, bool Combine)
         public async Task<string> GetVectorEmbedding(string EmbeddingContent, bool Combine)
         {
-            // **** Call OpenAI and get embeddings for the memory text
-            // Create an instance of the OpenAI client
-            OpenAIClient api = await CreateEmbeddingOpenAIClient();
+            // Get embeddings locally via ONNX in the browser
+            float[] EmbeddingVectors =
+                await EmbeddingGenerator.GenerateEmbeddingAsync(EmbeddingContent);
 
-            await SettingsService.LoadSettingsAsync();
-
-            // Get the model details
-            OpenAI.Models.Model model = new OpenAI.Models.Model("text-embedding-ada-002");
-
-            if (SettingsService.AIType != "OpenAI")
-            {
-                // Azure OpenAI - use the embedding model from the settings
-                model = new OpenAI.Models.Model(SettingsService.AIEmbeddingModel);
-            }
-
-            // Get embeddings for the text
-            var embeddings = await api.EmbeddingsEndpoint.CreateEmbeddingAsync(EmbeddingContent, model);
-
-            // Get embeddings as an array of floats
-            var EmbeddingVectors = embeddings.Data[0].Embedding.Select(d => (float)d).ToArray();
-
-            // Loop through the embeddings
-            List<VectorData> AllVectors = new List<VectorData>();
-            for (int i = 0; i < EmbeddingVectors.Length; i++)
-            {
-                var embeddingVector = new VectorData
-                {
-                    VectorValue = EmbeddingVectors[i]
-                };
-                AllVectors.Add(embeddingVector);
-            }
-
-            // Convert the floats to a single string
-            var VectorsToSave = "[" + string.Join(",", AllVectors.Select(x => x.VectorValue)) + "]";
+            // Convert the floats to a JSON array string
+            var VectorsToSave = "["
+                + string.Join(",", EmbeddingVectors.Select(v => v.ToString("G")))
+                + "]";
 
             if (Combine)
             {
@@ -175,31 +112,11 @@ namespace AIStoryBuilders.AI
         }
         #endregion
 
-        #region public async Task<string> GetVectorEmbeddingAsFloats(string EmbeddingContent)
+        #region public async Task<float[]> GetVectorEmbeddingAsFloats(string EmbeddingContent)
         public async Task<float[]> GetVectorEmbeddingAsFloats(string EmbeddingContent)
         {
-            // **** Call OpenAI and get embeddings for the memory text
-            // Create an instance of the OpenAI client
-            OpenAIClient api = await CreateEmbeddingOpenAIClient();
-
-            await SettingsService.LoadSettingsAsync();
-
-            // Get the model details
-            OpenAI.Models.Model model = new OpenAI.Models.Model("text-embedding-ada-002");
-
-            if (SettingsService.AIType != "OpenAI")
-            {
-                // Azure OpenAI - use the embedding model from the settings
-                model = new OpenAI.Models.Model(SettingsService.AIEmbeddingModel);
-            }
-
-            // Get embeddings for the text
-            var embeddings = await api.EmbeddingsEndpoint.CreateEmbeddingAsync(EmbeddingContent, model);
-
-            // Get embeddings as an array of floats
-            var EmbeddingVectors = embeddings.Data[0].Embedding.Select(d => (float)d).ToArray();
-
-            return EmbeddingVectors;
+            // Get embeddings locally via ONNX in the browser
+            return await EmbeddingGenerator.GenerateEmbeddingAsync(EmbeddingContent);
         }
         #endregion
 
@@ -208,6 +125,11 @@ namespace AIStoryBuilders.AI
         #region public float CosineSimilarity(float[] vector1, float[] vector2)
         public float CosineSimilarity(float[] vector1, float[] vector2)
         {
+            // Dimension mismatch guard — cannot compare vectors of
+            // different dimensions (e.g. 1536-d vs 384-d after migration)
+            if (vector1 == null || vector2 == null) return 0f;
+            if (vector1.Length != vector2.Length) return 0f;
+
             // Initialize variables for dot product and
             // magnitudes of the vectors
             float dotProduct = 0;
@@ -216,7 +138,7 @@ namespace AIStoryBuilders.AI
 
             // Iterate through the vectors and calculate
             // the dot product and magnitudes
-            for (int i = 0; i < vector1?.Length; i++)
+            for (int i = 0; i < vector1.Length; i++)
             {
                 // Calculate dot product
                 dotProduct += vector1[i] * vector2[i];
@@ -232,6 +154,8 @@ namespace AIStoryBuilders.AI
             // to obtain actual magnitudes
             magnitude1 = (float)Math.Sqrt(magnitude1);
             magnitude2 = (float)Math.Sqrt(magnitude2);
+
+            if (magnitude1 == 0 || magnitude2 == 0) return 0f;
 
             // Calculate and return cosine similarity by dividing
             // dot product by the product of magnitudes

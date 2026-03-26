@@ -72,6 +72,18 @@
     </script>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
+    <!-- Local Embedding Engine (ONNX) -->
+    <script type="module">
+        import { initializeEmbeddingModel, generateEmbedding, generateEmbeddings }
+            from './js/embedding.js';
+
+        // Expose to global scope for Blazor JS interop
+        window.EmbeddingEngine = {
+            initialize: initializeEmbeddingModel,
+            generateEmbedding: generateEmbedding,
+            generateEmbeddings: generateEmbeddings
+        };
+    </script>
     <script>navigator.serviceWorker.register('service-worker.js');</script>
 </body>
 
