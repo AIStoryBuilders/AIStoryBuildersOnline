@@ -289,9 +289,9 @@
                                 {
                                     messages = new[]
                                     {
-                                        new { role = "system", content = reader.GetString(0) },
-                                        new { role = "user", content = reader.GetString(1) },
-                                        new { role = "assistant", content = reader.GetString(2) }
+                                        new { role = "system", content = reader.IsDBNull(0) ? "" : reader.GetValue(0)?.ToString() ?? "" },
+                                        new { role = "user", content = reader.IsDBNull(1) ? "" : reader.GetValue(1)?.ToString() ?? "" },
+                                        new { role = "assistant", content = reader.IsDBNull(2) ? "" : reader.GetValue(2)?.ToString() ?? "" }
                                     }
                                 };
                                 jsonlLines.Add(System.Text.Json.JsonSerializer.Serialize(obj));

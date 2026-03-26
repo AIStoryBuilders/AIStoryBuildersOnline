@@ -1,6 +1,5 @@
 using Microsoft.Extensions.AI;
 using System.Net.Http.Headers;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 
@@ -24,13 +23,22 @@ namespace AIStoryBuilders.AI
             _apiKey = apiKey ?? throw new ArgumentNullException(nameof(apiKey));
             _modelId = modelId ?? throw new ArgumentNullException(nameof(modelId));
 
-            // Create a dedicated HttpClient for Anthropic API calls
-            // to avoid BaseAddress conflicts with the DI HttpClient
-            _httpClient = new HttpClient();
-            _ownsHttpClient = true;
-            _httpClient.DefaultRequestHeaders.Add("x-api-key", _apiKey);
-            _httpClient.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
-            _httpClient.DefaultRequestHeaders.Add("anthropic-dangerous-direct-browser-access", "true");
+            if (httpClient != null)
+            {
+                // Use the provided HttpClient (DI-friendly path)
+                _httpClient = httpClient;
+                _ownsHttpClient = false;
+            }
+            else
+            {
+                // Create a dedicated HttpClient when none is supplied
+                _httpClient = new HttpClient();
+                _ownsHttpClient = true;
+            }
+
+            _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("x-api-key", _apiKey);
+            _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("anthropic-version", "2023-06-01");
+            _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("anthropic-dangerous-direct-browser-access", "true");
         }
 
         public ChatClientMetadata Metadata => new ChatClientMetadata("AnthropicChatClient", null, _modelId);
@@ -135,13 +143,12 @@ namespace AIStoryBuilders.AI
             return chatResponse;
         }
 
-        public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+        public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
             IEnumerable<ChatMessage> chatMessages,
             ChatOptions options = null,
-            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException("Streaming is not supported by AnthropicChatClient.");
-            yield break;
         }
 
         public object GetService(Type serviceType, object serviceKey = null)

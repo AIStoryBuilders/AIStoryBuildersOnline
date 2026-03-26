@@ -11,7 +11,7 @@ export class WordPieceTokenizer {
         this.vocab = null;
         /** @type {Map<number, string>|null} */
         this.idsToTokens = null;
-        this.maxLength = 256;
+        this.maxLength = 512;
         this.loaded = false;
 
         // Special token IDs

@@ -24,7 +24,6 @@ namespace AIStoryBuilders.AI
 
         private PromptTemplateService _promptService;
         private LlmCallHelper _llmCallHelper;
-        private bool _settingsLoaded = false;
 
         public BrowserEmbeddingGenerator EmbeddingGenerator { get; set; }
 
@@ -45,11 +44,8 @@ namespace AIStoryBuilders.AI
         #region private async Task EnsureSettingsLoaded()
         private async Task EnsureSettingsLoaded()
         {
-            if (!_settingsLoaded)
-            {
-                await SettingsService.LoadSettingsAsync();
-                _settingsLoaded = true;
-            }
+            // Always reload settings so that changes made during the session are respected.
+            await SettingsService.LoadSettingsAsync();
         }
         #endregion
 
@@ -70,7 +66,26 @@ namespace AIStoryBuilders.AI
                     return openAiClient.GetChatClient(AIModel).AsIChatClient();
 
                 case "Azure OpenAI":
-                    var azureEndpoint = new Uri($"https://{Endpoint}.openai.azure.com/");
+                    // Accept either a resource name ("myresource") or a full URL
+                    // ("https://myresource.openai.azure.com/").
+                    Uri azureEndpoint;
+                    if (Uri.TryCreate(Endpoint, UriKind.Absolute, out var parsedUri)
+                        && (parsedUri.Scheme == Uri.UriSchemeHttps || parsedUri.Scheme == Uri.UriSchemeHttp))
+                    {
+                        azureEndpoint = parsedUri;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(Endpoint))
+                    {
+                        // Treat as resource name
+                        azureEndpoint = new Uri($"https://{Endpoint}.openai.azure.com/");
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException(
+                            "Azure OpenAI endpoint is not configured. " +
+                            "Enter either a resource name (e.g. 'myresource') or " +
+                            "a full URL (e.g. 'https://myresource.openai.azure.com/') in Settings.");
+                    }
                     var azureCredential = new ApiKeyCredential(ApiKey);
                     var azureClient = new Azure.AI.OpenAI.AzureOpenAIClient(azureEndpoint, azureCredential);
                     return azureClient.GetChatClient(AIModel).AsIChatClient();

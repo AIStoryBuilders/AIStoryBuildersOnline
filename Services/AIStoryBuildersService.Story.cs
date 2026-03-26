@@ -167,7 +167,8 @@ namespace AIStoryBuilders.Services
             // Test to see that something was returned
             if (ParsedNewChapters.chapter.Length == 0)
             {
-                throw new Exception("Failed to parse chapters from AI response.");
+                await LogService.WriteToLogAsync($"AddStory: Chapter parse failed. Raw AI response: {ParsedChaptersJSON}");
+                throw new Exception($"Failed to parse chapters from AI response. Raw response: {ParsedChaptersJSON}");
             }
 
             //// **** Create the Files
