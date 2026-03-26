@@ -93,13 +93,16 @@ namespace AIStoryBuilders.AI
             List<ChatMessage> messages,
             ChatOptions options)
         {
+            // Work with a copy so we don't mutate the caller's list on retries
+            var workingMessages = new List<ChatMessage>(messages);
+
             for (int attempt = 1; attempt <= MaxRetries; attempt++)
             {
                 try
                 {
                     await _logService.WriteToLogAsync($"LlmCallHelper (text): Attempt {attempt}/{MaxRetries}");
 
-                    var response = await client.GetResponseAsync(messages, options);
+                    var response = await client.GetResponseAsync(workingMessages, options);
 
                     // Log token usage
                     if (response.Usage != null)
@@ -119,7 +122,7 @@ namespace AIStoryBuilders.AI
 
                     if (attempt < MaxRetries)
                     {
-                        messages.Add(new ChatMessage(ChatRole.User,
+                        workingMessages.Add(new ChatMessage(ChatRole.User,
                             $"The previous attempt failed with error: {ex.Message}. Please try again."));
                     }
                 }

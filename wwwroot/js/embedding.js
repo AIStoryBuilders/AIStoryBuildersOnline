@@ -52,10 +52,13 @@ export async function generateEmbedding(text) {
     // Tokenize
     const { inputIds, attentionMask, tokenTypeIds } = tokenizer.tokenize(text);
 
-    // Create tensors [1, 256] (batch size = 1)
-    const inputIdsTensor = new ort.Tensor('int64', inputIds, [1, 256]);
-    const attentionMaskTensor = new ort.Tensor('int64', attentionMask, [1, 256]);
-    const tokenTypeIdsTensor = new ort.Tensor('int64', tokenTypeIds, [1, 256]);
+    // Derive sequence length from the tokenizer to stay in sync
+    const seqLen = tokenizer.maxLength;
+
+    // Create tensors [1, seqLen] (batch size = 1)
+    const inputIdsTensor = new ort.Tensor('int64', inputIds, [1, seqLen]);
+    const attentionMaskTensor = new ort.Tensor('int64', attentionMask, [1, seqLen]);
+    const tokenTypeIdsTensor = new ort.Tensor('int64', tokenTypeIds, [1, seqLen]);
 
     // Run inference
     const feeds = {
@@ -66,9 +69,8 @@ export async function generateEmbedding(text) {
 
     const results = await session.run(feeds);
 
-    // Extract last_hidden_state: shape [1, 256, 384]
+    // Extract last_hidden_state: shape [1, seqLen, 384]
     const lastHiddenState = results['last_hidden_state'].data; // Float32Array
-    const seqLen = 256;
     const hiddenDim = 384;
 
     // Mean pooling (masked)

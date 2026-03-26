@@ -59,10 +59,18 @@ namespace AIStoryBuilders.AI
 
             string lower = modelId.ToLowerInvariant();
 
+            // o-series reasoning models (o1, o3, o4, etc.)
+            if (lower.StartsWith("o1") || lower.StartsWith("o3") || lower.StartsWith("o4"))
+                return 128_000;
+
             if (lower.Contains("gpt-5-mini"))
                 return 128_000;
             if (lower.Contains("gpt-5"))
                 return 128_000;
+            if (lower.Contains("gpt-4.1-mini") || lower.Contains("gpt-4.1-nano"))
+                return 128_000;
+            if (lower.Contains("gpt-4.1"))
+                return 1_047_576;
             if (lower.Contains("gpt-4o"))
                 return 128_000;
             if (lower.Contains("gpt-4-turbo"))

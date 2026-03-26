@@ -59,18 +59,21 @@ namespace AIStoryBuilders.Services
             int remaining = maxTokens - baseTokens;
             if (remaining < 0) remaining = 0;
 
-            // Trim PreviousParagraphs
+            // Trim PreviousParagraphs — keep the most-recent paragraphs that fit
+            // (iterate from the end so we preserve recent context)
             if (masterStory.PreviousParagraphs != null && masterStory.PreviousParagraphs.Count > 0)
             {
                 var trimmedPrevious = new List<JSONParagraphs>();
                 int usedTokens = 0;
+                int budget = remaining / 2; // Reserve half for related
 
-                foreach (var paragraph in masterStory.PreviousParagraphs)
+                for (int i = masterStory.PreviousParagraphs.Count - 1; i >= 0; i--)
                 {
+                    var paragraph = masterStory.PreviousParagraphs[i];
                     int paragraphTokens = estimator.EstimateTokens(paragraph.contents ?? "");
-                    if (usedTokens + paragraphTokens <= remaining / 2) // Reserve half for related
+                    if (usedTokens + paragraphTokens <= budget)
                     {
-                        trimmedPrevious.Add(paragraph);
+                        trimmedPrevious.Insert(0, paragraph); // maintain original order
                         usedTokens += paragraphTokens;
                     }
                     else
@@ -83,18 +86,19 @@ namespace AIStoryBuilders.Services
                 remaining -= usedTokens;
             }
 
-            // Trim RelatedParagraphs
+            // Trim RelatedParagraphs — keep the most-recent entries that fit
             if (masterStory.RelatedParagraphs != null && masterStory.RelatedParagraphs.Count > 0)
             {
                 var trimmedRelated = new List<JSONParagraphs>();
                 int usedTokens = 0;
 
-                foreach (var paragraph in masterStory.RelatedParagraphs)
+                for (int i = masterStory.RelatedParagraphs.Count - 1; i >= 0; i--)
                 {
+                    var paragraph = masterStory.RelatedParagraphs[i];
                     int paragraphTokens = estimator.EstimateTokens(paragraph.contents ?? "");
                     if (usedTokens + paragraphTokens <= remaining)
                     {
-                        trimmedRelated.Add(paragraph);
+                        trimmedRelated.Insert(0, paragraph); // maintain original order
                         usedTokens += paragraphTokens;
                     }
                     else

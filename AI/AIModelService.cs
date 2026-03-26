@@ -1,4 +1,3 @@
-using AIStoryBuilders.Model;
 using AIStoryBuilders.Models;
 using Blazored.LocalStorage;
 using System.Security.Cryptography;
@@ -14,17 +13,14 @@ namespace AIStoryBuilders.AI
     {
         private readonly ILocalStorageService _localStorage;
         private readonly HttpClient _httpClient;
-        private readonly SettingsService _settingsService;
         private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(24);
 
         public AIModelService(
             ILocalStorageService localStorage,
-            HttpClient httpClient,
-            SettingsService settingsService)
+            HttpClient httpClient)
         {
             _localStorage = localStorage;
             _httpClient = httpClient;
-            _settingsService = settingsService;
         }
 
         /// <summary>
