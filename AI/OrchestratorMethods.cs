@@ -26,13 +26,16 @@ namespace AIStoryBuilders.AI
         private LlmCallHelper _llmCallHelper;
         private bool _settingsLoaded = false;
 
+        public BrowserEmbeddingGenerator EmbeddingGenerator { get; set; }
+
         // Constructor
-        public OrchestratorMethods(SettingsService _SettingsService, LogService _LogService, DatabaseService _DatabaseService, HttpClient _HttpClient)
+        public OrchestratorMethods(SettingsService _SettingsService, LogService _LogService, DatabaseService _DatabaseService, HttpClient _HttpClient, BrowserEmbeddingGenerator _EmbeddingGenerator)
         {
             SettingsService = _SettingsService;
             LogService = _LogService;
             DatabaseService = _DatabaseService;
             HttpClient = _HttpClient;
+            EmbeddingGenerator = _EmbeddingGenerator;
             _promptService = new PromptTemplateService();
             _llmCallHelper = new LlmCallHelper(_LogService);
         }
@@ -84,59 +87,19 @@ namespace AIStoryBuilders.AI
         }
         #endregion
 
-        #region private OpenAI.OpenAIClient CreateEmbeddingClient()
-        private OpenAI.OpenAIClient CreateEmbeddingClient()
-        {
-            string ApiKey = SettingsService.ApiKey;
-            string Endpoint = SettingsService.Endpoint;
-            string AIEmbeddingModel = SettingsService.AIEmbeddingModel;
-
-            if (SettingsService.AIType == "Azure OpenAI")
-            {
-                var azureEndpoint = new Uri($"https://{Endpoint}.openai.azure.com/");
-                var azureCredential = new ApiKeyCredential(ApiKey);
-                return new Azure.AI.OpenAI.AzureOpenAIClient(azureEndpoint, azureCredential);
-            }
-            else
-            {
-                return new OpenAI.OpenAIClient(ApiKey);
-            }
-        }
-        #endregion
-
         // Memory and Vectors
 
         #region public async Task<string> GetVectorEmbedding(string EmbeddingContent, bool Combine)
         public async Task<string> GetVectorEmbedding(string EmbeddingContent, bool Combine)
         {
-            await EnsureSettingsLoaded();
+            // Get embeddings locally via ONNX in the browser
+            float[] EmbeddingVectors =
+                await EmbeddingGenerator.GenerateEmbeddingAsync(EmbeddingContent);
 
-            var client = CreateEmbeddingClient();
-
-            string embeddingModel = "text-embedding-ada-002";
-            if (SettingsService.AIType == "Azure OpenAI" && !string.IsNullOrEmpty(SettingsService.AIEmbeddingModel))
-            {
-                embeddingModel = SettingsService.AIEmbeddingModel;
-            }
-
-            var embeddingClient = client.GetEmbeddingClient(embeddingModel);
-            var result = await embeddingClient.GenerateEmbeddingAsync(EmbeddingContent);
-
-            var EmbeddingVectors = result.Value.ToFloats().ToArray();
-
-            // Loop through the embeddings
-            List<VectorData> AllVectors = new List<VectorData>();
-            for (int i = 0; i < EmbeddingVectors.Length; i++)
-            {
-                var embeddingVector = new VectorData
-                {
-                    VectorValue = EmbeddingVectors[i]
-                };
-                AllVectors.Add(embeddingVector);
-            }
-
-            // Convert the floats to a single string
-            var VectorsToSave = "[" + string.Join(",", AllVectors.Select(x => x.VectorValue)) + "]";
+            // Convert the floats to a JSON array string
+            var VectorsToSave = "["
+                + string.Join(",", EmbeddingVectors.Select(v => v.ToString("G")))
+                + "]";
 
             if (Combine)
             {
@@ -152,20 +115,8 @@ namespace AIStoryBuilders.AI
         #region public async Task<float[]> GetVectorEmbeddingAsFloats(string EmbeddingContent)
         public async Task<float[]> GetVectorEmbeddingAsFloats(string EmbeddingContent)
         {
-            await EnsureSettingsLoaded();
-
-            var client = CreateEmbeddingClient();
-
-            string embeddingModel = "text-embedding-ada-002";
-            if (SettingsService.AIType == "Azure OpenAI" && !string.IsNullOrEmpty(SettingsService.AIEmbeddingModel))
-            {
-                embeddingModel = SettingsService.AIEmbeddingModel;
-            }
-
-            var embeddingClient = client.GetEmbeddingClient(embeddingModel);
-            var result = await embeddingClient.GenerateEmbeddingAsync(EmbeddingContent);
-
-            return result.Value.ToFloats().ToArray();
+            // Get embeddings locally via ONNX in the browser
+            return await EmbeddingGenerator.GenerateEmbeddingAsync(EmbeddingContent);
         }
         #endregion
 
@@ -174,6 +125,11 @@ namespace AIStoryBuilders.AI
         #region public float CosineSimilarity(float[] vector1, float[] vector2)
         public float CosineSimilarity(float[] vector1, float[] vector2)
         {
+            // Dimension mismatch guard — cannot compare vectors of
+            // different dimensions (e.g. 1536-d vs 384-d after migration)
+            if (vector1 == null || vector2 == null) return 0f;
+            if (vector1.Length != vector2.Length) return 0f;
+
             // Initialize variables for dot product and
             // magnitudes of the vectors
             float dotProduct = 0;
@@ -182,7 +138,7 @@ namespace AIStoryBuilders.AI
 
             // Iterate through the vectors and calculate
             // the dot product and magnitudes
-            for (int i = 0; i < vector1?.Length; i++)
+            for (int i = 0; i < vector1.Length; i++)
             {
                 // Calculate dot product
                 dotProduct += vector1[i] * vector2[i];
@@ -198,6 +154,8 @@ namespace AIStoryBuilders.AI
             // to obtain actual magnitudes
             magnitude1 = (float)Math.Sqrt(magnitude1);
             magnitude2 = (float)Math.Sqrt(magnitude2);
+
+            if (magnitude1 == 0 || magnitude2 == 0) return 0f;
 
             // Calculate and return cosine similarity by dividing
             // dot product by the product of magnitudes

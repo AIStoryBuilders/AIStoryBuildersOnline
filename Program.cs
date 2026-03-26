@@ -32,6 +32,7 @@ namespace AIStoryBuildersOnline
             builder.Services.AddScoped<AIStoryBuildersTempService>();
             builder.Services.AddSingleton<PromptTemplateService>();
             builder.Services.AddSingleton<TokenEstimator>();
+            builder.Services.AddScoped<BrowserEmbeddingGenerator>();
 
             // Radzen
             builder.Services.AddScoped<DialogService>();

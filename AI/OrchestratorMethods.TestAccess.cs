@@ -34,18 +34,25 @@ namespace AIStoryBuilders.AI
             await LogService.WriteToLogAsync(
                 $"TotalTokens: {response.Usage?.TotalTokenCount} - ChatResponseResult - {response.Text}");
 
-            // Test embeddings for Azure OpenAI only
-            if (SettingsService.AIType == "Azure OpenAI")
+            // Test the local BrowserEmbeddingGenerator
+            try
             {
-                try
+                await EmbeddingGenerator.InitializeAsync();
+                float[] testEmbedding =
+                    await EmbeddingGenerator.GenerateEmbeddingAsync("test embedding");
+
+                if (testEmbedding == null || testEmbedding.Length != BrowserEmbeddingGenerator.VectorDimension)
                 {
-                    string VectorEmbedding = await GetVectorEmbedding("This is a test for embedding", false);
+                    throw new Exception($"Local embedding model failed to produce {BrowserEmbeddingGenerator.VectorDimension}-d vector.");
                 }
-                catch (Exception ex)
-                {
-                    await LogService.WriteToLogAsync($"Azure OpenAI - Test the embedding model - Error: {ex.Message}");
-                    throw new Exception("Error: You must set a proper Azure OpenAI embedding model");
-                }
+
+                await LogService.WriteToLogAsync(
+                    $"Local embedding test passed — {testEmbedding.Length}-d vector produced.");
+            }
+            catch (Exception ex)
+            {
+                await LogService.WriteToLogAsync($"Local embedding test — Error: {ex.Message}");
+                throw new Exception("Error: Local embedding model failed. Check browser console for details.");
             }
 
             return true;
