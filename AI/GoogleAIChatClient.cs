@@ -96,7 +96,6 @@ namespace AIStoryBuilders.AI
             ChatOptions options = null,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            throw new NotSupportedException("Streaming is not supported by GoogleAIChatClient.");
             yield break;
         }
 
