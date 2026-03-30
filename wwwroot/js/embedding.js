@@ -28,13 +28,13 @@ export async function initializeEmbeddingModel() {
 
     // 2. Load the ONNX model
     session = await ortModule.InferenceSession.create(
-        './models/all-MiniLM-L6-v2/model_quantized.onnx',
+        '/models/all-MiniLM-L6-v2/model_quantized.onnx',
         { executionProviders: ['wasm'] }
     );
 
     // 3. Load the tokenizer vocabulary
     tokenizer = new WordPieceTokenizer();
-    await tokenizer.load('./models/all-MiniLM-L6-v2/vocab.txt');
+    await tokenizer.load('/models/all-MiniLM-L6-v2/vocab.txt');
 
     initialized = true;
 }
