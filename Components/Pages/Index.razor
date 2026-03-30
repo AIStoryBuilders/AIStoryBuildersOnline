@@ -45,6 +45,8 @@
     <RadzenButton Click=@(() => NewStory()) Text="New Story" Icon="add" ButtonStyle="ButtonStyle.Success" />
     <span>&nbsp; &nbsp;</span>
     <RadzenButton Click=@(() => ImportStory()) Text="Import Story" Icon="publish" ButtonStyle="ButtonStyle.Light" />
+    <span>&nbsp; &nbsp;</span>
+    <RadzenButton Click=@(() => ImportManuscript()) Text="Import docx/pdf/txt" Icon="description" ButtonStyle="ButtonStyle.Info" />
     <br />
     <br />
     <div style="height:500px">
@@ -207,6 +209,51 @@
             colStorys = await AIStoryBuildersService.GetStorys();
 
             StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            HomeVisible = true;
+            InProgress = false;
+
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = ex.Message,
+                    Duration = 4000
+                });
+
+            await LogService.WriteToLogAsync(ex.Message);
+        }
+    }
+
+    private async Task ImportManuscript()
+    {
+        try
+        {
+            var ImportResult = await dialogService.OpenAsync<ImportManuscriptControl>($"Import docx/pdf/txt", null,
+            new DialogOptions() { Height = "300px", Width = "500px" });
+
+            if (ImportResult != null)
+            {
+                string storyTitle = ImportResult.ToString();
+
+                colStorys = await AIStoryBuildersService.GetStorys();
+                StateHasChanged();
+
+                // Find the imported story and open it
+                var importedStory = colStorys.FirstOrDefault(s => s.Title == storyTitle);
+                if (importedStory != null)
+                {
+                    await EditStory(importedStory);
+                }
+            }
+            else
+            {
+                // Dialog was closed without completing - refresh story list in case partial import
+                colStorys = await AIStoryBuildersService.GetStorys();
+                StateHasChanged();
+            }
         }
         catch (Exception ex)
         {

@@ -30,6 +30,7 @@ namespace AIStoryBuildersOnline
             builder.Services.AddScoped<AIStoryBuildersService>();
             builder.Services.AddScoped<AIStoryBuildersStoryService>();
             builder.Services.AddScoped<AIStoryBuildersTempService>();
+            builder.Services.AddScoped<ManuscriptParsingService>();
             builder.Services.AddSingleton<PromptTemplateService>();
             builder.Services.AddSingleton<TokenEstimator>();
             builder.Services.AddScoped<BrowserEmbeddingGenerator>();

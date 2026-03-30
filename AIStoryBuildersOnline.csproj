@@ -19,6 +19,7 @@
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.0" PrivateAssets="all" />
 		<PackageReference Include="DocX" Version="5.0.0" />
 		<PackageReference Include="EPPlus" Version="8.3.1" />
+		<PackageReference Include="PdfPig" Version="0.1.13" />
 		<PackageReference Include="ExcelDataReader" Version="3.8.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />

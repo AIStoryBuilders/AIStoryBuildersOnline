@@ -1,0 +1,156 @@
+@using AIStoryBuilders.AI
+@using AIStoryBuilders.Model
+@using AIStoryBuilders.Models
+@using AIStoryBuilders.Services
+@inherits OwningComponentBase
+@inject DialogService dialogService
+@inject NotificationService NotificationService
+
+@if (IsBusy)
+{
+    <div class="rz-m-10">
+        @if (_parseProgress > 0)
+        {
+            <RadzenProgressBar Value="@_parseProgress" ShowValue="true" Style="margin-bottom: 10px;" />
+        }
+        else
+        {
+            <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        }
+        <p><em>@_statusMessage</em></p>
+    </div>
+}
+else
+{
+    <div class="form-group">
+        <h4>Select a manuscript file</h4>
+        <p>Supported formats: .docx, .pdf, .txt, .md</p>
+        <br />
+        <InputFile OnChange="OnFileSelected" accept=".docx,.pdf,.txt,.md" />
+    </div>
+}
+
+@code {
+    ManuscriptParsingService ManuscriptParsingService;
+    AIStoryBuildersService AIStoryBuildersService;
+    OrchestratorMethods OrchestratorMethods;
+    LogService LogService;
+
+    bool IsBusy = false;
+    int _parseProgress = 0;
+    string _statusMessage = "Initializing...";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            AIStoryBuildersService = (AIStoryBuildersService)ScopedServices.GetService(typeof(AIStoryBuildersService));
+            OrchestratorMethods = (OrchestratorMethods)ScopedServices.GetService(typeof(OrchestratorMethods));
+            LogService = (LogService)ScopedServices.GetService(typeof(LogService));
+            ManuscriptParsingService = (ManuscriptParsingService)ScopedServices.GetService(typeof(ManuscriptParsingService));
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = ex.Message,
+                    Duration = 4000
+                });
+
+            await LogService.WriteToLogAsync(ex.Message);
+        }
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            if (e.File == null) return;
+
+            var file = e.File;
+            string fileName = file.Name;
+            string extension = Path.GetExtension(fileName)?.ToLowerInvariant() ?? "";
+
+            // Validate extension
+            var supportedExtensions = new[] { ".docx", ".pdf", ".txt", ".md" };
+            if (!supportedExtensions.Contains(extension))
+            {
+                NotificationService.Notify(new NotificationMessage
+                    {
+                        Severity = NotificationSeverity.Warning,
+                        Summary = "Unsupported File",
+                        Detail = $"File type '{extension}' is not supported. Please select a .docx, .pdf, .txt, or .md file.",
+                        Duration = 4000
+                    });
+                return;
+            }
+
+            // Read file into memory BEFORE re-rendering (the InputFile DOM element
+            // must still exist when OpenReadStream is called).
+            using var memoryStream = new MemoryStream();
+            await file.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024).CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            IsBusy = true;
+            _parseProgress = 0;
+            _statusMessage = "Reading file...";
+            StateHasChanged();
+
+            // Set up progress reporting
+            var progress = new Progress<int>(value =>
+            {
+                _parseProgress = value;
+                InvokeAsync(StateHasChanged);
+            });
+
+            var statusProgress = new Progress<string>(message =>
+            {
+                _statusMessage = message;
+                InvokeAsync(StateHasChanged);
+            });
+
+            // Parse the manuscript
+            Story parsedStory = await ManuscriptParsingService.ParseManuscriptAsync(
+                memoryStream, fileName, progress, statusProgress);
+
+            // Persist the story
+            _statusMessage = "Saving story...";
+            _parseProgress = 95;
+            StateHasChanged();
+
+            await AIStoryBuildersService.PersistImportedStoryAsync(parsedStory, OrchestratorMethods);
+
+            _parseProgress = 100;
+            _statusMessage = "Import complete!";
+            StateHasChanged();
+
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Import Complete",
+                    Detail = $"'{parsedStory.Title}' was successfully imported with {parsedStory.Chapter.Count} chapter(s).",
+                    Duration = 4000
+                });
+
+            // Close the dialog and return the story title
+            dialogService.Close(parsedStory.Title);
+        }
+        catch (Exception ex)
+        {
+            IsBusy = false;
+            StateHasChanged();
+
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Import Error",
+                    Detail = ex.Message,
+                    Duration = 6000
+                });
+
+            await LogService.WriteToLogAsync($"ImportManuscript: {ex.Message} {ex.StackTrace ?? ""}");
+        }
+    }
+}
