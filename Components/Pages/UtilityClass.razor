@@ -195,8 +195,8 @@
         // Find the Story
         var objSelectedStory = ColStories.Where(x => x.Title == objStory.Title).FirstOrDefault();
 
-        // Get the .Zip file
-        var ZipFileContents = objSelectedStory.ZipFile;
+        // Get the .Zip file from its own LocalStorage key
+        var ZipFileContents = await AIStoryBuildersStoryService.GetZipFileAsync(objStory.Title);
 
         if (ZipFileContents != null)
         {

@@ -34,7 +34,27 @@ namespace AIStoryBuilders.Model
 
             colAIStoryBuildersStory = new List<AIStoryBuildersStory>();
         }
-        
+
+        private static string ZipStorageKey(string title) => $"AIStoryBuildersStory_Zip_{title}";
+
+        // Get the zip file for a specific story from its own LocalStorage key
+        public async Task<string> GetZipFileAsync(string title)
+        {
+            return await localStorage.GetItemAsync<string>(ZipStorageKey(title));
+        }
+
+        // Save the zip file for a specific story to its own LocalStorage key
+        private async Task SaveZipFileAsync(string title, string zipBase64)
+        {
+            await localStorage.SetItemAsync(ZipStorageKey(title), zipBase64);
+        }
+
+        // Delete the zip file for a specific story
+        private async Task DeleteZipFileAsync(string title)
+        {
+            await localStorage.RemoveItemAsync(ZipStorageKey(title));
+        }
+
         // Load the database
         public async Task LoadAIStoryBuildersStoriesAsync()
         {
@@ -56,9 +76,26 @@ namespace AIStoryBuilders.Model
             }
 
             colAIStoryBuildersStory = AIStoryBuildersStories.colAIStoryBuildersStory;
+
+            // Migrate any inline ZipFile data to separate LocalStorage keys
+            bool needsResave = false;
+            foreach (var story in colAIStoryBuildersStory)
+            {
+                if (!string.IsNullOrEmpty(story.ZipFile))
+                {
+                    await SaveZipFileAsync(story.Title, story.ZipFile);
+                    story.ZipFile = null;
+                    needsResave = true;
+                }
+            }
+
+            if (needsResave)
+            {
+                await SaveDatabaseAsync(colAIStoryBuildersStory);
+            }
         }
 
-        // Save the database
+        // Save the database (metadata only — zip files are stored separately)
 
         public async Task SaveDatabaseAsync(List<AIStoryBuildersStory> paramcolAIStoryBuildersStory)
         {
@@ -89,6 +126,13 @@ namespace AIStoryBuilders.Model
             // Set the Id
             paramAIStoryBuildersStory.Id = maxId + 1;
 
+            // Store zip file separately
+            if (!string.IsNullOrEmpty(paramAIStoryBuildersStory.ZipFile))
+            {
+                await SaveZipFileAsync(paramAIStoryBuildersStory.Title, paramAIStoryBuildersStory.ZipFile);
+                paramAIStoryBuildersStory.ZipFile = null;
+            }
+
             colAIStoryBuildersStory.Add(paramAIStoryBuildersStory);
 
             await SaveDatabaseAsync(colAIStoryBuildersStory);
@@ -97,6 +141,12 @@ namespace AIStoryBuilders.Model
         // Update a story
         public async Task UpdateStoryAsync(AIStoryBuildersStory paramAIStoryBuildersStory)
         {
+            // Store zip file separately
+            if (!string.IsNullOrEmpty(paramAIStoryBuildersStory.ZipFile))
+            {
+                await SaveZipFileAsync(paramAIStoryBuildersStory.Title, paramAIStoryBuildersStory.ZipFile);
+            }
+
             await LoadAIStoryBuildersStoriesAsync();
 
             // Find the story in colAIStoryBuildersStory
@@ -104,12 +154,12 @@ namespace AIStoryBuilders.Model
 
             if (story != null)
             {
-                // Update the story
+                // Update the story metadata (ZipFile is stored separately)
                 story.Title = paramAIStoryBuildersStory.Title;
                 story.Style = paramAIStoryBuildersStory.Style;
                 story.Theme = paramAIStoryBuildersStory.Theme;
                 story.Synopsis = paramAIStoryBuildersStory.Synopsis;
-                story.ZipFile = paramAIStoryBuildersStory.ZipFile;
+                story.ZipFile = null;
 
                 await SaveDatabaseAsync(colAIStoryBuildersStory);
             }
@@ -118,6 +168,9 @@ namespace AIStoryBuilders.Model
         // Delete a story
         public async Task DeleteStoryAsync(string paramStoryTitle)
         {
+            // Delete the separate zip storage
+            await DeleteZipFileAsync(paramStoryTitle);
+
             await LoadAIStoryBuildersStoriesAsync();
 
             // Find the story in colAIStoryBuildersStory
