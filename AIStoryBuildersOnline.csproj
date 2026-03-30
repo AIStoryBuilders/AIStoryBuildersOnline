@@ -7,7 +7,7 @@
 		<ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
 		<BlazorEnableTimeZoneSupport>false</BlazorEnableTimeZoneSupport>
 		<InvariantGlobalization>true</InvariantGlobalization>
-		<WasmStripILAfterAOT>true</WasmStripILAfterAOT>
+		<WasmStripILAfterAOT>false</WasmStripILAfterAOT>
 		<RunAOTCompilation>false</RunAOTCompilation>
 		<!-- Disable SRI for static web assets to prevent integrity check failures -->
 		<BlazorWebAssemblyEnableSubresourceIntegrity>false</BlazorWebAssemblyEnableSubresourceIntegrity>
@@ -37,11 +37,12 @@
 	<ItemGroup>
 		<ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
 	</ItemGroup>
-
 	<ItemGroup>
-	  <Content Update="web.config">
-	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-	  </Content>
+		<Content Update="web.config">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
 	</ItemGroup>
 
 </Project>
