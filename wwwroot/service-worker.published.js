@@ -52,16 +52,6 @@ async function onInstall(event) {
 
     // Activate the new service worker immediately
     self.skipWaiting();
-
-    // Prompt the user to reload the page
-    if (self.clients && self.clients.claim) {
-        self.clients.claim();
-        self.clients.matchAll().then((clients) => {
-            clients.forEach((client) => {
-                client.postMessage({ type: 'new-version-available' });
-            });
-        });
-    }
 }
 
 // Listen for messages from the client
@@ -74,6 +64,9 @@ self.addEventListener('message', (event) => {
 
 async function onActivate(event) {
     console.info('Service worker: Activate');
+
+    // Claim clients so the new service worker takes effect immediately
+    await self.clients.claim();
 
     // Delete unused caches
     const cacheKeys = await caches.keys();
