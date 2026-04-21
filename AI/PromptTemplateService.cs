@@ -9,10 +9,12 @@ namespace AIStoryBuilders.AI
     {
         // WriteParagraph templates
         public const string WriteParagraph_System = @"You are a function that will produce JSON that contains the contents of a single paragraph for a novel.
-{SystemMessage}{StoryTitle}{StoryStyle}{StorySynopsis}{CurrentChapter}{PreviousParagraphs}{CurrentParagraph}{CurrentLocation}{CharacterList}{RelatedParagraphs}{PromptInstruction}
+{SystemMessage}{StoryTitle}{StoryStyle}{StorySynopsis}{CurrentChapter}{PreviousParagraphs}{CurrentParagraph}{CurrentLocation}{CharacterList}{RelatedParagraphs}{TimelineSummary}{PromptInstruction}
 #### Only use information provided. Do not use any information not provided.
 #### Write in the writing style of the provided content.
 #### Insert a line break before a dialogue quote by a character the when they speak for the first time.
+#### The <timeline_summary>, if present, describes what has happened so far in the current timeline. Do not contradict these facts.
+#### Do not reference events from other timelines unless they are explicitly present in the provided context.
 #### Produce a single paragraph that is {NumberOfWords} words maximum.
 #### Provide the results in the following JSON format:
 {{

@@ -1,0 +1,46 @@
+@using Markdig
+
+<div class="chat-message-rendered">
+    @((MarkupString)RenderedHtml)
+</div>
+
+@code {
+    [Parameter] public string Content { get; set; } = "";
+
+    private static readonly MarkdownPipeline Pipeline =
+        new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+
+    private string RenderedHtml =>
+        string.IsNullOrEmpty(Content) ? "" : Markdown.ToHtml(Content, Pipeline);
+}
+
+<style>
+    .chat-message-rendered h1,
+    .chat-message-rendered h2,
+    .chat-message-rendered h3 { margin-top: .5rem; margin-bottom: .3rem; }
+    .chat-message-rendered p { margin: .3rem 0; }
+    .chat-message-rendered ul, .chat-message-rendered ol { margin: .3rem 0 .3rem 1.2rem; }
+    .chat-message-rendered pre {
+        background: #1e1e1e;
+        color: #eaeaea;
+        padding: .5rem;
+        border-radius: 4px;
+        overflow-x: auto;
+    }
+    .chat-message-rendered code {
+        background: #f5f5f5;
+        padding: .1rem .3rem;
+        border-radius: 3px;
+    }
+    .chat-message-rendered blockquote {
+        border-left: 3px solid #bbb;
+        padding-left: .6rem;
+        color: #555;
+        margin: .4rem 0;
+    }
+    .chat-message-rendered table { border-collapse: collapse; margin: .4rem 0; }
+    .chat-message-rendered th, .chat-message-rendered td {
+        border: 1px solid #ccc; padding: .2rem .4rem;
+    }
+    .chat-message-rendered a { color: #0a66c2; text-decoration: underline; }
+</style>

@@ -1368,75 +1368,104 @@ namespace AIStoryBuilders.Services
 
         public async Task UpdateCharacterName(Character character, string paramOrginalCharcterName)
         {
+            await UpdateCharacterNameAsync(character, paramOrginalCharcterName);
+        }
+
+        /// <summary>
+        /// Rename a character and propagate the change through the prose of every paragraph,
+        /// regenerating embeddings where the prose was actually changed.
+        /// Returns the number of paragraph files that were modified.
+        /// </summary>
+        public async Task<int> UpdateCharacterNameAsync(Character character, string paramOrginalCharcterName)
+        {
             string StoryPath = $"{BasePath}/{character.Story.Title}";
             string CharactersPath = $"{StoryPath}/Characters";
-            string ChaptersPath = $"{StoryPath}/Chapters";
             string CharacterPath = $"{CharactersPath}/{paramOrginalCharcterName}.csv";
+            int changedCount = 0;
 
-            if (character.CharacterName.Trim() != "")
+            if (character.CharacterName == null || character.CharacterName.Trim() == "") return 0;
+
+            var newName = character.CharacterName.Trim();
+            var oldName = paramOrginalCharcterName;
+            var proseRegex = new System.Text.RegularExpressions.Regex(
+                @"\b" + System.Text.RegularExpressions.Regex.Escape(oldName) + @"\b");
+
+            var Chapters = await GetChapters(character.Story);
+
+            foreach (var Chapter in Chapters)
             {
-                // Loops through every Chapter and Paragraph and update the Character
-                var Chapters = await GetChapters(character.Story);
-
-                foreach (var Chapter in Chapters)
+                var Paragraphs = await GetParagraphs(Chapter);
+                foreach (var Paragraph in Paragraphs)
                 {
-                    var Paragraphs = await GetParagraphs(Chapter);
+                    var ChapterNameParts = Chapter.ChapterName.Split(' ');
+                    string ChapterName = ChapterNameParts[0] + ChapterNameParts[1];
+                    string ParagraphPath = $"{StoryPath}/Chapters/{ChapterName}/Paragraph{Paragraph.Sequence}.txt";
 
-                    foreach (var Paragraph in Paragraphs)
+                    if (!File.Exists(ParagraphPath)) continue;
+
+                    string[] ParagraphContent = File.ReadAllLines(ParagraphPath);
+                    ParagraphContent = ParagraphContent.Where(line => line.Trim() != "").ToArray();
+                    if (ParagraphContent.Length == 0) continue;
+
+                    string[] ParagraphArray = ParagraphContent[0].Split('|');
+                    if (ParagraphArray.Length < 4) continue;
+
+                    bool changed = false;
+
+                    // Update characters list (field index 2)
+                    string charsField = ParagraphArray[2].Replace("[", "").Replace("]", "");
+                    string[] existingCharacters = charsField.Split(',');
+                    for (int i = 0; i < existingCharacters.Length; i++)
                     {
-                        // Create the path to the Paragraph file
-                        var ChapterNameParts = Chapter.ChapterName.Split(' ');
-                        string ChapterName = ChapterNameParts[0] + ChapterNameParts[1];
-                        string ParagraphPath = $"{StoryPath}/Chapters/{ChapterName}/Paragraph{Paragraph.Sequence}.txt";
-
-                        // Get the ParagraphContent from the file
-                        string[] ParagraphContent = File.ReadAllLines(ParagraphPath);
-
-                        // Remove all empty lines
-                        ParagraphContent = ParagraphContent.Where(line => line.Trim() != "").ToArray();
-
-                        // Get the file as an array
-                        string[] ParagraphArray = ParagraphContent[0].Split('|');
-
-                        // Remove the [ and ] from the array
-                        ParagraphArray[2] = ParagraphArray[2].Replace("[", "");
-                        ParagraphArray[2] = ParagraphArray[2].Replace("]", "");
-
-                        // Get the Character array from the file
-                        string[] ParagraphCharacters = ParagraphArray[2].Split(',');
-
-                        // Loop through each Character to see if the Character is the one to update
-                        for (int i = 0; i < ParagraphCharacters.Length; i++)
+                        if (existingCharacters[i] == oldName)
                         {
-                            // If the Character is the one to update, then set it to new name
-                            if (ParagraphCharacters[i] == paramOrginalCharcterName)
+                            existingCharacters[i] = newName;
+                            changed = true;
+                        }
+                    }
+                    ParagraphArray[2] = "[" + string.Join(",", existingCharacters) + "]";
+
+                    // Update prose (field index 3) with word-boundary regex
+                    string prose = ParagraphArray[3];
+                    string updatedProse = proseRegex.Replace(prose, newName);
+                    if (updatedProse != prose)
+                    {
+                        ParagraphArray[3] = updatedProse;
+                        changed = true;
+
+                        // Regenerate embeddings for the last field (vectors)
+                        if (ParagraphArray.Length >= 5)
+                        {
+                            try
                             {
-                                // Set to the new name
-                                ParagraphCharacters[i] = character.CharacterName;
+                                string newVector = await OrchestratorMethods.GetVectorEmbedding(updatedProse, false);
+                                ParagraphArray[ParagraphArray.Length - 1] = newVector;
+                            }
+                            catch (Exception ex)
+                            {
+                                await LogService.WriteToLogAsync("UpdateCharacterNameAsync embedding: " + ex.Message);
                             }
                         }
+                    }
 
-                        // Put the ParagraphCharacters back together
-                        string ParagraphCharacterString = string.Join(",", ParagraphCharacters);
-
-                        // Put the [ and ] back on the array
-                        ParagraphCharacterString = "[" + ParagraphCharacterString + "]";
-
-                        // Set the Character array back to the ParagraphArray
-                        ParagraphArray[2] = ParagraphCharacterString;
-
-                        // Put the ParagraphContent back together
+                    if (changed)
+                    {
                         ParagraphContent[0] = string.Join("|", ParagraphArray);
-
-                        // Write the ParagraphContent back to the file
                         File.WriteAllLines(ParagraphPath, ParagraphContent);
+                        changedCount++;
                     }
                 }
+            }
 
-                // Rename Character file
-                string NewCharacterPath = $"{CharactersPath}/{character.CharacterName.Trim()}.csv";
+            // Rename the CSV file
+            string NewCharacterPath = $"{CharactersPath}/{newName}.csv";
+            if (File.Exists(CharacterPath) && !string.Equals(CharacterPath, NewCharacterPath, StringComparison.OrdinalIgnoreCase))
+            {
                 File.Move(CharacterPath, NewCharacterPath);
             }
+
+            GraphState.MarkDirty();
+            return changedCount;
         }
         #endregion
 

@@ -162,6 +162,20 @@
                     // Save Story to the database
                     await AIStoryBuildersService.AddStory(objStory, objStory.ModelId);
 
+                    // Ensure Knowledge Graph exists (for Chat tab etc.)
+                    try
+                    {
+                        var graphBuilder = (AIStoryBuilders.Services.IGraphBuilder)ScopedServices.GetService(typeof(AIStoryBuilders.Services.IGraphBuilder));
+                        if (graphBuilder != null)
+                        {
+                            await AIStoryBuildersService.EnsureGraphExistsAsync(objStory.Title, graphBuilder);
+                        }
+                    }
+                    catch (Exception graphEx)
+                    {
+                        await LogService.WriteToLogAsync("EnsureGraphExistsAsync after AddStory: " + graphEx.Message);
+                    }
+
                     HomeVisible = true;
                     InProgress = false;
                     StateHasChanged();

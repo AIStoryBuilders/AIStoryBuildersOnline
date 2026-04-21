@@ -1,0 +1,129 @@
+@using AIStoryBuilders.AI
+@using AIStoryBuilders.Models
+@using AIStoryBuilders.Services
+@inherits OwningComponentBase
+@inject NotificationService NotificationService
+
+<RadzenCard Style="display:flex; flex-direction:column; height: 70vh;">
+    <div style="display:flex; gap:.5rem; align-items:center; margin-bottom:.5rem;">
+        <RadzenText TextStyle="TextStyle.H6" Style="flex:1;">Story Chat</RadzenText>
+        <RadzenButton Text="Clear" Icon="refresh" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="ClearConversation" />
+    </div>
+
+    <div style="flex:1; overflow-y:auto; padding:.5rem; background:#fafafa; border-radius:4px;" @ref="_scrollContainer">
+        @foreach (var m in _session?.Messages ?? new List<AIStoryBuilders.Models.ChatDisplayMessage>())
+        {
+            <div class="@(m.Role == "user" ? "chat-bubble user" : "chat-bubble assistant")">
+                <strong>@(m.Role == "user" ? "You" : "Assistant")</strong>
+                <ChatMessageRenderer Content="@m.Content" />
+            </div>
+        }
+        @if (_isStreaming)
+        {
+            <div class="chat-bubble assistant">
+                <strong>Assistant</strong>
+                <ChatMessageRenderer Content="@_streamingBuffer" />
+            </div>
+        }
+    </div>
+
+    <div style="display:flex; gap:.5rem; margin-top:.5rem;">
+        <RadzenTextArea @bind-Value="_currentInput" Placeholder="Ask about the story or request changes..." Rows="2" Style="flex:1;" Disabled="_isStreaming" />
+        <RadzenButton Text="Send" Icon="send" ButtonStyle="ButtonStyle.Primary" Click="SendMessage" Disabled="_isStreaming" />
+    </div>
+</RadzenCard>
+
+<style>
+    .chat-bubble { background:#fff; border-radius:6px; padding:.5rem .75rem; margin-bottom:.5rem; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+    .chat-bubble.user { background:#e8f0fe; }
+    .chat-bubble.assistant { background:#fff; }
+</style>
+
+@code {
+    [Parameter] public Story objStory { get; set; }
+
+    private IStoryChatService ChatService;
+    private AIStoryBuildersService StoryService;
+    private IGraphBuilder GraphBuilder;
+
+    private string _sessionId = Guid.NewGuid().ToString();
+    private AIStoryBuilders.Models.ConversationSession _session;
+    private string _currentInput = "";
+    private string _streamingBuffer = "";
+    private bool _isStreaming;
+    private ElementReference _scrollContainer;
+
+    protected override void OnInitialized()
+    {
+        ChatService = (IStoryChatService)ScopedServices.GetService(typeof(IStoryChatService));
+        StoryService = (AIStoryBuildersService)ScopedServices.GetService(typeof(AIStoryBuildersService));
+        GraphBuilder = (IGraphBuilder)ScopedServices.GetService(typeof(IGraphBuilder));
+
+        if (objStory != null)
+        {
+            ChatService.SetActiveStory(objStory);
+        }
+        _session = ChatService.GetOrCreateSession(_sessionId);
+    }
+
+    public async Task BuildGraph()
+    {
+        if (objStory == null) return;
+        try
+        {
+            await StoryService.EnsureGraphExistsAsync(objStory.Title, GraphBuilder);
+            ChatService.SetActiveStory(GraphState.CurrentStory ?? objStory);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Graph build error",
+                Detail = ex.Message,
+                Duration = 4000
+            });
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(_currentInput)) return;
+        var msg = _currentInput;
+        _currentInput = "";
+        _isStreaming = true;
+        _streamingBuffer = "";
+
+        StateHasChanged();
+
+        try
+        {
+            await foreach (var chunk in ChatService.SendMessageAsync(msg, _sessionId))
+            {
+                _streamingBuffer += chunk;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            _session.Messages.Add(new AIStoryBuilders.Models.ChatDisplayMessage
+            {
+                Role = "assistant",
+                Content = $"**Error:** {ex.Message}"
+            });
+        }
+        finally
+        {
+            _streamingBuffer = "";
+            _isStreaming = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClearConversation()
+    {
+        ChatService.ClearSession(_sessionId);
+        _session = ChatService.GetOrCreateSession(_sessionId);
+        StateHasChanged();
+    }
+}

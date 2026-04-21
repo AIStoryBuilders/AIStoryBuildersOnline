@@ -31,18 +31,16 @@
 		<PackageReference Include="Mscc.GenerativeAI" Version="3.1.0" />
 		<PackageReference Include="Markdig" Version="0.44.0" />
 		<PackageReference Include="System.Linq.Dynamic.Core" Version="1.7.1" />
+		<PackageReference Include="System.Security.Cryptography.Xml" Version="9.0.15" />
 		<PackageReference Include="System.Text.Json" Version="10.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
 	</ItemGroup>
-	<ItemGroup>
-		<Content Update="web.config">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-
-			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-		</Content>
-	</ItemGroup>
+	<!-- Copy web.config to publish root for Azure App Service IIS configuration -->
+	<Target Name="CopyWebConfigToPublish" AfterTargets="Publish">
+		<Copy SourceFiles="$(MSBuildProjectDirectory)\web.config" DestinationFolder="$(PublishDir)" />
+	</Target>
 
 </Project>

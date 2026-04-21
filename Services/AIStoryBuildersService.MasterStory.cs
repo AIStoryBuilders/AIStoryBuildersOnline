@@ -45,6 +45,9 @@ namespace AIStoryBuilders.Services
                 {
                     objMasterStory.RelatedParagraphs.Add(ConvertToJSONParagraph(paragraph));
                 }
+
+                // Timeline-aware summary (from Knowledge Graph)
+                objMasterStory.TimelineSummary = await BuildTimelineSummaryAsync(objChapter, objParagraph);
             }
             catch (Exception ex)
             {
@@ -211,6 +214,43 @@ namespace AIStoryBuilders.Services
             }
 
             return colParagraph;
+        }
+        #endregion
+
+        #region private async Task<string> BuildTimelineSummaryAsync(Chapter c, Paragraph p)
+        private async Task<string> BuildTimelineSummaryAsync(Chapter c, Paragraph p)
+        {
+            try
+            {
+                if (p?.Timeline == null || string.IsNullOrWhiteSpace(p.Timeline.TimelineName)) return "";
+
+                // Rebuild graph if stale
+                var storyTitle = c?.Story?.Title ?? "";
+                if (string.IsNullOrWhiteSpace(storyTitle)) return "";
+
+                if (GraphState.Current == null || GraphState.IsDirty ||
+                    !string.Equals(GraphState.Current.StoryTitle, storyTitle, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (GraphBuilderInstance != null)
+                    {
+                        await RefreshGraphIfDirtyAsync(storyTitle, GraphBuilderInstance);
+                    }
+                    else
+                    {
+                        return "";
+                    }
+                }
+
+                if (GraphQueryServiceInstance == null || TimelineSummaryGeneratorInstance == null) return "";
+
+                var ctx = GraphQueryServiceInstance.GetTimelineContext(p.Timeline.TimelineName, c.Sequence, p.Sequence);
+                return TimelineSummaryGeneratorInstance.GenerateSummary(ctx);
+            }
+            catch (Exception ex)
+            {
+                await LogService.WriteToLogAsync("BuildTimelineSummaryAsync: " + ex.Message);
+                return "";
+            }
         }
         #endregion
     }

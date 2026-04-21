@@ -56,6 +56,11 @@ namespace AIStoryBuilders.Services
                     masterStory.CurrentChapter.chapter_synopsis ?? "");
             }
 
+            if (!string.IsNullOrEmpty(masterStory.TimelineSummary))
+            {
+                baseTokens += estimator.EstimateTokens(masterStory.TimelineSummary);
+            }
+
             int remaining = maxTokens - baseTokens;
             if (remaining < 0) remaining = 0;
 
