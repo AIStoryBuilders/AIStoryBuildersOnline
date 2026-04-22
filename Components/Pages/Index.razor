@@ -326,33 +326,46 @@
             }
 
             // Extract the Zip file ****************************************************
-            string BasePath = $"AIStoryBuilders/{paramStory.Title}";
-            string extractPath = @"/TempZip";
+            string BasePath = $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders/{paramStory.Title}";
 
-            // Delete the directories if they exists
+            // Delete the story directory if it exists so we get a clean extraction
             if (Directory.Exists(BasePath))
             {
                 Directory.Delete(BasePath, true);
             }
 
-            if (Directory.Exists(extractPath))
-            {
-                Directory.Delete(extractPath, true);
-            }
-
-            // Create the directories
             Directory.CreateDirectory(BasePath);
-
-            Directory.CreateDirectory(extractPath);
 
             // Convert the Base64 string to a byte array
             byte[] exportFileBytes = Convert.FromBase64String(ZipFileContents);
 
-            // Write the byte array to a file
-            await File.WriteAllBytesAsync($"{extractPath}/ZipFiles.zip", exportFileBytes);
+            // Extract the zip entries into BasePath. Note: ZipFile.ExtractToDirectory
+            // aborts the Blazor WASM runtime ("runtimeKeepalivePop" assertion), so we
+            // extract entries manually via ZipArchive.
+            using (var zipStream = new MemoryStream(exportFileBytes))
+            using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Read))
+            {
+                foreach (var entry in archive.Entries)
+                {
+                    if (string.IsNullOrEmpty(entry.Name))
+                    {
+                        // Directory entry
+                        Directory.CreateDirectory(Path.Combine(BasePath, entry.FullName));
+                        continue;
+                    }
 
-            // Extract the zip file
-            ZipFile.ExtractToDirectory($"{extractPath}/ZipFiles.zip", BasePath);
+                    string destFile = Path.Combine(BasePath, entry.FullName);
+                    string destDir = Path.GetDirectoryName(destFile);
+                    if (!string.IsNullOrEmpty(destDir) && !Directory.Exists(destDir))
+                    {
+                        Directory.CreateDirectory(destDir);
+                    }
+
+                    using var entryStream = entry.Open();
+                    using var fileStream = File.Create(destFile);
+                    entryStream.CopyTo(fileStream);
+                }
+            }
 
             var parms = new Dictionary<string, object>();
             parms.Add("objStory", paramStory);

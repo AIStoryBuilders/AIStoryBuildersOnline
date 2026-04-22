@@ -116,13 +116,20 @@ namespace AIStoryBuilders.Services
         #region public string GetOnlyJSON(string json)
         public string GetOnlyJSON(string json)
         {
-            string OnlyJSON = "";
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return "";
+            }
+
             // Search for the first occurrence of the { character
             int FirstCurlyBrace = json.IndexOf('{');
-            // Set ParsedStory to the string after the first occurrence of the { character
-            OnlyJSON = json.Substring(FirstCurlyBrace);
+            if (FirstCurlyBrace < 0)
+            {
+                return "";
+            }
 
-            return OnlyJSON;
+            // Set ParsedStory to the string after the first occurrence of the { character
+            return json.Substring(FirstCurlyBrace);
         }
         #endregion
 

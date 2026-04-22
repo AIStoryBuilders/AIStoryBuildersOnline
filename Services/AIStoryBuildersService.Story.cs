@@ -63,6 +63,11 @@ namespace AIStoryBuilders.Services
             //  ********** Call the LLM to Parse the Story to create the files **********
             string ParsedStoryJSON = await OrchestratorMethods.ParseNewStory(story.Title, story.Synopsis, GPTModelId);
 
+            if (string.IsNullOrWhiteSpace(ParsedStoryJSON))
+            {
+                throw new InvalidOperationException($"Failed to generate story structure for model '{GPTModelId}'. Check the application log for the provider error.");
+            }
+
             CreateDirectory(StoryPath);
             CreateDirectory(CharactersPath);
             CreateDirectory(ChaptersPath);
@@ -72,6 +77,13 @@ namespace AIStoryBuilders.Services
 
             // Convert the JSON to a dynamic object
             ParsedNewStory = await ParseJSONNewStory(ParsedStoryJSON);
+
+            if ((ParsedNewStory.characters?.Length ?? 0) == 0
+                && (ParsedNewStory.locations?.Length ?? 0) == 0
+                && (ParsedNewStory.timelines?.Length ?? 0) == 0)
+            {
+                throw new InvalidOperationException("Failed to parse the generated story structure. Check the application log for the raw AI response.");
+            }
 
             // *****************************************************
 
@@ -159,10 +171,23 @@ namespace AIStoryBuilders.Services
             // Call ChatGPT
             string ParsedChaptersJSON = await OrchestratorMethods.CreateNewChapters(ParsedStoryJSON, story.ChapterCount, GPTModelId);
 
+            if (string.IsNullOrWhiteSpace(ParsedChaptersJSON))
+            {
+                throw new InvalidOperationException($"Failed to generate chapters for model '{GPTModelId}'. Check the application log for the provider error.");
+            }
+
             JSONChapters ParsedNewChapters = new JSONChapters();
 
             // Convert the JSON to a dynamic object
-            ParsedNewChapters = await ParseJSONNewChapters(GetOnlyJSON(ParsedChaptersJSON));
+            string chaptersJson = GetOnlyJSON(ParsedChaptersJSON);
+
+            if (string.IsNullOrWhiteSpace(chaptersJson))
+            {
+                await LogService.WriteToLogAsync($"AddStory: Chapter response did not contain JSON. Raw AI response: {ParsedChaptersJSON}");
+                throw new InvalidOperationException("The chapter response did not contain valid JSON.");
+            }
+
+            ParsedNewChapters = await ParseJSONNewChapters(chaptersJson);
 
             // Test to see that something was returned
             if (ParsedNewChapters.chapter.Length == 0)

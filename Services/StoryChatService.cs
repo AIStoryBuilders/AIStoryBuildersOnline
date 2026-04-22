@@ -198,7 +198,7 @@ namespace AIStoryBuilders.Services
         }
 
         private static readonly Regex ToolBlockRegex = new(
-            @"```tool\s*([\s\S]*?)```", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+            @"```tool\s*([\s\S]*?)```", RegexOptions.IgnoreCase);
 
         private static ToolCall ExtractToolCall(string text)
         {
