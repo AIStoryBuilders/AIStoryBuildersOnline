@@ -4,7 +4,7 @@
 @inherits OwningComponentBase
 @inject NotificationService NotificationService
 
-<RadzenCard Style="display:flex; flex-direction:column; height: 70vh;">
+<RadzenCard Style="display:flex; flex-direction:column; height: 480px; max-height: calc(100vh - 180px);">
     <div style="display:flex; gap:.5rem; align-items:center; margin-bottom:.5rem;">
         <RadzenText TextStyle="TextStyle.H6" Style="flex:1;">Story Chat</RadzenText>
         <RadzenButton Text="Clear" Icon="refresh" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="ClearConversation" />
@@ -22,13 +22,22 @@
         {
             <div class="chat-bubble assistant">
                 <strong>Assistant</strong>
-                <ChatMessageRenderer Content="@_streamingBuffer" />
+                @if (string.IsNullOrWhiteSpace(_streamingBuffer))
+                {
+                    <div class="typing-indicator" aria-label="Assistant is thinking">
+                        <span></span><span></span><span></span>
+                    </div>
+                }
+                else
+                {
+                    <ChatMessageRenderer Content="@_streamingBuffer" />
+                }
             </div>
         }
     </div>
 
     <div style="display:flex; gap:.5rem; margin-top:.5rem;">
-        <RadzenTextArea @bind-Value="_currentInput" Placeholder="Ask about the story or request changes..." Rows="2" Style="flex:1;" Disabled="_isStreaming" />
+        <RadzenTextArea @bind-Value="_currentInput" @onkeydown="HandleKeyDown" Placeholder="Ask about the story or request changes... (Enter to send, Shift+Enter for newline)" Rows="2" Style="flex:1;" Disabled="_isStreaming" />
         <RadzenButton Text="Send" Icon="send" ButtonStyle="ButtonStyle.Primary" Click="SendMessage" Disabled="_isStreaming" />
     </div>
 </RadzenCard>
@@ -37,6 +46,19 @@
     .chat-bubble { background:#fff; border-radius:6px; padding:.5rem .75rem; margin-bottom:.5rem; box-shadow:0 1px 2px rgba(0,0,0,.05); }
     .chat-bubble.user { background:#e8f0fe; }
     .chat-bubble.assistant { background:#fff; }
+
+    .typing-indicator { display:inline-flex; gap:4px; padding:.4rem .2rem; align-items:center; }
+    .typing-indicator span {
+        width: 7px; height: 7px; border-radius: 50%;
+        background: #8a8a8a; display: inline-block;
+        animation: typing-bounce 1.2s infinite ease-in-out both;
+    }
+    .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+    .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+    @@keyframes typing-bounce {
+        0%, 80%, 100% { transform: scale(0.6); opacity: .4; }
+        40% { transform: scale(1); opacity: 1; }
+    }
 </style>
 
 @code {
@@ -125,5 +147,14 @@
         ChatService.ClearSession(_sessionId);
         _session = ChatService.GetOrCreateSession(_sessionId);
         StateHasChanged();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        // Enter (without Shift) sends the message; Shift+Enter inserts a newline.
+        if (e.Key == "Enter" && !e.ShiftKey && !_isStreaming)
+        {
+            await SendMessage();
+        }
     }
 }

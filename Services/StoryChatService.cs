@@ -93,7 +93,11 @@ namespace AIStoryBuilders.Services
                 await _storyService.RefreshGraphIfDirtyAsync(_activeStory.Title, _builder);
             }
 
-            if (_client == null) _client = _orchestrator.CreateChatClient();
+            if (_client == null)
+            {
+                await _orchestrator.EnsureSettingsLoadedAsync();
+                _client = _orchestrator.CreateChatClient();
+            }
 
             var systemPrompt = BuildSystemPrompt();
             int iterations = 0;

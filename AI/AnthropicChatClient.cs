@@ -143,12 +143,19 @@ namespace AIStoryBuilders.AI
             return chatResponse;
         }
 
-        public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+        public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
             IEnumerable<ChatMessage> chatMessages,
             ChatOptions options = null,
-            CancellationToken cancellationToken = default)
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            throw new NotSupportedException("Streaming is not supported by AnthropicChatClient.");
+            // Anthropic's REST streaming uses SSE which is awkward in Blazor WASM.
+            // Instead, invoke the non-streaming endpoint and yield the full
+            // response as a single update so callers using
+            // GetStreamingResponseAsync (e.g. StoryChatService) still work.
+            var response = await GetResponseAsync(chatMessages, options, cancellationToken);
+            var text = response.Messages.Count > 0 ? response.Messages[0].Text : string.Empty;
+
+            yield return new ChatResponseUpdate(ChatRole.Assistant, text);
         }
 
         public object GetService(Type serviceType, object serviceKey = null)

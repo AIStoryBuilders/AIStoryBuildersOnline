@@ -1,4 +1,5 @@
 @using Markdig
+@using System.Text.RegularExpressions
 
 <div class="chat-message-rendered">
     @((MarkupString)RenderedHtml)
@@ -10,8 +11,20 @@
     private static readonly MarkdownPipeline Pipeline =
         new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 
-    private string RenderedHtml =>
-        string.IsNullOrEmpty(Content) ? "" : Markdown.ToHtml(Content, Pipeline);
+    // Strip internal tool-invocation fenced blocks so the raw JSON tool
+    // calls emitted by the model are never rendered to the user.
+    private static readonly Regex ToolBlockRegex = new(
+        @"```tool\s*[\s\S]*?```\s*", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private string RenderedHtml
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(Content)) return "";
+            var cleaned = ToolBlockRegex.Replace(Content, "");
+            return Markdown.ToHtml(cleaned, Pipeline);
+        }
+    }
 }
 
 <style>
