@@ -190,13 +190,7 @@ namespace AIStoryBuilders.Services
             {
                 if (CurrentStory == null) return Fail("No active story.");
                 var loc = new Location { LocationName = name, Story = CurrentStory };
-                // Best-effort: reuse the existing delete method if it exists; otherwise just mark dirty
-                var method = _storyService.GetType().GetMethod("DeleteLocation");
-                if (method != null)
-                {
-                    var task = method.Invoke(_storyService, new object[] { loc }) as Task;
-                    if (task != null) await task;
-                }
+                await _storyService.DeleteLocation(loc);
                 GraphState.MarkDirty();
                 return Ok($"Deleted location '{name}'.");
             }
