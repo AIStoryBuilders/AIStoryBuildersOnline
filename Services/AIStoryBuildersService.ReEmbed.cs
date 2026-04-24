@@ -16,6 +16,10 @@ namespace AIStoryBuilders.Services
         /// </summary>
         public async Task ReloadStoryAsync(Story story, IGraphBuilder graphBuilder, IProgress<string> progress)
         {
+            if (graphBuilder == null)
+            {
+                throw new ArgumentNullException(nameof(graphBuilder), "ReloadStoryAsync requires a non-null graphBuilder to rebuild the knowledge graph.");
+            }
             try
             {
                 progress?.Report("Step 1 of 5: Saving story metadata...");
