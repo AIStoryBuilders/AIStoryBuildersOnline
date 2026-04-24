@@ -47,6 +47,13 @@ namespace AIStoryBuilders.AI
             // Always reload settings so that changes made during the session are respected.
             await SettingsService.LoadSettingsAsync();
         }
+
+        /// <summary>
+        /// Public wrapper around <see cref="EnsureSettingsLoaded"/> so external
+        /// callers (e.g. <c>StoryChatService</c>) can ensure settings have been
+        /// loaded before invoking <see cref="CreateChatClient"/>.
+        /// </summary>
+        public Task EnsureSettingsLoadedAsync() => EnsureSettingsLoaded();
         #endregion
 
         // AI Client Factory

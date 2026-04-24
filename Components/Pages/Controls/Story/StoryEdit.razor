@@ -83,6 +83,10 @@ else // Existing Story
                           Click="ExportToWord" Icon="print" />&nbsp;&nbsp;
             <RadzenButton Text="Export Project" ButtonStyle="ButtonStyle.Primary"
                           Click="ExportProject" Icon="save_alt" />&nbsp;&nbsp;
+            <RadzenButton Text="Re-load Story" ButtonStyle="ButtonStyle.Warning"
+                          Icon="sync" Click="ReloadStory"
+                          IsBusy="@isReloadingStory" BusyText="Re-loading..."
+                          Disabled="@isReloadingStory" />&nbsp;&nbsp;
             <RadzenButton Text="Delete" ButtonStyle="ButtonStyle.Danger"
                           Click="StoryDelete" />
         </div>
@@ -322,5 +326,72 @@ else // Existing Story
     void OnSpeechCaptured(string speechValue, bool updateTextArea, string name)
     {
         objStory.Synopsis += speechValue;
+    }
+
+    bool isReloadingStory = false;
+
+    protected async Task ReloadStory()
+    {
+        var confirmResult = await DialogService.Confirm(
+            "Re-load Story will re-save metadata, regenerate embeddings for every paragraph, chapter, character, and location, and rebuild the Knowledge Graph. This may take a while. Continue?",
+            "Re-load Story",
+            new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
+
+        if (!(confirmResult.HasValue && confirmResult.Value)) return;
+
+        try
+        {
+            isReloadingStory = true;
+            StateHasChanged();
+
+            var graphBuilder = (AIStoryBuilders.Services.IGraphBuilder)ScopedServices.GetService(typeof(AIStoryBuilders.Services.IGraphBuilder));
+            if (graphBuilder == null)
+            {
+                NotificationService.Notify(new NotificationMessage
+                    {
+                        Severity = NotificationSeverity.Error,
+                        Summary = "Re-load Story failed",
+                        Detail = "Graph builder service is unavailable.",
+                        Duration = 6000
+                    });
+                return;
+            }
+            var progress = new Progress<string>(msg =>
+            {
+                NotificationService.Notify(new NotificationMessage
+                    {
+                        Severity = NotificationSeverity.Info,
+                        Summary = "Re-load Story",
+                        Detail = msg,
+                        Duration = 3000
+                    });
+            });
+
+            await AIStoryBuildersService.ReloadStoryAsync(objStory, graphBuilder, progress);
+
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Re-load Story",
+                    Detail = "Complete",
+                    Duration = 3000
+                });
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Re-load Story failed",
+                    Detail = ex.Message,
+                    Duration = 6000
+                });
+            await LogService.WriteToLogAsync("ReloadStory: " + ex.Message);
+        }
+        finally
+        {
+            isReloadingStory = false;
+            StateHasChanged();
+        }
     }
 }

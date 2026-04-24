@@ -35,6 +35,13 @@ namespace AIStoryBuildersOnline
             builder.Services.AddSingleton<TokenEstimator>();
             builder.Services.AddScoped<BrowserEmbeddingGenerator>();
 
+            // Knowledge Graph services
+            builder.Services.AddScoped<IGraphBuilder, GraphBuilder>();
+            builder.Services.AddScoped<IGraphQueryService, GraphQueryService>();
+            builder.Services.AddScoped<IGraphMutationService, GraphMutationService>();
+            builder.Services.AddScoped<ITimelineSummaryGenerator, TimelineSummaryGenerator>();
+            builder.Services.AddScoped<IStoryChatService, StoryChatService>();
+
             // Radzen
             builder.Services.AddScoped<DialogService>();
             builder.Services.AddScoped<NotificationService>();

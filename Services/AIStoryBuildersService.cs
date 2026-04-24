@@ -17,18 +17,29 @@ namespace AIStoryBuilders.Services
         private OrchestratorMethods OrchestratorMethods { get; set; }
         private AIStoryBuildersStoryService AIStoryBuildersStoryService { get; set; }
 
+        // Optional graph collaborators (injected by DI; nullable to allow simpler unit tests)
+        public IGraphBuilder GraphBuilderInstance { get; set; }
+        public IGraphQueryService GraphQueryServiceInstance { get; set; }
+        public ITimelineSummaryGenerator TimelineSummaryGeneratorInstance { get; set; }
+
         public string BasePath = $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}/AIStoryBuilders";
         public AIStoryBuildersService(
             AppMetadata appMetadata,
             LogService _LogService,
             OrchestratorMethods _OrchestratorMethods,
-            AIStoryBuildersStoryService _AIStoryBuildersStoryService
+            AIStoryBuildersStoryService _AIStoryBuildersStoryService,
+            IGraphBuilder _GraphBuilder = null,
+            IGraphQueryService _GraphQueryService = null,
+            ITimelineSummaryGenerator _TimelineSummaryGenerator = null
             )
         {
             _appMetadata = appMetadata;
             LogService = _LogService;
             OrchestratorMethods = _OrchestratorMethods;
             AIStoryBuildersStoryService = _AIStoryBuildersStoryService;
+            GraphBuilderInstance = _GraphBuilder;
+            GraphQueryServiceInstance = _GraphQueryService;
+            TimelineSummaryGeneratorInstance = _TimelineSummaryGenerator;
         }
 
         // Utility
@@ -105,13 +116,20 @@ namespace AIStoryBuilders.Services
         #region public string GetOnlyJSON(string json)
         public string GetOnlyJSON(string json)
         {
-            string OnlyJSON = "";
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return "";
+            }
+
             // Search for the first occurrence of the { character
             int FirstCurlyBrace = json.IndexOf('{');
-            // Set ParsedStory to the string after the first occurrence of the { character
-            OnlyJSON = json.Substring(FirstCurlyBrace);
+            if (FirstCurlyBrace < 0)
+            {
+                return "";
+            }
 
-            return OnlyJSON;
+            // Set ParsedStory to the string after the first occurrence of the { character
+            return json.Substring(FirstCurlyBrace);
         }
         #endregion
 

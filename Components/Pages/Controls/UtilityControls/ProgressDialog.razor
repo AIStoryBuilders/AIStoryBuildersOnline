@@ -1,0 +1,76 @@
+@* A reusable progress dialog that displays a running list of status lines. *@
+
+<div class="progress-dialog">
+    <RadzenStack Gap=".5rem">
+        <RadzenText TextStyle="TextStyle.Subtitle1">@Title</RadzenText>
+
+        @if (!string.IsNullOrEmpty(_currentMessage))
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Info" Shade="Shade.Lighter" AllowClose="false">
+                @_currentMessage
+            </RadzenAlert>
+        }
+
+        <RadzenProgressBar Mode="ProgressBarMode.Indeterminate" Style="@(_complete || _hasError ? "display:none;" : "")" />
+
+        @if (_history.Count > 0)
+        {
+            <ul style="max-height:200px; overflow-y:auto; margin:0; padding-left:1.2rem;">
+                @foreach (var line in _history)
+                {
+                    <li>@line</li>
+                }
+            </ul>
+        }
+
+        @if (_hasError)
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Danger" AllowClose="false">@_errorMessage</RadzenAlert>
+        }
+
+        <div style="display:flex; justify-content:flex-end;">
+            <RadzenButton Text="Close" Disabled="!(_complete || _hasError)" Click="Close" />
+        </div>
+    </RadzenStack>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Working...";
+    [Inject] DialogService DialogService { get; set; }
+
+    private readonly List<string> _history = new();
+    private string _currentMessage = "";
+    private bool _complete;
+    private bool _hasError;
+    private string _errorMessage = "";
+
+    public void UpdateProgress(string message)
+    {
+        if (!string.IsNullOrEmpty(_currentMessage))
+        {
+            _history.Add(_currentMessage);
+        }
+        _currentMessage = message;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void SetError(string message)
+    {
+        _hasError = true;
+        _errorMessage = message;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void SetComplete()
+    {
+        if (!string.IsNullOrEmpty(_currentMessage))
+        {
+            _history.Add(_currentMessage);
+            _currentMessage = "";
+        }
+        _complete = true;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Close() => DialogService.Close();
+}

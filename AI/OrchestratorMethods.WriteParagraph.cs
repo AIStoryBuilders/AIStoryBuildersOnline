@@ -164,6 +164,9 @@ namespace AIStoryBuilders.AI
             values["CharacterList"] = "";
             values["RelatedParagraphs"] = "";
             values["PromptInstruction"] = "";
+            values["TimelineSummary"] = !string.IsNullOrWhiteSpace(paramJSONMasterStory.TimelineSummary)
+                ? $"\n<timeline_summary>\n{paramJSONMasterStory.TimelineSummary.Trim()}\n</timeline_summary>\n"
+                : "";
             values["NumberOfWords"] = paramAIPrompt.NumberOfWords.ToString();
 
             return values;

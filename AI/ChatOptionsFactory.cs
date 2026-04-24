@@ -7,6 +7,12 @@ namespace AIStoryBuilders.AI
     /// </summary>
     public static class ChatOptionsFactory
     {
+        private static bool SupportsExplicitTemperature(string model)
+        {
+            return !string.IsNullOrWhiteSpace(model)
+                && !model.StartsWith("gpt-5", StringComparison.OrdinalIgnoreCase);
+        }
+
         /// <summary>
         /// Creates ChatOptions configured for JSON response format, appropriate for the given AI provider.
         /// </summary>
@@ -15,11 +21,15 @@ namespace AIStoryBuilders.AI
             var options = new ChatOptions
             {
                 ModelId = model,
-                Temperature = 0.0f,
                 TopP = 1.0f,
                 FrequencyPenalty = 0.0f,
                 PresencePenalty = 0.0f,
             };
+
+            if (SupportsExplicitTemperature(model))
+            {
+                options.Temperature = 0.0f;
+            }
 
             switch (aiType)
             {
@@ -44,14 +54,20 @@ namespace AIStoryBuilders.AI
         /// </summary>
         public static ChatOptions CreateTextOptions(string aiType, string model)
         {
-            return new ChatOptions
+            var options = new ChatOptions
             {
                 ModelId = model,
-                Temperature = 0.0f,
                 TopP = 1.0f,
                 FrequencyPenalty = 0.0f,
                 PresencePenalty = 0.0f,
             };
+
+            if (SupportsExplicitTemperature(model))
+            {
+                options.Temperature = 0.0f;
+            }
+
+            return options;
         }
     }
 }
