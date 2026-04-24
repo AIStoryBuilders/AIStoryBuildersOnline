@@ -8,8 +8,10 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{00B30ECD-442E-4274-90E5-BB17C9735549}"
 	ProjectSection(SolutionItems) = preProject
 		docs\ai-settings-and-story-creation-comparison-plan.md = docs\ai-settings-and-story-creation-comparison-plan.md
+		docs\chat-chapter-paragraph-authoring-plan.md = docs\chat-chapter-paragraph-authoring-plan.md
 		docs\implementation-plan-detailed-migration.md = docs\implementation-plan-detailed-migration.md
 		docs\import-docx-pdf-txt-online-plan.md = docs\import-docx-pdf-txt-online-plan.md
+		docs\story-chat-knowledge-graph-plan.md = docs\story-chat-knowledge-graph-plan.md
 	EndProjectSection
 EndProject
 Global
