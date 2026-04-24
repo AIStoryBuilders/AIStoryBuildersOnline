@@ -72,6 +72,7 @@
     </script>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
+    <script src="js/chat-input.js"></script>
     <!-- Local Embedding Engine (ONNX) -->
     <script type="module">
         import { initializeEmbeddingModel, generateEmbedding, generateEmbeddings }
@@ -84,7 +85,25 @@
             generateEmbeddings: generateEmbeddings
         };
     </script>
-    <script>navigator.serviceWorker.register('service-worker.js');</script>
+    <script>
+        // Register the service worker only when running on a non-localhost origin (production).
+        // On localhost (dev/debug) we unregister any previously installed worker to prevent
+        // the Blazor WebAssembly debug proxy from hanging on attach.
+        (function () {
+            if (!('serviceWorker' in navigator)) return;
+            var isLocalhost = location.hostname === 'localhost'
+                || location.hostname === '127.0.0.1'
+                || location.hostname === '::1'
+                || location.hostname === '[::1]';
+            if (isLocalhost) {
+                navigator.serviceWorker.getRegistrations().then(function (regs) {
+                    regs.forEach(function (r) { r.unregister(); });
+                });
+                return;
+            }
+            navigator.serviceWorker.register('service-worker.js');
+        })();
+    </script>
 </body>
 
 </html>
