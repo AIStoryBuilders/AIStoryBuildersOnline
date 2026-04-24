@@ -27,6 +27,20 @@ namespace AIStoryBuilders.Models
         public int EmbeddingsUpdated { get; set; }
         public bool GraphRefreshed { get; set; }
         public string Error { get; set; }
+
+        // Structural-edit diagnostic fields (chapter / paragraph).
+        public string BeforeExcerpt { get; set; }
+        public string AfterExcerpt { get; set; }
+        public string TargetKind { get; set; }   // "Chapter" | "Paragraph"
+        public string TargetId { get; set; }     // e.g. "Chapter 3 / Paragraph 4"
+    }
+
+    public class ParagraphTextDto
+    {
+        public string Text { get; set; } = "";
+        public string Location { get; set; } = "";
+        public string Timeline { get; set; } = "";
+        public List<string> Characters { get; set; } = new();
     }
 
     public class CharacterDto

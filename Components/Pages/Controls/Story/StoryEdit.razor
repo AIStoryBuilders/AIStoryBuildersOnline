@@ -84,7 +84,9 @@ else // Existing Story
             <RadzenButton Text="Export Project" ButtonStyle="ButtonStyle.Primary"
                           Click="ExportProject" Icon="save_alt" />&nbsp;&nbsp;
             <RadzenButton Text="Re-load Story" ButtonStyle="ButtonStyle.Warning"
-                          Icon="sync" Click="ReloadStory" />&nbsp;&nbsp;
+                          Icon="sync" Click="ReloadStory"
+                          IsBusy="@isReloadingStory" BusyText="Re-loading..."
+                          Disabled="@isReloadingStory" />&nbsp;&nbsp;
             <RadzenButton Text="Delete" ButtonStyle="ButtonStyle.Danger"
                           Click="StoryDelete" />
         </div>
@@ -326,6 +328,8 @@ else // Existing Story
         objStory.Synopsis += speechValue;
     }
 
+    bool isReloadingStory = false;
+
     protected async Task ReloadStory()
     {
         var confirmResult = await DialogService.Confirm(
@@ -337,6 +341,9 @@ else // Existing Story
 
         try
         {
+            isReloadingStory = true;
+            StateHasChanged();
+
             var graphBuilder = (AIStoryBuilders.Services.IGraphBuilder)ScopedServices.GetService(typeof(AIStoryBuilders.Services.IGraphBuilder));
             var progress = new Progress<string>(msg =>
             {
@@ -369,6 +376,11 @@ else // Existing Story
                     Duration = 6000
                 });
             await LogService.WriteToLogAsync("ReloadStory: " + ex.Message);
+        }
+        finally
+        {
+            isReloadingStory = false;
+            StateHasChanged();
         }
     }
 }

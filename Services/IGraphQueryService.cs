@@ -14,6 +14,8 @@ namespace AIStoryBuilders.Services
         ChapterDto GetChapter(string title);
         List<ChapterDto> ListChapters();
         ParagraphDto GetParagraph(string chapter, int index);
+        IReadOnlyList<ParagraphDto> ListParagraphs(string chapter);
+        ParagraphTextDto GetParagraphText(string chapter, int index);
         List<RelationshipDto> GetRelationships(string name);
         List<AppearanceDto> GetAppearances(string characterName);
         List<LocationUsageDto> GetLocationUsage(string locationName);

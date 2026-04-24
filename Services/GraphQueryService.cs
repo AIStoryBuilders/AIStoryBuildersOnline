@@ -103,12 +103,74 @@ namespace AIStoryBuilders.Services
         public ParagraphDto GetParagraph(string chapter, int index)
         {
             if (Graph == null) return null;
+            var resolvedChapter = ResolveChapterName(chapter);
+            if (resolvedChapter == null) return null;
             var p = Graph.Nodes.FirstOrDefault(n => n.Type == NodeType.Paragraph &&
                 n.Properties.TryGetValue("ChapterName", out var cn) &&
-                string.Equals(cn, chapter, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(cn, resolvedChapter, StringComparison.OrdinalIgnoreCase) &&
                 n.Properties.TryGetValue("Sequence", out var seq) && seq == index.ToString());
             if (p == null) return null;
             return ToParagraphDto(p);
+        }
+
+        public IReadOnlyList<ParagraphDto> ListParagraphs(string chapter)
+        {
+            if (Graph == null || string.IsNullOrWhiteSpace(chapter)) return new List<ParagraphDto>();
+            var resolvedChapter = ResolveChapterName(chapter);
+            if (resolvedChapter == null) return new List<ParagraphDto>();
+            return Graph.Nodes
+                .Where(n => n.Type == NodeType.Paragraph &&
+                    n.Properties.TryGetValue("ChapterName", out var cn) &&
+                    string.Equals(cn, resolvedChapter, StringComparison.OrdinalIgnoreCase))
+                .Select(ToParagraphDto)
+                .OrderBy(p => p.Sequence)
+                .ToList();
+        }
+
+        /// <summary>
+        /// Resolves a chapter identifier supplied by a caller (typically the chat
+        /// assistant) to the actual chapter node label stored in the graph.
+        /// Falls back to matching by sequence number when the caller uses a
+        /// generic form like "Chapter 1" and no chapter with that exact label
+        /// exists.
+        /// </summary>
+        private string ResolveChapterName(string chapter)
+        {
+            if (Graph == null || string.IsNullOrWhiteSpace(chapter)) return null;
+
+            var chapterNodes = Graph.Nodes.Where(n => n.Type == NodeType.Chapter).ToList();
+
+            var exact = chapterNodes.FirstOrDefault(n =>
+                string.Equals(n.Label, chapter, StringComparison.OrdinalIgnoreCase));
+            if (exact != null) return exact.Label;
+
+            // Fallback: "Chapter N" → match by Sequence == N
+            var m = System.Text.RegularExpressions.Regex.Match(
+                chapter.Trim(),
+                @"^(?:chapter\s*)?(\d+)$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (m.Success && int.TryParse(m.Groups[1].Value, out var seqNum))
+            {
+                var bySeq = chapterNodes.FirstOrDefault(n =>
+                    n.Properties.TryGetValue("Sequence", out var s) &&
+                    int.TryParse(s, out var i) && i == seqNum);
+                if (bySeq != null) return bySeq.Label;
+            }
+
+            return null;
+        }
+
+        public ParagraphTextDto GetParagraphText(string chapter, int index)
+        {
+            var dto = GetParagraph(chapter, index);
+            if (dto == null) return null;
+            return new ParagraphTextDto
+            {
+                Text = dto.Content,
+                Location = dto.LocationName,
+                Timeline = dto.TimelineName,
+                Characters = dto.Characters ?? new List<string>()
+            };
         }
 
         private ParagraphDto ToParagraphDto(GraphNode p)

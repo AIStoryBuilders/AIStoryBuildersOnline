@@ -103,6 +103,7 @@ namespace AIStoryBuilders.Services
             int iterations = 0;
             string finalSoFar = "";
             var messages = BuildMessages(systemPrompt, session);
+            bool appliedAnyUpdate = false;
 
             while (iterations++ < MaxToolIterations)
             {
@@ -127,6 +128,10 @@ namespace AIStoryBuilders.Services
                 }
 
                 string toolResult = await InvokeToolAsync(toolCall.Name, toolCall.Args);
+                if (IsMutationTool(toolCall.Name) && B(toolCall.Args, "confirmed") && !LooksLikeToolError(toolResult))
+                {
+                    appliedAnyUpdate = true;
+                }
                 await _log.WriteToLogAsync($"ChatTool {toolCall.Name} args={JsonConvert.SerializeObject(toolCall.Args)} result_len={toolResult?.Length ?? 0}");
 
                 messages.Add(new ChatMessage(ChatRole.Assistant, assistantText));
@@ -134,7 +139,37 @@ namespace AIStoryBuilders.Services
                 yield return "\n\n";
             }
 
+            if (appliedAnyUpdate)
+            {
+                const string reloadNotice = "\n\n> **Changes applied.** Click the **Re-load Story** button on the Details tab to see the updates reflected in the story.";
+                finalSoFar += reloadNotice;
+                yield return reloadNotice;
+            }
+
             session.Messages.Add(new ChatDisplayMessage { Role = "assistant", Content = finalSoFar });
+        }
+
+        private static readonly HashSet<string> MutationToolNames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "RenameCharacter", "UpdateCharacterBackground", "AddCharacter", "DeleteCharacter",
+            "AddLocation", "UpdateLocationDescription", "DeleteLocation",
+            "AddTimeline", "UpdateWorldFacts",
+            "AddChapter", "UpdateChapter", "DeleteChapter",
+            "AddParagraph", "UpdateParagraphText", "UpdateParagraphMetadata", "DeleteParagraph"
+        };
+
+        private static bool IsMutationTool(string name) => !string.IsNullOrEmpty(name) && MutationToolNames.Contains(name);
+
+        private static bool LooksLikeToolError(string toolResult)
+        {
+            if (string.IsNullOrWhiteSpace(toolResult)) return true;
+            try
+            {
+                var jt = JToken.Parse(toolResult);
+                if (jt is JObject obj && obj["error"] != null) return true;
+            }
+            catch { }
+            return false;
         }
 
         private List<ChatMessage> BuildMessages(string systemPrompt, ConversationSession session)
@@ -164,6 +199,25 @@ namespace AIStoryBuilders.Services
             sb.AppendLine($"- Title: {details?.Title}");
             sb.AppendLine($"- Synopsis: {details?.Synopsis}");
             sb.AppendLine($"- Characters: {details?.CharacterCount}, Locations: {details?.LocationCount}, Timelines: {details?.TimelineCount}, Chapters: {details?.ChapterCount}, Paragraphs: {details?.ParagraphCount}");
+
+            // Expose the actual chapter inventory so the assistant uses real chapter
+            // names when calling tools such as ListParagraphs / GetParagraphText,
+            // instead of guessing generic names like "Chapter 1".
+            try
+            {
+                var chapters = _query.ListChapters();
+                if (chapters != null && chapters.Count > 0)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine("Chapter inventory (use these exact names when calling chapter/paragraph tools):");
+                    foreach (var c in chapters)
+                    {
+                        sb.AppendLine($"- [seq {c.Sequence}] \"{c.Name}\" — {c.ParagraphCount} paragraph(s)");
+                    }
+                }
+            }
+            catch { /* best-effort enrichment only */ }
+
             sb.AppendLine();
             sb.AppendLine("To invoke a tool, emit a single fenced code block with language `tool` containing JSON:");
             sb.AppendLine("```tool");
@@ -173,7 +227,8 @@ namespace AIStoryBuilders.Services
             sb.AppendLine("Read tools (safe):");
             sb.AppendLine("- GetCharacter(name), ListCharacters(), GetLocation(name), ListLocations(),");
             sb.AppendLine("  GetTimeline(name), ListTimelines(), GetChapter(title), ListChapters(),");
-            sb.AppendLine("  GetParagraph(chapter, index), GetRelationships(name),");
+            sb.AppendLine("  GetParagraph(chapter, index), ListParagraphs(chapter), GetParagraphText(chapter, index),");
+            sb.AppendLine("  GetRelationships(name),");
             sb.AppendLine("  GetAppearances(characterName), GetLocationUsage(locationName),");
             sb.AppendLine("  GetInteractions(characterName), FindOrphans(),");
             sb.AppendLine("  GetCharacterArc(characterName), GetLocationEvents(locationName),");
@@ -190,6 +245,20 @@ namespace AIStoryBuilders.Services
             sb.AppendLine("- DeleteLocation(name, confirmed)");
             sb.AppendLine("- AddTimeline(name, description, start, end, confirmed)");
             sb.AppendLine("- UpdateWorldFacts(facts, confirmed)");
+            sb.AppendLine("- AddChapter(title, synopsis, sequence, confirmed)");
+            sb.AppendLine("- UpdateChapter(title, newTitle, synopsis, confirmed)");
+            sb.AppendLine("- DeleteChapter(title, confirmed)");
+            sb.AppendLine("- AddParagraph(chapter, sequence, text, location, timeline, characters, confirmed)");
+            sb.AppendLine("- UpdateParagraphText(chapter, index, text, confirmed)");
+            sb.AppendLine("- UpdateParagraphMetadata(chapter, index, location, timeline, characters, confirmed)");
+            sb.AppendLine("- DeleteParagraph(chapter, index, confirmed)");
+            sb.AppendLine();
+            sb.AppendLine("Rules for structural edits:");
+            sb.AppendLine("- Before UpdateParagraphText, always call GetParagraphText first to anchor the new prose to current metadata.");
+            sb.AppendLine("- Paragraph index is 1-based, matching the Sequence field.");
+            sb.AppendLine("- If the user asks to \"replace\" or \"rewrite\" a paragraph, prefer UpdateParagraphText.");
+            sb.AppendLine("- If the user asks to reorder paragraphs, express it as DeleteParagraph then AddParagraph with the desired sequence.");
+            sb.AppendLine("- Omit the sequence arg to append.");
             sb.AppendLine();
             sb.AppendLine("When you have finished, respond in Markdown without a tool block.");
             return sb.ToString();
@@ -246,6 +315,8 @@ namespace AIStoryBuilders.Services
                     "GetChapter" => _query.GetChapter(A(args, "title")),
                     "ListChapters" => _query.ListChapters(),
                     "GetParagraph" => _query.GetParagraph(A(args, "chapter"), I(args, "index")),
+                    "ListParagraphs" => _query.ListParagraphs(A(args, "chapter")),
+                    "GetParagraphText" => _query.GetParagraphText(A(args, "chapter"), I(args, "index")),
                     "GetRelationships" => _query.GetRelationships(A(args, "name")),
                     "GetAppearances" => _query.GetAppearances(A(args, "characterName")),
                     "GetLocationUsage" => _query.GetLocationUsage(A(args, "locationName")),
@@ -266,6 +337,23 @@ namespace AIStoryBuilders.Services
                     "DeleteLocation" => await _mutation.DeleteLocationAsync(A(args, "name"), B(args, "confirmed")),
                     "AddTimeline" => await _mutation.AddTimelineAsync(A(args, "name"), A(args, "description"), A(args, "start"), A(args, "end"), B(args, "confirmed")),
                     "UpdateWorldFacts" => await _mutation.UpdateWorldFactsAsync(A(args, "facts"), B(args, "confirmed")),
+                    "AddChapter" => await _mutation.AddChapterAsync(
+                        A(args, "title"), A(args, "synopsis"), IOpt(args, "sequence"), B(args, "confirmed")),
+                    "UpdateChapter" => await _mutation.UpdateChapterAsync(
+                        A(args, "title"), A(args, "newTitle"), A(args, "synopsis"), B(args, "confirmed")),
+                    "DeleteChapter" => await _mutation.DeleteChapterAsync(A(args, "title"), B(args, "confirmed")),
+                    "AddParagraph" => await _mutation.AddParagraphAsync(
+                        A(args, "chapter"), IOpt(args, "sequence"), A(args, "text"),
+                        A(args, "location"), A(args, "timeline"), SArr(args, "characters"),
+                        B(args, "confirmed")),
+                    "UpdateParagraphText" => await _mutation.UpdateParagraphTextAsync(
+                        A(args, "chapter"), I(args, "index"), A(args, "text"), B(args, "confirmed")),
+                    "UpdateParagraphMetadata" => await _mutation.UpdateParagraphMetadataAsync(
+                        A(args, "chapter"), I(args, "index"),
+                        A(args, "location"), A(args, "timeline"), SArr(args, "characters"),
+                        B(args, "confirmed")),
+                    "DeleteParagraph" => await _mutation.DeleteParagraphAsync(
+                        A(args, "chapter"), I(args, "index"), B(args, "confirmed")),
                     _ => new { error = $"Unknown tool '{name}'." }
                 };
 
@@ -297,6 +385,31 @@ namespace AIStoryBuilders.Services
         {
             if (args == null || !args.TryGetValue(key, out var v) || v == null) return false;
             return bool.TryParse(v.ToString(), out var b) && b;
+        }
+
+        private static int? IOpt(Dictionary<string, object> args, string key)
+        {
+            if (args == null || !args.TryGetValue(key, out var v) || v == null) return null;
+            var s = v.ToString();
+            if (string.IsNullOrWhiteSpace(s)) return null;
+            return int.TryParse(s, out var i) ? i : (int?)null;
+        }
+
+        private static IEnumerable<string> SArr(Dictionary<string, object> args, string key)
+        {
+            if (args == null || !args.TryGetValue(key, out var v) || v == null)
+                return Array.Empty<string>();
+            if (v is JArray arr)
+                return arr.Select(t => t?.ToString() ?? "").Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+            if (v is IEnumerable<object> oe)
+                return oe.Select(t => t?.ToString() ?? "").Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+            var str = v.ToString();
+            if (string.IsNullOrWhiteSpace(str)) return Array.Empty<string>();
+            str = str.Trim().Trim('[', ']');
+            return str.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim().Trim('"', '\''))
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToArray();
         }
     }
 }
