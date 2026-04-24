@@ -9,7 +9,7 @@
     [Parameter] public string Content { get; set; } = "";
 
     private static readonly MarkdownPipeline Pipeline =
-        new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+        new MarkdownPipelineBuilder().UseAdvancedExtensions().DisableHtml().Build();
 
     // Strip internal tool-invocation fenced blocks so the raw JSON tool
     // calls emitted by the model are never rendered to the user.

@@ -132,7 +132,7 @@ namespace AIStoryBuilders.Services
                 {
                     appliedAnyUpdate = true;
                 }
-                await _log.WriteToLogAsync($"ChatTool {toolCall.Name} args={JsonConvert.SerializeObject(toolCall.Args)} result_len={toolResult?.Length ?? 0}");
+                await _log.WriteToLogAsync($"ChatTool {toolCall.Name} args={TruncateArgsForLog(toolCall.Args)} result_len={toolResult?.Length ?? 0}");
 
                 messages.Add(new ChatMessage(ChatRole.Assistant, assistantText));
                 messages.Add(new ChatMessage(ChatRole.User, $"Tool result for {toolCall.Name}:\n```json\n{toolResult}\n```\nPlease continue the response for the user based on this data."));
@@ -160,13 +160,36 @@ namespace AIStoryBuilders.Services
 
         private static bool IsMutationTool(string name) => !string.IsNullOrEmpty(name) && MutationToolNames.Contains(name);
 
+        private const int LogArgMaxLength = 200;
+
+        private static string TruncateArgsForLog(Dictionary<string, object> args)
+        {
+            if (args == null) return "{}";
+            var truncated = new Dictionary<string, object>();
+            foreach (var kv in args)
+            {
+                if (kv.Value is string s && s.Length > LogArgMaxLength)
+                    truncated[kv.Key] = s[..LogArgMaxLength] + $"…[{s.Length} chars]";
+                else
+                    truncated[kv.Key] = kv.Value;
+            }
+            return JsonConvert.SerializeObject(truncated);
+        }
+
         private static bool LooksLikeToolError(string toolResult)
         {
             if (string.IsNullOrWhiteSpace(toolResult)) return true;
             try
             {
                 var jt = JToken.Parse(toolResult);
-                if (jt is JObject obj && obj["error"] != null) return true;
+                if (jt is JObject obj)
+                {
+                    // Check both lowercase and uppercase error fields
+                    if (obj["error"] != null || obj["Error"] != null) return true;
+                    // Treat explicit Success=false as an error
+                    var successToken = obj["Success"] ?? obj["success"];
+                    if (successToken != null && successToken.Type == JTokenType.Boolean && !successToken.Value<bool>()) return true;
+                }
             }
             catch { }
             return false;

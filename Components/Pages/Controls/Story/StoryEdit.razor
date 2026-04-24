@@ -345,6 +345,17 @@ else // Existing Story
             StateHasChanged();
 
             var graphBuilder = (AIStoryBuilders.Services.IGraphBuilder)ScopedServices.GetService(typeof(AIStoryBuilders.Services.IGraphBuilder));
+            if (graphBuilder == null)
+            {
+                NotificationService.Notify(new NotificationMessage
+                    {
+                        Severity = NotificationSeverity.Error,
+                        Summary = "Re-load Story failed",
+                        Detail = "Graph builder service is unavailable.",
+                        Duration = 6000
+                    });
+                return;
+            }
             var progress = new Progress<string>(msg =>
             {
                 NotificationService.Notify(new NotificationMessage

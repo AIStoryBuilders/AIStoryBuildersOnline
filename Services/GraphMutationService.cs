@@ -43,14 +43,14 @@ namespace AIStoryBuilders.Services
                     CharacterName = newName,
                     Story = CurrentStory
                 };
-                int updatedCount = await _storyService.UpdateCharacterNameAsync(character, oldName);
+                var (updatedCount, embeddingsCount) = await _storyService.UpdateCharacterNameAsync(character, oldName);
                 GraphState.MarkDirty();
                 return new MutationResult
                 {
                     IsPreview = false,
                     Success = true,
                     Summary = $"Renamed '{oldName}' to '{newName}' ({updatedCount} paragraphs touched).",
-                    EmbeddingsUpdated = updatedCount,
+                    EmbeddingsUpdated = embeddingsCount,
                     GraphRefreshed = true
                 };
             }
@@ -212,8 +212,8 @@ namespace AIStoryBuilders.Services
                     TimelineName = name,
                     TimelineDescription = description ?? "",
                     Story = CurrentStory,
-                    StartDate = DateTime.TryParse(start, out var sd) ? sd : (DateTime?)DateTime.Now,
-                    StopDate = DateTime.TryParse(end, out var ed) ? ed : (DateTime?)DateTime.Now.AddDays(1)
+                    StartDate = DateTime.TryParse(start, out var sd) ? sd : (DateTime?)null,
+                    StopDate = DateTime.TryParse(end, out var ed) ? ed : (DateTime?)null
                 };
                 await _storyService.AddTimeline(tl);
                 GraphState.MarkDirty();
@@ -226,20 +226,21 @@ namespace AIStoryBuilders.Services
             }
         }
 
-        public Task<MutationResult> UpdateWorldFactsAsync(string facts, bool confirmed)
+        public async Task<MutationResult> UpdateWorldFactsAsync(string facts, bool confirmed)
         {
-            if (!confirmed) return Task.FromResult(Preview("Will update world facts / story synopsis."));
+            if (!confirmed) return Preview("Will update world facts / story synopsis.");
             try
             {
-                if (CurrentStory == null) return Task.FromResult(Fail("No active story."));
+                if (CurrentStory == null) return Fail("No active story.");
                 CurrentStory.Synopsis = facts ?? CurrentStory.Synopsis;
-                _ = _storyService.UpdateStory(CurrentStory);
+                await _storyService.UpdateStory(CurrentStory);
                 GraphState.MarkDirty();
-                return Task.FromResult(Ok("Updated world facts."));
+                return Ok("Updated world facts.");
             }
             catch (Exception ex)
             {
-                return Task.FromResult(Fail(ex.Message));
+                await _log.WriteToLogAsync($"UpdateWorldFactsAsync: {ex.Message}");
+                return Fail(ex.Message);
             }
         }
 

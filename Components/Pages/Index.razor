@@ -345,16 +345,28 @@
             using (var zipStream = new MemoryStream(exportFileBytes))
             using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Read))
             {
+                string resolvedBasePath = Path.GetFullPath(BasePath);
                 foreach (var entry in archive.Entries)
                 {
                     if (string.IsNullOrEmpty(entry.Name))
                     {
-                        // Directory entry
-                        Directory.CreateDirectory(Path.Combine(BasePath, entry.FullName));
+                        // Directory entry - validate it stays within BasePath
+                        string resolvedDir = Path.GetFullPath(Path.Combine(BasePath, entry.FullName));
+                        if (resolvedDir.StartsWith(resolvedBasePath, StringComparison.Ordinal))
+                        {
+                            Directory.CreateDirectory(resolvedDir);
+                        }
                         continue;
                     }
 
                     string destFile = Path.Combine(BasePath, entry.FullName);
+                    // Guard against Zip Slip: ensure the resolved path stays within BasePath
+                    string resolvedDest = Path.GetFullPath(destFile);
+                    if (!resolvedDest.StartsWith(resolvedBasePath + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+                        && !resolvedDest.Equals(resolvedBasePath, StringComparison.Ordinal))
+                    {
+                        continue; // skip entries that escape the target directory
+                    }
                     string destDir = Path.GetDirectoryName(destFile);
                     if (!string.IsNullOrEmpty(destDir) && !Directory.Exists(destDir))
                     {

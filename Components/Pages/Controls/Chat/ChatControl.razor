@@ -138,6 +138,17 @@
     public async Task BuildGraph()
     {
         if (objStory == null) return;
+        if (GraphBuilder == null)
+        {
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Graph build error",
+                Detail = "Graph builder service is unavailable.",
+                Duration = 4000
+            });
+            return;
+        }
         try
         {
             await StoryService.EnsureGraphExistsAsync(objStory.Title, GraphBuilder);

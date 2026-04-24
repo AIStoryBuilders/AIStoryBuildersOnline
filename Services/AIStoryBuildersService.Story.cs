@@ -1399,16 +1399,17 @@ namespace AIStoryBuilders.Services
         /// <summary>
         /// Rename a character and propagate the change through the prose of every paragraph,
         /// regenerating embeddings where the prose was actually changed.
-        /// Returns the number of paragraph files that were modified.
+        /// Returns a tuple: (paragraphs modified, paragraphs whose embeddings were regenerated).
         /// </summary>
-        public async Task<int> UpdateCharacterNameAsync(Character character, string paramOrginalCharcterName)
+        public async Task<(int changed, int embeddingsUpdated)> UpdateCharacterNameAsync(Character character, string paramOrginalCharcterName)
         {
             string StoryPath = $"{BasePath}/{character.Story.Title}";
             string CharactersPath = $"{StoryPath}/Characters";
             string CharacterPath = $"{CharactersPath}/{paramOrginalCharcterName}.csv";
             int changedCount = 0;
+            int embeddingsCount = 0;
 
-            if (character.CharacterName == null || character.CharacterName.Trim() == "") return 0;
+            if (character.CharacterName == null || character.CharacterName.Trim() == "") return (0, 0);
 
             var newName = character.CharacterName.Trim();
             var oldName = paramOrginalCharcterName;
@@ -1465,6 +1466,7 @@ namespace AIStoryBuilders.Services
                             {
                                 string newVector = await OrchestratorMethods.GetVectorEmbedding(updatedProse, false);
                                 ParagraphArray[ParagraphArray.Length - 1] = newVector;
+                                embeddingsCount++;
                             }
                             catch (Exception ex)
                             {
@@ -1490,7 +1492,7 @@ namespace AIStoryBuilders.Services
             }
 
             GraphState.MarkDirty();
-            return changedCount;
+            return (changedCount, embeddingsCount);
         }
         #endregion
 
