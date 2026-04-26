@@ -199,6 +199,7 @@ namespace AIStoryBuilders.Services
             // the model remembers to re-emit the tool call.
             bool isAffirmative = IsAffirmative(userMessage);
             bool hasPending = _pendingPreviews.ContainsKey(sessionId);
+            bool autoConfirmApplied = false;
             await _log.WriteToLogAsync($"ChatTurn session={sessionId} user='{Truncate(userMessage, 60)}' affirmative={isAffirmative} pendingPreview={hasPending}");
 
             if (isAffirmative && _pendingPreviews.TryRemove(sessionId, out var pending))
@@ -218,6 +219,7 @@ namespace AIStoryBuilders.Services
                     // acknowledgement prose, so the user reads the
                     // confirmation first and the call-to-action last.
                     appliedAnyUpdate = true;
+                    autoConfirmApplied = true;
                 }
                 else
                 {
@@ -231,7 +233,7 @@ namespace AIStoryBuilders.Services
                 messages.Add(new ChatMessage(ChatRole.Assistant, syntheticToolCall));
                 string autoConfirmContinuation = confirmIsError
                     ? $"Tool result for {pending.ToolName} (THIS MUTATION FAILED):\n```json\n{confirmResult}\n```\nIMPORTANT: the change was NOT applied. Tell the user clearly that the operation failed and quote the error message. DO NOT claim success. DO NOT say 'I've added' or 'I've updated'. Do not call more tools."
-                    : $"Tool result for {pending.ToolName}:\n```json\n{confirmResult}\n```\nThe change has been applied. Briefly confirm to the user what was done in one or two short sentences. Do not call any more tools.";
+                    : $"Tool result for {pending.ToolName}:\n```json\n{confirmResult}\n```\nThe change has ALREADY been applied — do NOT call this tool or any other mutation tool again. Reply with a single short sentence confirming what was done, then stop. Do NOT emit any tool block.";
                 messages.Add(new ChatMessage(ChatRole.User, autoConfirmContinuation));
             }
 
@@ -257,9 +259,25 @@ namespace AIStoryBuilders.Services
                     break;
                 }
 
-                string toolResult = await InvokeToolAsync(toolCall.Name, toolCall.Args);
                 bool isMutation = IsMutationTool(toolCall.Name);
                 bool isConfirmed = B(toolCall.Args, "confirmed");
+
+                // If we already applied a mutation via auto-confirm in this
+                // turn, do NOT re-execute another mutation tool call from the
+                // model — that would silently duplicate the change. Instead
+                // feed back a synthetic "already applied" result so the
+                // model wraps up with prose only.
+                if (autoConfirmApplied && isMutation)
+                {
+                    await _log.WriteToLogAsync($"ChatTurn blocked duplicate mutation {toolCall.Name} after auto-confirm");
+                    messages.Add(new ChatMessage(ChatRole.Assistant, assistantText));
+                    messages.Add(new ChatMessage(ChatRole.User,
+                        $"The change has ALREADY been applied earlier in this turn. The {toolCall.Name} tool call was IGNORED to prevent a duplicate. Stop calling tools. Reply with one short sentence acknowledging the change is done and then stop."));
+                    yield return "\n\n";
+                    continue;
+                }
+
+                string toolResult = await InvokeToolAsync(toolCall.Name, toolCall.Args);
                 bool isError = LooksLikeToolError(toolResult);
                 if (isMutation && isConfirmed && !isError)
                 {
