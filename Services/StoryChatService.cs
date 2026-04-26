@@ -55,6 +55,43 @@ namespace AIStoryBuilders.Services
             "> **Click the \"Re-load Story\" button on the Details tab** to see the changes you just made reflected in the story.\n\n" +
             "---\n\n";
 
+        private static string BuildFailureBanner(string error)
+        {
+            var safe = string.IsNullOrWhiteSpace(error) ? "unknown error" : error.Replace("\r", " ").Replace("\n", " ");
+            if (safe.Length > 400) safe = safe.Substring(0, 400) + "…";
+            return "\n\n---\n\n" +
+                "> ### Operation failed\n" +
+                "> **The change was NOT applied.**\n" +
+                "> Error: " + safe + "\n\n" +
+                "---\n\n";
+        }
+
+        private static string ExtractErrorMessage(string toolResult)
+        {
+            if (string.IsNullOrWhiteSpace(toolResult)) return null;
+            try
+            {
+                var jt = JToken.Parse(toolResult);
+                if (jt is JObject obj)
+                {
+                    var err = obj["Error"] ?? obj["error"];
+                    if (err != null && err.Type != JTokenType.Null)
+                    {
+                        var s = err.ToString();
+                        if (!string.IsNullOrWhiteSpace(s)) return s;
+                    }
+                    var summary = obj["Summary"] ?? obj["summary"];
+                    if (summary != null && summary.Type != JTokenType.Null)
+                    {
+                        var s = summary.ToString();
+                        if (!string.IsNullOrWhiteSpace(s)) return s;
+                    }
+                }
+            }
+            catch { }
+            return null;
+        }
+
         /// <summary>
         /// Records a mutation tool that was called in preview mode
         /// (<c>confirmed=false</c>) and returned a successful preview.
@@ -134,6 +171,7 @@ namespace AIStoryBuilders.Services
             string finalSoFar = "";
             var messages = BuildMessages(systemPrompt, session);
             bool appliedAnyUpdate = false;
+            string lastMutationFailure = null;
 
             // Deterministic safety net for the most hallucination-prone class
             // of question: "what is the {first|last|Nth} {paragraph|sentence}
@@ -159,31 +197,42 @@ namespace AIStoryBuilders.Services
             // confirmed=true ourselves. This guarantees the change is actually
             // applied and the reload notice is shown, regardless of whether
             // the model remembers to re-emit the tool call.
-            bool reloadNoticeYielded = false;
-            if (IsAffirmative(userMessage) && _pendingPreviews.TryRemove(sessionId, out var pending))
+            bool isAffirmative = IsAffirmative(userMessage);
+            bool hasPending = _pendingPreviews.ContainsKey(sessionId);
+            await _log.WriteToLogAsync($"ChatTurn session={sessionId} user='{Truncate(userMessage, 60)}' affirmative={isAffirmative} pendingPreview={hasPending}");
+
+            if (isAffirmative && _pendingPreviews.TryRemove(sessionId, out var pending))
             {
+                await _log.WriteToLogAsync($"ChatTurn auto-confirming tool={pending.ToolName} args={TruncateArgsForLog(pending.Args)}");
                 var confirmedArgs = new Dictionary<string, object>(pending.Args ?? new Dictionary<string, object>())
                 {
                     ["confirmed"] = true
                 };
                 string confirmResult = await InvokeToolAsync(pending.ToolName, confirmedArgs);
-                await _log.WriteToLogAsync($"ChatTool {pending.ToolName} (auto-confirmed) result_len={confirmResult?.Length ?? 0}");
-                if (!LooksLikeToolError(confirmResult))
+                bool confirmIsError = LooksLikeToolError(confirmResult);
+                await _log.WriteToLogAsync($"ChatTurn auto-confirm result_len={confirmResult?.Length ?? 0} isError={confirmIsError}");
+                if (!confirmIsError)
                 {
+                    // Mark that a mutation succeeded; the reload banner is
+                    // emitted at the end of the stream, AFTER the model's
+                    // acknowledgement prose, so the user reads the
+                    // confirmation first and the call-to-action last.
                     appliedAnyUpdate = true;
-                    // Emit the reload notice up-front so the user cannot miss it,
-                    // before the model produces its (often verbose) acknowledgement.
-                    yield return ReloadNoticeBanner;
-                    finalSoFar += ReloadNoticeBanner;
-                    reloadNoticeYielded = true;
+                }
+                else
+                {
+                    lastMutationFailure = ExtractErrorMessage(confirmResult) ?? "unknown error";
+                    await _log.WriteToLogAsync($"ChatTurn auto-confirm FAILED: {lastMutationFailure}");
                 }
                 // Inject the executed mutation as a synthetic assistant tool call
                 // + tool result so the model sees a coherent transcript and can
                 // produce a brief acknowledgement to the user.
                 var syntheticToolCall = $"```tool\n{JsonConvert.SerializeObject(new { name = pending.ToolName, args = confirmedArgs }, Formatting.Indented)}\n```";
                 messages.Add(new ChatMessage(ChatRole.Assistant, syntheticToolCall));
-                messages.Add(new ChatMessage(ChatRole.User,
-                    $"Tool result for {pending.ToolName}:\n```json\n{confirmResult}\n```\nThe change has been applied. Briefly confirm to the user what was done in one or two short sentences. Do not call any more tools."));
+                string autoConfirmContinuation = confirmIsError
+                    ? $"Tool result for {pending.ToolName} (THIS MUTATION FAILED):\n```json\n{confirmResult}\n```\nIMPORTANT: the change was NOT applied. Tell the user clearly that the operation failed and quote the error message. DO NOT claim success. DO NOT say 'I've added' or 'I've updated'. Do not call more tools."
+                    : $"Tool result for {pending.ToolName}:\n```json\n{confirmResult}\n```\nThe change has been applied. Briefly confirm to the user what was done in one or two short sentences. Do not call any more tools.";
+                messages.Add(new ChatMessage(ChatRole.User, autoConfirmContinuation));
             }
 
             while (iterations++ < MaxToolIterations)
@@ -209,33 +258,55 @@ namespace AIStoryBuilders.Services
                 }
 
                 string toolResult = await InvokeToolAsync(toolCall.Name, toolCall.Args);
-                if (IsMutationTool(toolCall.Name) && B(toolCall.Args, "confirmed") && !LooksLikeToolError(toolResult))
+                bool isMutation = IsMutationTool(toolCall.Name);
+                bool isConfirmed = B(toolCall.Args, "confirmed");
+                bool isError = LooksLikeToolError(toolResult);
+                if (isMutation && isConfirmed && !isError)
                 {
                     appliedAnyUpdate = true;
                     // A confirmed mutation supersedes any previously-pending preview.
                     _pendingPreviews.TryRemove(sessionId, out _);
+                    await _log.WriteToLogAsync($"ChatTurn confirmed mutation {toolCall.Name} - cleared pending preview, appliedAnyUpdate=true");
                 }
-                else if (IsMutationTool(toolCall.Name) && !B(toolCall.Args, "confirmed") && !LooksLikeToolError(toolResult))
+                else if (isMutation && isConfirmed && isError)
                 {
-                    // Successful preview \u2014 remember it so the next affirmative
+                    // Confirmed mutation failed. Capture the error so the user
+                    // is shown a clear failure banner and the model is told NOT
+                    // to claim success in its follow-up prose.
+                    lastMutationFailure = ExtractErrorMessage(toolResult) ?? "unknown error";
+                    await _log.WriteToLogAsync($"ChatTurn confirmed mutation {toolCall.Name} FAILED: {lastMutationFailure}");
+                }
+                else if (isMutation && !isConfirmed && !isError)
+                {
+                    // Successful preview - remember it so the next affirmative
                     // user reply can deterministically confirm the same call.
                     _pendingPreviews[sessionId] = new PendingPreview
                     {
                         ToolName = toolCall.Name,
                         Args = new Dictionary<string, object>(toolCall.Args ?? new Dictionary<string, object>())
                     };
+                    await _log.WriteToLogAsync($"ChatTurn stored pending preview {toolCall.Name} for session={sessionId}");
                 }
-                await _log.WriteToLogAsync($"ChatTool {toolCall.Name} args={TruncateArgsForLog(toolCall.Args)} result_len={toolResult?.Length ?? 0}");
+                await _log.WriteToLogAsync($"ChatTool {toolCall.Name} args={TruncateArgsForLog(toolCall.Args)} result_len={toolResult?.Length ?? 0} isMutation={isMutation} isConfirmed={isConfirmed} isError={isError}");
 
                 messages.Add(new ChatMessage(ChatRole.Assistant, assistantText));
-                messages.Add(new ChatMessage(ChatRole.User, $"Tool result for {toolCall.Name}:\n```json\n{toolResult}\n```\nPlease continue the response for the user based on this data."));
+                string continuation = (isMutation && isConfirmed && isError)
+                    ? $"Tool result for {toolCall.Name} (THIS MUTATION FAILED):\n```json\n{toolResult}\n```\nIMPORTANT: the change was NOT applied. Tell the user clearly that the operation failed and quote the error message. DO NOT claim success. DO NOT say 'I've added' or 'I've updated'. Do not call more tools."
+                    : $"Tool result for {toolCall.Name}:\n```json\n{toolResult}\n```\nPlease continue the response for the user based on this data.";
+                messages.Add(new ChatMessage(ChatRole.User, continuation));
                 yield return "\n\n";
             }
 
-            if (appliedAnyUpdate && !reloadNoticeYielded)
+            if (appliedAnyUpdate)
             {
                 finalSoFar += ReloadNoticeBanner;
                 yield return ReloadNoticeBanner;
+            }
+            else if (lastMutationFailure != null)
+            {
+                string failureBanner = BuildFailureBanner(lastMutationFailure);
+                finalSoFar += failureBanner;
+                yield return failureBanner;
             }
 
             session.Messages.Add(new ChatDisplayMessage { Role = "assistant", Content = finalSoFar });
@@ -253,6 +324,13 @@ namespace AIStoryBuilders.Services
         private static bool IsMutationTool(string name) => !string.IsNullOrEmpty(name) && MutationToolNames.Contains(name);
 
         private const int LogArgMaxLength = 200;
+
+        private static string Truncate(string text, int max)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+            text = text.Replace("\r", " ").Replace("\n", " ");
+            return text.Length <= max ? text : text.Substring(0, max) + "…";
+        }
 
         private static string TruncateArgsForLog(Dictionary<string, object> args)
         {
@@ -276,11 +354,18 @@ namespace AIStoryBuilders.Services
                 var jt = JToken.Parse(toolResult);
                 if (jt is JObject obj)
                 {
-                    // Check both lowercase and uppercase error fields
-                    if (obj["error"] != null || obj["Error"] != null) return true;
-                    // Treat explicit Success=false as an error
+                    // Treat explicit Success=false as an error.
                     var successToken = obj["Success"] ?? obj["success"];
                     if (successToken != null && successToken.Type == JTokenType.Boolean && !successToken.Value<bool>()) return true;
+                    // Treat a non-empty Error field as an error. The MutationResult
+                    // record always serializes Error (often as null/empty), so the
+                    // mere presence of the property does not indicate failure.
+                    var errToken = obj["Error"] ?? obj["error"];
+                    if (errToken != null && errToken.Type != JTokenType.Null)
+                    {
+                        var errStr = errToken.ToString();
+                        if (!string.IsNullOrWhiteSpace(errStr)) return true;
+                    }
                 }
             }
             catch { }
