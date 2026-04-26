@@ -41,6 +41,15 @@ namespace AIStoryBuilders.Services
         private Story _activeStory;
         private const int MaxToolIterations = 4;
 
+        /// <summary>
+        /// Sentinel chunk yielded between tool-loop iterations so the UI can
+        /// reset its streaming buffer. Prose emitted by the model *before* a
+        /// tool call is scratch reasoning and must not appear in the final
+        /// bubble alongside the post-tool answer (otherwise the user sees
+        /// two contradictory answers concatenated together).
+        /// </summary>
+        public const string IterationResetSentinel = "\u001E__ITERATION_RESET__\u001E";
+
         public StoryChatService(
             OrchestratorMethods orchestrator,
             IGraphQueryService query,
@@ -118,14 +127,25 @@ namespace AIStoryBuilders.Services
                 }
 
                 string assistantText = assistantChunks.ToString();
-                finalSoFar += assistantText;
 
                 // Look for tool call JSON block
                 var toolCall = ExtractToolCall(assistantText);
                 if (toolCall == null)
                 {
+                    // No tool call → this iteration's prose IS the final answer.
+                    // Only the final iteration contributes to the persisted bubble,
+                    // so a pre-tool draft from an earlier iteration cannot leak into
+                    // the saved conversation history.
+                    finalSoFar += assistantText;
                     break;
                 }
+
+                // Draft iteration that ended with a tool call. Anything the model
+                // wrote before/around the tool fence is *scratch reasoning*: it
+                // must not be shown to the user or persisted alongside the final
+                // answer. Tell the UI to discard whatever it streamed during this
+                // iteration before the next iteration starts streaming in.
+                yield return IterationResetSentinel;
 
                 string toolResult = await InvokeToolAsync(toolCall.Name, toolCall.Args);
                 if (IsMutationTool(toolCall.Name) && B(toolCall.Args, "confirmed") && !LooksLikeToolError(toolResult))
@@ -134,9 +154,13 @@ namespace AIStoryBuilders.Services
                 }
                 await _log.WriteToLogAsync($"ChatTool {toolCall.Name} args={TruncateArgsForLog(toolCall.Args)} result_len={toolResult?.Length ?? 0}");
 
+                // Send the assistant's tool-call turn back so the model has its own
+                // context, then deliver the tool result as authoritative ground
+                // truth (Tool role where supported, fallback to User).
                 messages.Add(new ChatMessage(ChatRole.Assistant, assistantText));
-                messages.Add(new ChatMessage(ChatRole.User, $"Tool result for {toolCall.Name}:\n```json\n{toolResult}\n```\nPlease continue the response for the user based on this data."));
-                yield return "\n\n";
+                messages.Add(new ChatMessage(
+                    ChatRole.Tool,
+                    $"Tool result for {toolCall.Name} (authoritative — use this verbatim, do not paraphrase from memory):\n```json\n{toolResult}\n```\nNow produce the final user-facing answer based ONLY on this tool result. Do not apologise. Do not restate earlier guesses."));
             }
 
             if (appliedAnyUpdate)
@@ -282,6 +306,17 @@ namespace AIStoryBuilders.Services
             sb.AppendLine("- If the user asks to \"replace\" or \"rewrite\" a paragraph, prefer UpdateParagraphText.");
             sb.AppendLine("- If the user asks to reorder paragraphs, express it as DeleteParagraph then AddParagraph with the desired sequence.");
             sb.AppendLine("- Omit the sequence arg to append.");
+            sb.AppendLine();
+            sb.AppendLine("Rules for quoting story content (CRITICAL — failure here produces wrong answers):");
+            sb.AppendLine("- NEVER quote, paraphrase, or describe the contents of any paragraph, character bio, location description, or timeline detail without first calling the matching Get… tool in the CURRENT turn. Prior conversation history is NOT a reliable source for prose.");
+            sb.AppendLine("- When the user asks for \"the last paragraph\" of a chapter, that means the paragraph whose index equals that chapter's paragraph count from the Chapter inventory above. Resolve it by calling GetParagraphText(chapter, <count>).");
+            sb.AppendLine("- When the user asks for \"the first paragraph\", call GetParagraphText(chapter, 1).");
+            sb.AppendLine("- The Chapter inventory shows names and counts only — it does NOT contain prose. Never invent paragraph text from a chapter title.");
+            sb.AppendLine();
+            sb.AppendLine("Rules for handling disagreement (anti-sycophancy):");
+            sb.AppendLine("- If the user disputes a fact you stated, do NOT apologise and re-state from memory. Re-call the appropriate Get… tool and report exactly what it returns, even if it confirms your earlier answer.");
+            sb.AppendLine("- Do not begin replies with \"You're absolutely right\" or similar capitulations.");
+            sb.AppendLine("- If a tool result contradicts your earlier answer, simply state the corrected fact based on the tool — no apology preamble.");
             sb.AppendLine();
             sb.AppendLine("When you have finished, respond in Markdown without a tool block.");
             return sb.ToString();

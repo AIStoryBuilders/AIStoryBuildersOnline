@@ -180,7 +180,17 @@
         {
             await foreach (var chunk in ChatService.SendMessageAsync(msg, _sessionId))
             {
-                _streamingBuffer += chunk;
+                // Service emits a sentinel chunk between tool-loop iterations so
+                // pre-tool draft prose (scratch reasoning) doesn't end up glued
+                // to the post-tool final answer in the same bubble.
+                if (chunk == AIStoryBuilders.Services.StoryChatService.IterationResetSentinel)
+                {
+                    _streamingBuffer = "";
+                }
+                else
+                {
+                    _streamingBuffer += chunk;
+                }
                 StateHasChanged();
             }
         }
