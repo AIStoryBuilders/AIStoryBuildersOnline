@@ -12,12 +12,7 @@
         new MarkdownPipelineBuilder().UseAdvancedExtensions().DisableHtml().Build();
 
     // Strip internal tool-invocation fenced blocks so the raw JSON tool
-    // calls emitted by the model are never rendered to the user. Also drop
-    // any draft prose that preceded the tool block — that text is scratch
-    // reasoning written *before* the tool returned ground truth and should
-    // never be shown alongside the corrected answer.
-    private static readonly Regex ToolBlockWithLeadingProseRegex = new(
-        @"\A[\s\S]*?```tool\s*[\s\S]*?```\s*", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    // calls emitted by the model are never rendered to the user.
     private static readonly Regex ToolBlockRegex = new(
         @"```tool\s*[\s\S]*?```\s*", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -26,10 +21,7 @@
         get
         {
             if (string.IsNullOrEmpty(Content)) return "";
-            // Drop the FIRST tool fence and everything before it (the draft),
-            // then strip any remaining tool fences that appear later.
-            var cleaned = ToolBlockWithLeadingProseRegex.Replace(Content, "");
-            cleaned = ToolBlockRegex.Replace(cleaned, "");
+            var cleaned = ToolBlockRegex.Replace(Content, "");
             return Markdown.ToHtml(cleaned, Pipeline);
         }
     }
