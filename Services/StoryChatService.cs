@@ -38,8 +38,24 @@ namespace AIStoryBuilders.Services
 
         private IChatClient _client;
         private readonly ConcurrentDictionary<string, ConversationSession> _sessions = new();
+        private readonly ConcurrentDictionary<string, PendingPreview> _pendingPreviews = new();
         private Story _activeStory;
         private const int MaxToolIterations = 4;
+
+        /// <summary>
+        /// Records a mutation tool that was called in preview mode
+        /// (<c>confirmed=false</c>) and returned a successful preview.
+        /// When the user's next message is an affirmative such as "yes",
+        /// the orchestrator re-invokes the same tool with <c>confirmed=true</c>
+        /// deterministically — it does not rely on the model to remember to
+        /// re-emit the tool call.
+        /// </summary>
+        private sealed class PendingPreview
+        {
+            public string ToolName { get; set; }
+            public Dictionary<string, object> Args { get; set; }
+            public string Summary { get; set; }
+        }
 
         public StoryChatService(
             OrchestratorMethods orchestrator,
@@ -70,6 +86,7 @@ namespace AIStoryBuilders.Services
         public void ClearSession(string sessionId)
         {
             _sessions.TryRemove(sessionId, out _);
+            _pendingPreviews.TryRemove(sessionId, out _);
         }
 
         public ConversationSession GetOrCreateSession(string sessionId)
@@ -123,6 +140,33 @@ namespace AIStoryBuilders.Services
                     "```json\n" + preFetched + "\n```"));
             }
 
+            // Deterministic confirm-on-yes: when the previous turn produced a
+            // mutation preview and the user's reply is an affirmative such as
+            // "yes" / "ok" / "do it", re-invoke the same tool with
+            // confirmed=true ourselves. This guarantees the change is actually
+            // applied and the reload notice is shown, regardless of whether
+            // the model remembers to re-emit the tool call.
+            if (IsAffirmative(userMessage) && _pendingPreviews.TryRemove(sessionId, out var pending))
+            {
+                var confirmedArgs = new Dictionary<string, object>(pending.Args ?? new Dictionary<string, object>())
+                {
+                    ["confirmed"] = true
+                };
+                string confirmResult = await InvokeToolAsync(pending.ToolName, confirmedArgs);
+                await _log.WriteToLogAsync($"ChatTool {pending.ToolName} (auto-confirmed) result_len={confirmResult?.Length ?? 0}");
+                if (!LooksLikeToolError(confirmResult))
+                {
+                    appliedAnyUpdate = true;
+                }
+                // Inject the executed mutation as a synthetic assistant tool call
+                // + tool result so the model sees a coherent transcript and can
+                // produce a brief acknowledgement to the user.
+                var syntheticToolCall = $"```tool\n{JsonConvert.SerializeObject(new { name = pending.ToolName, args = confirmedArgs }, Formatting.Indented)}\n```";
+                messages.Add(new ChatMessage(ChatRole.Assistant, syntheticToolCall));
+                messages.Add(new ChatMessage(ChatRole.User,
+                    $"Tool result for {pending.ToolName}:\n```json\n{confirmResult}\n```\nThe change has been applied. Briefly confirm to the user what was done in one or two short sentences. Do not call any more tools."));
+            }
+
             while (iterations++ < MaxToolIterations)
             {
                 var assistantChunks = new StringBuilder();
@@ -149,6 +193,18 @@ namespace AIStoryBuilders.Services
                 if (IsMutationTool(toolCall.Name) && B(toolCall.Args, "confirmed") && !LooksLikeToolError(toolResult))
                 {
                     appliedAnyUpdate = true;
+                    // A confirmed mutation supersedes any previously-pending preview.
+                    _pendingPreviews.TryRemove(sessionId, out _);
+                }
+                else if (IsMutationTool(toolCall.Name) && !B(toolCall.Args, "confirmed") && !LooksLikeToolError(toolResult))
+                {
+                    // Successful preview \u2014 remember it so the next affirmative
+                    // user reply can deterministically confirm the same call.
+                    _pendingPreviews[sessionId] = new PendingPreview
+                    {
+                        ToolName = toolCall.Name,
+                        Args = new Dictionary<string, object>(toolCall.Args ?? new Dictionary<string, object>())
+                    };
                 }
                 await _log.WriteToLogAsync($"ChatTool {toolCall.Name} args={TruncateArgsForLog(toolCall.Args)} result_len={toolResult?.Length ?? 0}");
 
@@ -415,6 +471,32 @@ namespace AIStoryBuilders.Services
             if (string.IsNullOrWhiteSpace(token)) return 0;
             if (int.TryParse(token, out var n)) return n;
             return WordToNumber.TryGetValue(token, out var v) ? v : 0;
+        }
+
+        private static readonly HashSet<string> AffirmativeReplies = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "y", "yes", "yep", "yeah", "yup", "sure", "ok", "okay", "k",
+            "do it", "go", "go ahead", "proceed", "confirm", "confirmed",
+            "please do", "please proceed", "yes please", "do that", "make it so",
+            "apply", "apply it", "apply the change", "apply the changes"
+        };
+
+        /// <summary>
+        /// Returns true when the user's message is a short affirmative reply
+        /// to a prior mutation preview. Strips trailing punctuation/whitespace.
+        /// Long messages (more than a few words) are never treated as a bare
+        /// affirmative \u2014 they likely contain an additional instruction the
+        /// model should handle normally.
+        /// </summary>
+        private static bool IsAffirmative(string userMessage)
+        {
+            if (string.IsNullOrWhiteSpace(userMessage)) return false;
+            var trimmed = userMessage.Trim().TrimEnd('.', '!', '?').Trim();
+            if (trimmed.Length == 0) return false;
+            // Cap word count so \"yes, but change X\" is not auto-confirmed.
+            int wordCount = trimmed.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries).Length;
+            if (wordCount > 4) return false;
+            return AffirmativeReplies.Contains(trimmed);
         }
 
         private static ToolCall ExtractToolCall(string text)
