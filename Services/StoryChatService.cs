@@ -105,6 +105,24 @@ namespace AIStoryBuilders.Services
             var messages = BuildMessages(systemPrompt, session);
             bool appliedAnyUpdate = false;
 
+            // Deterministic safety net for the most hallucination-prone class
+            // of question: "what is the {first|last|Nth} {paragraph|sentence}
+            // of chapter N". We resolve the paragraph from the graph ourselves
+            // and inject the verbatim text as a transient user message *before*
+            // the model generates anything. The transient message lives only
+            // inside this turn's `messages` list — it is NOT added to
+            // session.Messages, so it does not pollute future turns.
+            var preFetched = TryPreFetchParagraphContext(userMessage);
+            if (preFetched != null)
+            {
+                messages.Add(new ChatMessage(
+                    ChatRole.User,
+                    "AUTHORITATIVE STORY DATA (verbatim from the knowledge graph). " +
+                    "Use ONLY the fields below to answer the previous question. " +
+                    "Quote the Text field exactly as written. Do not invent prose, do not paraphrase from memory.\n" +
+                    "```json\n" + preFetched + "\n```"));
+            }
+
             while (iterations++ < MaxToolIterations)
             {
                 var assistantChunks = new StringBuilder();
@@ -295,6 +313,109 @@ namespace AIStoryBuilders.Services
 
         private static readonly Regex ToolBlockRegex = new(
             @"```tool\s*([\s\S]*?)```", RegexOptions.IgnoreCase);
+
+        // Recognises "first/last/Nth paragraph of chapter N" and
+        // "first/last sentence of chapter N". The "which" group identifies
+        // which paragraph (or, for sentence questions, the only paragraph
+        // whose text we need to look up — the last one for "last sentence").
+        private static readonly Regex ParagraphRequestRegex = new(
+            @"\b(?<which>first|last|final|\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b[^.\n]{0,40}?\b(?<unit>paragraph|sentence)\b[^.\n]{0,40}?\bchapter\s*(?<chap>\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex ParagraphRequestRegexAlt = new(
+            @"\bchapter\s*(?<chap>\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b[^.\n]{0,40}?\b(?<which>first|last|final|\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b[^.\n]{0,40}?\b(?<unit>paragraph|sentence)\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Dictionary<string, int> WordToNumber = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["one"] = 1, ["two"] = 2, ["three"] = 3, ["four"] = 4, ["five"] = 5,
+            ["six"] = 6, ["seven"] = 7, ["eight"] = 8, ["nine"] = 9, ["ten"] = 10
+        };
+
+        /// <summary>
+        /// Deterministic pre-fetch for the most hallucination-prone class of
+        /// question: "what is the {first|last|Nth} {paragraph|sentence} of
+        /// chapter N". Resolves the chapter and paragraph via the graph query
+        /// service and returns serialised JSON describing the paragraph, or
+        /// null when the question does not match a known pattern, the chapter
+        /// is not found, or the paragraph index is out of range.
+        ///
+        /// For "sentence" queries the entire containing paragraph is returned
+        /// so the model can quote the exact sentence verbatim from the Text
+        /// field — far more reliable than asking the model to recall it.
+        /// </summary>
+        private string TryPreFetchParagraphContext(string userMessage)
+        {
+            if (string.IsNullOrWhiteSpace(userMessage)) return null;
+
+            var match = ParagraphRequestRegex.Match(userMessage);
+            if (!match.Success) match = ParagraphRequestRegexAlt.Match(userMessage);
+            if (!match.Success) return null;
+
+            int chapterSeq = ParseNumberToken(match.Groups["chap"].Value);
+            if (chapterSeq <= 0) return null;
+
+            IReadOnlyList<ChapterDto> chapters;
+            try { chapters = _query.ListChapters(); }
+            catch { return null; }
+            if (chapters == null || chapters.Count == 0) return null;
+
+            var chapter = chapters.FirstOrDefault(c => c.Sequence == chapterSeq);
+            if (chapter == null) return null;
+            if (chapter.ParagraphCount <= 0) return null;
+
+            string whichToken = match.Groups["which"].Value;
+            string unit = match.Groups["unit"].Value;
+            int paragraphIndex;
+            if (whichToken.Equals("last", StringComparison.OrdinalIgnoreCase) ||
+                whichToken.Equals("final", StringComparison.OrdinalIgnoreCase))
+            {
+                paragraphIndex = chapter.ParagraphCount;
+            }
+            else if (whichToken.Equals("first", StringComparison.OrdinalIgnoreCase))
+            {
+                paragraphIndex = 1;
+            }
+            else
+            {
+                paragraphIndex = ParseNumberToken(whichToken);
+                // For "first/last sentence" the unit-aware logic above already
+                // chose the right paragraph; for "Nth sentence" we still need a
+                // paragraph to look at and the user did not specify one — fall
+                // back to the first paragraph as a best-effort hint to the model.
+                if (paragraphIndex <= 0 && string.Equals(unit, "sentence", StringComparison.OrdinalIgnoreCase))
+                {
+                    paragraphIndex = 1;
+                }
+            }
+            if (paragraphIndex <= 0 || paragraphIndex > chapter.ParagraphCount) return null;
+
+            ParagraphTextDto text;
+            try { text = _query.GetParagraphText(chapter.Name, paragraphIndex); }
+            catch { return null; }
+            if (text == null) return null;
+
+            var payload = new
+            {
+                source = "GetParagraphText",
+                chapter = chapter.Name,
+                chapterSequence = chapter.Sequence,
+                paragraphIndex,
+                paragraphCount = chapter.ParagraphCount,
+                text.Text,
+                text.Location,
+                text.Timeline,
+                text.Characters
+            };
+            return JsonConvert.SerializeObject(payload, Formatting.Indented);
+        }
+
+        private static int ParseNumberToken(string token)
+        {
+            if (string.IsNullOrWhiteSpace(token)) return 0;
+            if (int.TryParse(token, out var n)) return n;
+            return WordToNumber.TryGetValue(token, out var v) ? v : 0;
+        }
 
         private static ToolCall ExtractToolCall(string text)
         {
