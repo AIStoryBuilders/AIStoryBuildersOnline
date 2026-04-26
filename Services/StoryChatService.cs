@@ -43,6 +43,19 @@ namespace AIStoryBuilders.Services
         private const int MaxToolIterations = 4;
 
         /// <summary>
+        /// Highly visible banner shown after any successful mutation, telling
+        /// the user to click the <em>Re-load Story</em> button so the change
+        /// is reflected in the story view. Rendered as a Markdown blockquote
+        /// with a bold heading and rule lines so it stands out clearly from
+        /// the model's prose.
+        /// </summary>
+        private const string ReloadNoticeBanner =
+            "\n\n---\n\n" +
+            "> ### Action required\n" +
+            "> **Click the \"Re-load Story\" button on the Details tab** to see the changes you just made reflected in the story.\n\n" +
+            "---\n\n";
+
+        /// <summary>
         /// Records a mutation tool that was called in preview mode
         /// (<c>confirmed=false</c>) and returned a successful preview.
         /// When the user's next message is an affirmative such as "yes",
@@ -146,6 +159,7 @@ namespace AIStoryBuilders.Services
             // confirmed=true ourselves. This guarantees the change is actually
             // applied and the reload notice is shown, regardless of whether
             // the model remembers to re-emit the tool call.
+            bool reloadNoticeYielded = false;
             if (IsAffirmative(userMessage) && _pendingPreviews.TryRemove(sessionId, out var pending))
             {
                 var confirmedArgs = new Dictionary<string, object>(pending.Args ?? new Dictionary<string, object>())
@@ -157,6 +171,11 @@ namespace AIStoryBuilders.Services
                 if (!LooksLikeToolError(confirmResult))
                 {
                     appliedAnyUpdate = true;
+                    // Emit the reload notice up-front so the user cannot miss it,
+                    // before the model produces its (often verbose) acknowledgement.
+                    yield return ReloadNoticeBanner;
+                    finalSoFar += ReloadNoticeBanner;
+                    reloadNoticeYielded = true;
                 }
                 // Inject the executed mutation as a synthetic assistant tool call
                 // + tool result so the model sees a coherent transcript and can
@@ -213,11 +232,10 @@ namespace AIStoryBuilders.Services
                 yield return "\n\n";
             }
 
-            if (appliedAnyUpdate)
+            if (appliedAnyUpdate && !reloadNoticeYielded)
             {
-                const string reloadNotice = "\n\n> **Changes applied.** Click the **Re-load Story** button on the Details tab to see the updates reflected in the story.";
-                finalSoFar += reloadNotice;
-                yield return reloadNotice;
+                finalSoFar += ReloadNoticeBanner;
+                yield return ReloadNoticeBanner;
             }
 
             session.Messages.Add(new ChatDisplayMessage { Role = "assistant", Content = finalSoFar });
