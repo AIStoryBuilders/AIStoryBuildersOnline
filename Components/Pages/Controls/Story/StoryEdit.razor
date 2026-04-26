@@ -282,23 +282,49 @@ else // Existing Story
 
     protected async Task ExportToWord()
     {
-        string ExportFileName = $"{objStory.Title}_{DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss")}.docx";
+        try
+        {
+            string ExportFileName = $"{objStory.Title}_{DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss")}.docx";
 
-        var DocumentContents = await AIStoryBuildersService.ExportWordDocument(objStory);
+            var DocumentContents = await AIStoryBuildersService.ExportWordDocument(objStory);
 
-        var stream = new MemoryStream(DocumentContents);
-
-        using var streamRef = new DotNetStreamReference(stream: stream);
-
-        await JsRuntime.InvokeVoidAsync("saveAsFile", ExportFileName, streamRef);
-
-        NotificationService.Notify(new NotificationMessage
+            if (DocumentContents == null || DocumentContents.Length == 0)
             {
-                Severity = NotificationSeverity.Success,
-                Summary = "Saved",
-                Detail = $"The file was saved successfully.",
-                Duration = 4000
-            });
+                NotificationService.Notify(new NotificationMessage
+                    {
+                        Severity = NotificationSeverity.Error,
+                        Summary = "Export failed",
+                        Detail = "Unable to generate the Word document.",
+                        Duration = 6000
+                    });
+                return;
+            }
+
+            var stream = new MemoryStream(DocumentContents);
+
+            using var streamRef = new DotNetStreamReference(stream: stream);
+
+            await JsRuntime.InvokeVoidAsync("saveAsFile", ExportFileName, streamRef);
+
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Saved",
+                    Detail = $"The file was saved successfully.",
+                    Duration = 4000
+                });
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Export failed",
+                    Detail = ex.Message,
+                    Duration = 6000
+                });
+            await LogService.WriteToLogAsync("ExportToWord: " + ex.Message);
+        }
     }
 
     protected async Task ExportProject()

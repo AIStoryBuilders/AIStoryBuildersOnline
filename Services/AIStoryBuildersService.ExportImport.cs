@@ -114,7 +114,7 @@ namespace AIStoryBuilders.Services
                         foreach (var objParagraph in colParagraphs)
                         {
                             // Break up objParagraph.ParagraphContent by \n
-                            string[] sections = objParagraph.ParagraphContent.Split('\n');
+                            string[] sections = (objParagraph.ParagraphContent ?? string.Empty).Split('\n');
 
                             // Create a new paragraph for each line
                             foreach (string section in sections)
@@ -140,9 +140,9 @@ namespace AIStoryBuilders.Services
             catch (Exception ex)
             {
                 // Log error
-                await LogService.WriteToLogAsync("ExportWordDocument: " + ex.Message + " " + ex.StackTrace ?? "" + " " + ex.InnerException.StackTrace ?? "");
+                await LogService.WriteToLogAsync("ExportWordDocument: " + ex.Message + " " + (ex.StackTrace ?? "") + " " + (ex.InnerException?.Message ?? "") + " " + (ex.InnerException?.StackTrace ?? ""));
 
-                return null;
+                throw;
             }
         }
         #endregion
