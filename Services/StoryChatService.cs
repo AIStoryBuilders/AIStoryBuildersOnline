@@ -200,6 +200,7 @@ namespace AIStoryBuilders.Services
             bool isAffirmative = IsAffirmative(userMessage);
             bool hasPending = _pendingPreviews.ContainsKey(sessionId);
             bool autoConfirmApplied = false;
+            bool previewEmitted = false;
             await _log.WriteToLogAsync($"ChatTurn session={sessionId} user='{Truncate(userMessage, 60)}' affirmative={isAffirmative} pendingPreview={hasPending}");
 
             if (isAffirmative && _pendingPreviews.TryRemove(sessionId, out var pending))
@@ -277,6 +278,21 @@ namespace AIStoryBuilders.Services
                     continue;
                 }
 
+                // If the model already produced a successful mutation preview
+                // earlier in this same turn, refuse to re-run another preview
+                // (or any mutation). The model otherwise loops, emitting two
+                // or three near-identical "Would you like me to confirm"
+                // blocks before the user can answer.
+                if (previewEmitted && isMutation)
+                {
+                    await _log.WriteToLogAsync($"ChatTurn blocked duplicate preview/mutation {toolCall.Name} confirmed={isConfirmed}");
+                    messages.Add(new ChatMessage(ChatRole.Assistant, assistantText));
+                    messages.Add(new ChatMessage(ChatRole.User,
+                        $"A preview for this change was ALREADY shown earlier in this turn. The {toolCall.Name} tool call was IGNORED. Stop calling tools. Wait for the user to reply 'yes' to confirm. Do not produce another preview or another tool block in this turn."));
+                    yield return "\n\n";
+                    continue;
+                }
+
                 string toolResult = await InvokeToolAsync(toolCall.Name, toolCall.Args);
                 bool isError = LooksLikeToolError(toolResult);
                 if (isMutation && isConfirmed && !isError)
@@ -303,14 +319,25 @@ namespace AIStoryBuilders.Services
                         ToolName = toolCall.Name,
                         Args = new Dictionary<string, object>(toolCall.Args ?? new Dictionary<string, object>())
                     };
+                    previewEmitted = true;
                     await _log.WriteToLogAsync($"ChatTurn stored pending preview {toolCall.Name} for session={sessionId}");
                 }
                 await _log.WriteToLogAsync($"ChatTool {toolCall.Name} args={TruncateArgsForLog(toolCall.Args)} result_len={toolResult?.Length ?? 0} isMutation={isMutation} isConfirmed={isConfirmed} isError={isError}");
 
                 messages.Add(new ChatMessage(ChatRole.Assistant, assistantText));
-                string continuation = (isMutation && isConfirmed && isError)
-                    ? $"Tool result for {toolCall.Name} (THIS MUTATION FAILED):\n```json\n{toolResult}\n```\nIMPORTANT: the change was NOT applied. Tell the user clearly that the operation failed and quote the error message. DO NOT claim success. DO NOT say 'I've added' or 'I've updated'. Do not call more tools."
-                    : $"Tool result for {toolCall.Name}:\n```json\n{toolResult}\n```\nPlease continue the response for the user based on this data.";
+                string continuation;
+                if (isMutation && isConfirmed && isError)
+                {
+                    continuation = $"Tool result for {toolCall.Name} (THIS MUTATION FAILED):\n```json\n{toolResult}\n```\nIMPORTANT: the change was NOT applied. Tell the user clearly that the operation failed and quote the error message. DO NOT claim success. DO NOT say 'I've added' or 'I've updated'. Do not call more tools.";
+                }
+                else if (isMutation && !isConfirmed && !isError)
+                {
+                    continuation = $"Tool result for {toolCall.Name}:\n```json\n{toolResult}\n```\nThis is a PREVIEW only — nothing has been changed yet. In ONE short paragraph (no bullet lists, no repetition), summarize what will be added/changed and ask the user to reply 'yes' to confirm. Do NOT call this tool again. Do NOT emit another tool block. Stop after the confirmation question.";
+                }
+                else
+                {
+                    continuation = $"Tool result for {toolCall.Name}:\n```json\n{toolResult}\n```\nPlease continue the response for the user based on this data.";
+                }
                 messages.Add(new ChatMessage(ChatRole.User, continuation));
                 yield return "\n\n";
             }
