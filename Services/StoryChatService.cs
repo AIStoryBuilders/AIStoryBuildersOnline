@@ -157,18 +157,10 @@ namespace AIStoryBuilders.Services
                 // Send the assistant's tool-call turn back so the model has its own
                 // context, then deliver the tool result as authoritative ground
                 // truth (Tool role where supported, fallback to User).
-                //
-                // CRITICAL: only re-inject the tool fence itself, NOT the surrounding
-                // draft prose. If we replay the full draft (which often contains a
-                // pre-tool guess such as a hallucinated paragraph quote) the model
-                // will faithfully re-emit that guess in the next iteration before
-                // stating the real tool-backed answer, producing two contradictory
-                // quotes in one bubble.
-                var toolFenceOnly = ExtractToolFenceOnly(assistantText) ?? assistantText;
-                messages.Add(new ChatMessage(ChatRole.Assistant, toolFenceOnly));
+                messages.Add(new ChatMessage(ChatRole.Assistant, assistantText));
                 messages.Add(new ChatMessage(
                     ChatRole.Tool,
-                    $"Tool result for {toolCall.Name} (authoritative — use this verbatim, do not paraphrase from memory):\n```json\n{toolResult}\n```\nNow produce the final user-facing answer based ONLY on this tool result. Do not apologise. Do not restate earlier guesses. Do not include any prose you may have written before the tool call."));
+                    $"Tool result for {toolCall.Name} (authoritative — use this verbatim, do not paraphrase from memory):\n```json\n{toolResult}\n```\nNow produce the final user-facing answer based ONLY on this tool result. Do not apologise. Do not restate earlier guesses."));
             }
 
             if (appliedAnyUpdate)
@@ -338,20 +330,6 @@ namespace AIStoryBuilders.Services
 
         private static readonly Regex ToolBlockRegex = new(
             @"```tool\s*([\s\S]*?)```", RegexOptions.IgnoreCase);
-
-        /// <summary>
-        /// Returns only the <c>```tool …```</c> fenced block from the supplied
-        /// assistant text, with all surrounding draft prose stripped. Used when
-        /// re-injecting the assistant's tool-call turn into the message history,
-        /// so the model cannot re-read its own pre-tool guesses and faithfully
-        /// echo them in the next iteration's answer.
-        /// </summary>
-        private static string ExtractToolFenceOnly(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text)) return null;
-            var m = ToolBlockRegex.Match(text);
-            return m.Success ? m.Value : null;
-        }
 
         private static ToolCall ExtractToolCall(string text)
         {
