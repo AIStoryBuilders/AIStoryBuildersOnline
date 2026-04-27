@@ -8,7 +8,7 @@
 
 #
 
-[Website](https://aistorybuilders.com/) / [Documentation](https://documentation.aistorybuilders.com/) / [github.com/AIStoryBuilders/AIStoryBuilders](https://github.com/AIStoryBuilders/AIStoryBuilders)
+[Website](https://aistorybuilders.com/) / * [Documentation](https://github.com/AIStoryBuilders/AIStoryBuilders/wiki) / [github.com/AIStoryBuilders/AIStoryBuilders](https://github.com/AIStoryBuilders/AIStoryBuilders)
 
 #
 
