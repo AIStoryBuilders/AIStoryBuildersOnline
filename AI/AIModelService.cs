@@ -66,7 +66,7 @@ namespace AIStoryBuilders.AI
                 {
                     "OpenAI" => await FetchFromOpenAI(apiKey),
                     "Azure OpenAI" => await FetchFromAzure(apiKey, endpoint),
-                    "Anthropic" => GetAnthropicModels(),
+                    "Anthropic" => await FetchFromAnthropic(apiKey),
                     "Google AI" => await FetchFromGoogle(apiKey),
                     _ => GetDefaultModels(aiType)
                 };
@@ -117,7 +117,7 @@ namespace AIStoryBuilders.AI
 
         private List<string> GetAnthropicModels()
         {
-            // Anthropic doesn't have a public model listing API — return known models
+            // Fallback list used when the Anthropic models API can't be reached.
             return new List<string>
             {
                 "claude-sonnet-4-20250514",
@@ -128,12 +128,62 @@ namespace AIStoryBuilders.AI
             };
         }
 
+        private async Task<List<string>> FetchFromAnthropic(string apiKey)
+        {
+            try
+            {
+                var models = new List<string>();
+                string url = "https://api.anthropic.com/v1/models?limit=1000";
+
+                // Page through results in case there are more than the page size.
+                while (!string.IsNullOrEmpty(url))
+                {
+                    var request = new HttpRequestMessage(HttpMethod.Get, url);
+                    request.Headers.TryAddWithoutValidation("x-api-key", apiKey);
+                    request.Headers.TryAddWithoutValidation("anthropic-version", "2023-06-01");
+                    request.Headers.TryAddWithoutValidation("anthropic-dangerous-direct-browser-access", "true");
+
+                    var response = await _httpClient.SendAsync(request);
+                    if (!response.IsSuccessStatusCode)
+                        return models.Count > 0 ? models : GetAnthropicModels();
+
+                    var content = await response.Content.ReadAsStringAsync();
+                    var json = Newtonsoft.Json.Linq.JObject.Parse(content);
+
+                    if (json["data"] is Newtonsoft.Json.Linq.JArray data)
+                    {
+                        foreach (var model in data)
+                        {
+                            var id = model["id"]?.ToString();
+                            if (!string.IsNullOrEmpty(id))
+                                models.Add(id);
+                        }
+                    }
+
+                    var hasMore = json["has_more"]?.ToObject<bool>() ?? false;
+                    var lastId = json["last_id"]?.ToString();
+                    if (hasMore && !string.IsNullOrEmpty(lastId))
+                        url = $"https://api.anthropic.com/v1/models?limit=1000&after_id={Uri.EscapeDataString(lastId)}";
+                    else
+                        url = null;
+                }
+
+                // De-duplicate and sort newest-first (Anthropic IDs sort reasonably alphabetically; reverse for newest first).
+                models = models.Distinct().OrderByDescending(m => m, StringComparer.Ordinal).ToList();
+                return models.Count > 0 ? models : GetAnthropicModels();
+            }
+            catch
+            {
+                return GetAnthropicModels();
+            }
+        }
+
         private async Task<List<string>> FetchFromGoogle(string apiKey)
         {
             try
             {
                 var request = new HttpRequestMessage(HttpMethod.Get,
-                    $"https://generativelanguage.googleapis.com/v1/models?key={apiKey}");
+                    $"https://generativelanguage.googleapis.com/v1beta/models?key={apiKey}&pageSize=200");
 
                 var response = await _httpClient.SendAsync(request);
                 if (!response.IsSuccessStatusCode)
@@ -170,7 +220,7 @@ namespace AIStoryBuilders.AI
             }
         }
 
-        private List<string> GetDefaultModels(string aiType)
+        public List<string> GetDefaultModels(string aiType)
         {
             return aiType switch
             {

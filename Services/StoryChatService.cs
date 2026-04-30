@@ -242,9 +242,8 @@ namespace AIStoryBuilders.Services
             {
                 var assistantChunks = new StringBuilder();
 
-                await foreach (var update in _client.GetStreamingResponseAsync(messages))
+                await foreach (var text in StreamWithGeminiResilienceAsync(messages))
                 {
-                    var text = update?.Text;
                     if (string.IsNullOrEmpty(text)) continue;
                     assistantChunks.Append(text);
                     yield return text;
@@ -415,6 +414,88 @@ namespace AIStoryBuilders.Services
             }
             catch { }
             return false;
+        }
+
+        private async IAsyncEnumerable<string> StreamWithGeminiResilienceAsync(
+            List<ChatMessage> messages,
+            [EnumeratorCancellation] System.Threading.CancellationToken cancellationToken = default)
+        {
+            var aiType = _orchestrator.SettingsService.AIType;
+            var modelId = _orchestrator.SettingsService.AIModel;
+            var options = ChatOptionsFactory.CreateTextOptions(aiType, modelId);
+
+            // First attempt — buffer until first chunk so we can safely retry
+            // on exception without producing partial duplicate output.
+            string firstChunk = null;
+            Exception firstError = null;
+            IAsyncEnumerator<ChatResponseUpdate> enumerator = null;
+            try
+            {
+                enumerator = _client.GetStreamingResponseAsync(messages, options, cancellationToken).GetAsyncEnumerator(cancellationToken);
+                try
+                {
+                    if (await enumerator.MoveNextAsync())
+                    {
+                        firstChunk = enumerator.Current?.Text;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    firstError = ex;
+                }
+            }
+            catch (Exception ex)
+            {
+                firstError = ex;
+            }
+
+            if (firstError != null)
+            {
+                if (enumerator != null) await enumerator.DisposeAsync();
+                await _log.WriteToLogAsync($"LLM call failed before first chunk. AIType={aiType} Model={modelId} Error={firstError.Message}");
+
+                if (AICapabilities.IsGemini(aiType))
+                {
+                    await _log.WriteToLogAsync($"Gemini call failed. Retrying once. Model={modelId}");
+                    ChatResponse retryResponse = null;
+                    Exception retryError = null;
+                    try
+                    {
+                        retryResponse = await _client.GetResponseAsync(messages, options, cancellationToken);
+                    }
+                    catch (Exception ex2)
+                    {
+                        retryError = ex2;
+                    }
+                    if (retryError != null)
+                    {
+                        await _log.WriteToLogAsync($"Gemini retry also failed. Model={modelId} Error={retryError.Message}");
+                        yield return $"\n\n_(The model returned an error: {retryError.Message})_\n";
+                        yield break;
+                    }
+                    var t = retryResponse?.Messages?.FirstOrDefault()?.Text;
+                    if (!string.IsNullOrEmpty(t)) yield return t;
+                    yield break;
+                }
+
+                yield return $"\n\n_(The model returned an error: {firstError.Message})_\n";
+                yield break;
+            }
+
+            if (!string.IsNullOrEmpty(firstChunk)) yield return firstChunk;
+
+            try
+            {
+                while (await enumerator.MoveNextAsync())
+                {
+                    var t = enumerator.Current?.Text;
+                    if (!string.IsNullOrEmpty(t)) yield return t;
+                }
+            }
+            finally
+            {
+                await enumerator.DisposeAsync();
+            }
         }
 
         private List<ChatMessage> BuildMessages(string systemPrompt, ConversationSession session)

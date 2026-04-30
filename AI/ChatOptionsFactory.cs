@@ -7,12 +7,6 @@ namespace AIStoryBuilders.AI
     /// </summary>
     public static class ChatOptionsFactory
     {
-        private static bool SupportsExplicitTemperature(string model)
-        {
-            return !string.IsNullOrWhiteSpace(model)
-                && !model.StartsWith("gpt-5", StringComparison.OrdinalIgnoreCase);
-        }
-
         /// <summary>
         /// Creates ChatOptions configured for JSON response format, appropriate for the given AI provider.
         /// </summary>
@@ -26,7 +20,7 @@ namespace AIStoryBuilders.AI
                 PresencePenalty = 0.0f,
             };
 
-            if (SupportsExplicitTemperature(model))
+            if (AICapabilities.SupportsCustomTemperature(model))
             {
                 options.Temperature = 0.0f;
             }
@@ -62,9 +56,35 @@ namespace AIStoryBuilders.AI
                 PresencePenalty = 0.0f,
             };
 
-            if (SupportsExplicitTemperature(model))
+            if (AICapabilities.SupportsCustomTemperature(model))
             {
                 options.Temperature = 0.0f;
+            }
+
+            return options;
+        }
+
+        /// <summary>
+        /// Creates ChatOptions for native tool-calling. For Gemini, parameter
+        /// schemas are rebuilt into the minimal subset the Gemini validator
+        /// accepts (see <see cref="GeminiToolSanitizer"/>).
+        /// </summary>
+        public static ChatOptions CreateToolOptions(string aiType, string model, IList<AITool> tools)
+        {
+            var safeTools = AICapabilities.IsGemini(aiType)
+                ? GeminiToolSanitizer.SanitizeForGemini(tools)
+                : tools;
+
+            var options = new ChatOptions
+            {
+                ModelId = model,
+                Tools = safeTools,
+                TopP = 1.0f
+            };
+
+            if (AICapabilities.SupportsCustomTemperature(model))
+            {
+                options.Temperature = 0.7f;
             }
 
             return options;

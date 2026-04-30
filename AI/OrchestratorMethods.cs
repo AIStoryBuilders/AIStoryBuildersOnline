@@ -101,7 +101,7 @@ namespace AIStoryBuilders.AI
                     return new AnthropicChatClient(ApiKey, AIModel);
 
                 case "Google AI":
-                    return new GoogleAIChatClient(ApiKey, AIModel);
+                    return new GoogleAIChatClient(ApiKey, AIModel, HttpClient);
 
                 default:
                     throw new InvalidOperationException($"Unsupported AI type: {SettingsService.AIType}");

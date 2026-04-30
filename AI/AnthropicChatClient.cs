@@ -88,10 +88,15 @@ namespace AIStoryBuilders.AI
                 requestBody["system"] = systemText;
             }
 
-            if (options?.Temperature.HasValue == true)
+            // Anthropic rejects requests that specify both temperature and top_p,
+            // and on newer Claude models (e.g. claude-opus-4-x) both parameters
+            // are deprecated. Only forward temperature when the model still
+            // accepts it; never forward top_p.
+            if (options?.Temperature.HasValue == true
+                && AICapabilities.AnthropicSupportsTemperature(_modelId))
+            {
                 requestBody["temperature"] = options.Temperature.Value;
-            if (options?.TopP.HasValue == true)
-                requestBody["top_p"] = options.TopP.Value;
+            }
 
             var json = JsonSerializer.Serialize(requestBody);
             var request = new HttpRequestMessage(HttpMethod.Post, ApiUrl)

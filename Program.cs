@@ -20,7 +20,7 @@ namespace AIStoryBuildersOnline
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
             // Add services to the container.
-            AppMetadata appMetadata = new AppMetadata() { Version = "03.50.00" };
+            AppMetadata appMetadata = new AppMetadata() { Version = "03.60.00" };
             builder.Services.AddSingleton(appMetadata);
 
             builder.Services.AddScoped<LogService>();
@@ -34,6 +34,7 @@ namespace AIStoryBuildersOnline
             builder.Services.AddSingleton<PromptTemplateService>();
             builder.Services.AddSingleton<TokenEstimator>();
             builder.Services.AddScoped<BrowserEmbeddingGenerator>();
+            builder.Services.AddScoped<AIModelService>();
 
             // Knowledge Graph services
             builder.Services.AddScoped<IGraphBuilder, GraphBuilder>();
